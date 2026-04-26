@@ -1,0 +1,88 @@
+name: publish-inference
+
+# Publishes the FlatClaw inference image to ghcr.io.
+#
+# Why this lives here (not a local docker build):
+#   - lmsysorg/sglang:dev is ~16 GB compressed / ~40 GB uncompressed.
+#   - Northflank's build tier can't extract it (overlayfs scratch exhaustion).
+#   - Developer laptops on residential bandwidth push at ~20 Mbps → 2h+ push.
+#   - GitHub Actions runs DockerHub → GHCR server-to-server → 5–10 min end-to-end.
+#
+# The image itself is almost all base: we only add entrypoint.sh and set ENV +
+# ENTRYPOINT. `crane mutate` streams blobs registry-to-registry without
+# materializing the extracted image anywhere — fits easily in a free-tier
+# runner's disk budget.
+
+on:
+  workflow_dispatch:
+    inputs:
+      sglang_tag:
+        description: "lmsysorg/sglang tag to base on"
+        default: "dev"
+      image_tag:
+        description: "Destination tag to publish as"
+        default: "latest"
+  push:
+    branches: [main]
+    paths:
+      - "infra/inference/entrypoint.sh"
+      - "infra/inference/Dockerfile"
+      - ".github/workflows/publish-inference.yml"
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      SGLANG_TAG: ${{ inputs.sglang_tag || 'dev' }}
+      IMAGE_TAG:  ${{ inputs.image_tag || 'latest' }}
+      SRC: docker.io/lmsysorg/sglang
+      DST: ghcr.io/${{ github.repository_owner }}/flatclaw-inference
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install crane
+        env:
+          # Pinned to avoid rate-limiting on GH's unauthenticated releases API.
+          # Bump manually if a newer crane is needed.
+          CRANE_VER: v0.21.5
+        run: |
+          set -euo pipefail
+          curl -fsSL "https://github.com/google/go-containerregistry/releases/download/${CRANE_VER}/go-containerregistry_Linux_x86_64.tar.gz" \
+            | tar -xzC /usr/local/bin crane
+          crane version
+
+      - name: Login to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | crane auth login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Stage entrypoint layer
+        run: |
+          set -euo pipefail
+          mkdir -p layer/usr/local/bin
+          install -m 0755 infra/inference/entrypoint.sh layer/usr/local/bin/entrypoint.sh
+          tar -C layer -czf /tmp/entrypoint-layer.tgz usr
+          ls -la /tmp/entrypoint-layer.tgz
+
+      - name: Copy base + mutate + push
+        run: |
+          set -euo pipefail
+          echo "Source: ${SRC}:${SGLANG_TAG}"
+          echo "Dest:   ${DST}:${IMAGE_TAG}"
+          crane mutate \
+            "${SRC}:${SGLANG_TAG}" \
+            --append /tmp/entrypoint-layer.tgz \
+            --entrypoint /usr/local/bin/entrypoint.sh \
+            --env MODEL_DIR=/workspace/models \
+            --env GEMMA_DIR_NAME=gemma-4-31B-it \
+            --env PYTHONUNBUFFERED=1 \
+            --tag "${DST}:${IMAGE_TAG}"
+
+      - name: Summary
+        run: |
+          echo "### Published" >> "$GITHUB_STEP_SUMMARY"
+          echo "- \`${DST}:${IMAGE_TAG}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Base: \`${SRC}:${SGLANG_TAG}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Entrypoint: \`/usr/local/bin/entrypoint.sh\`" >> "$GITHUB_STEP_SUMMARY"

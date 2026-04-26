@@ -1,0 +1,11 @@
+# Build context is limited to infra/inference/ (via dockerWorkDir in
+# northflank.yaml). Only entrypoint.sh is COPY'd in — exclude everything else
+# so the context stays trivially small.
+.dockerignore
+Dockerfile
+README.md
+deploy.sh
+northflank.yaml
+_nf.py
+__pycache__/
+*.pyc

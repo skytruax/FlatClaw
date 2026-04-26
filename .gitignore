@@ -1,0 +1,64 @@
+# Node
+node_modules/
+.next/
+dist/
+build/
+*.tsbuildinfo
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfvars
+!*.tfvars.example
+.terraform.lock.hcl
+
+# Packer
+packer_cache/
+*.pkrvars.hcl
+manifest.json
+
+# SQLite / local data
+*.sqlite
+*.sqlite3
+*.db
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+FlatClaw.code-workspace
+.claude/
+
+# Cloud credentials — never commit
+.gcp/
+*-sa.json
+*-service-account.json
+
+# Branding drafts — kept locally for design reference, not in public repo
+branding/mark-A.svg
+branding/mark-B.svg
+branding/mark-C.svg
+branding/wordmark-A.svg
+branding/preview.html
+
+# Docs — fully ignored at any depth. Internal-only working notes.
+docs/
