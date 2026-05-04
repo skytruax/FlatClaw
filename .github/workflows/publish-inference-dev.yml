@@ -1,0 +1,85 @@
+name: publish-inference-dev
+
+# Publishes the FlatClaw dev-inference image to ghcr.io.
+#
+# Same pattern as `publish-inference.yml` (the prod 31B image): pull SGLang base
+# from DockerHub, append the dev entrypoint as a single layer via crane mutate,
+# push to GHCR. Server-to-server, no local Docker daemon, ~5–10 min wall-clock.
+#
+# The two pipelines are intentionally identical except for entrypoint contents
+# and destination repo, so dev and prod runtimes stay byte-for-byte aligned on
+# everything except the GEMMA_DIR_NAME default and the bf16-vs-fp8 quant flag.
+
+on:
+  workflow_dispatch:
+    inputs:
+      sglang_tag:
+        description: "lmsysorg/sglang tag to base on"
+        default: "dev"
+      image_tag:
+        description: "Destination tag to publish as"
+        default: "latest"
+  push:
+    branches: [main]
+    paths:
+      - "infra/inference-dev/entrypoint.sh"
+      - "infra/inference-dev/Dockerfile"
+      - ".github/workflows/publish-inference-dev.yml"
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      SGLANG_TAG: ${{ inputs.sglang_tag || 'dev' }}
+      IMAGE_TAG:  ${{ inputs.image_tag || 'latest' }}
+      SRC: docker.io/lmsysorg/sglang
+      DST: ghcr.io/${{ github.repository_owner }}/flatclaw-inference-dev
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install crane
+        env:
+          # Pinned to avoid rate-limiting on GH's unauthenticated releases API.
+          # Bump manually if a newer crane is needed.
+          CRANE_VER: v0.21.5
+        run: |
+          set -euo pipefail
+          curl -fsSL "https://github.com/google/go-containerregistry/releases/download/${CRANE_VER}/go-containerregistry_Linux_x86_64.tar.gz" \
+            | tar -xzC /usr/local/bin crane
+          crane version
+
+      - name: Login to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | crane auth login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Stage entrypoint layer
+        run: |
+          set -euo pipefail
+          mkdir -p layer/usr/local/bin
+          install -m 0755 infra/inference-dev/entrypoint.sh layer/usr/local/bin/entrypoint.sh
+          tar -C layer -czf /tmp/entrypoint-layer.tgz usr
+          ls -la /tmp/entrypoint-layer.tgz
+
+      - name: Copy base + mutate + push
+        run: |
+          set -euo pipefail
+          echo "Source: ${SRC}:${SGLANG_TAG}"
+          echo "Dest:   ${DST}:${IMAGE_TAG}"
+          crane mutate \
+            "${SRC}:${SGLANG_TAG}" \
+            --append /tmp/entrypoint-layer.tgz \
+            --entrypoint /usr/local/bin/entrypoint.sh \
+            --env MODEL_DIR=/workspace/models \
+            --env GEMMA_DIR_NAME=gemma-4-e4b-it \
+            --env PYTHONUNBUFFERED=1 \
+            --tag "${DST}:${IMAGE_TAG}"
+
+      - name: Summary
+        run: |
+          echo "### Published" >> "$GITHUB_STEP_SUMMARY"
+          echo "- \`${DST}:${IMAGE_TAG}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Base: \`${SRC}:${SGLANG_TAG}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Entrypoint: \`/usr/local/bin/entrypoint.sh\`" >> "$GITHUB_STEP_SUMMARY"
