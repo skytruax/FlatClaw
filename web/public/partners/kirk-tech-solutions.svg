@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 80" aria-label="Kirk Tech Solutions">
+  <!-- Placeholder logotype — replace with the official Kirk Tech Solutions
+       SVG/PNG when available. Set in a typographic mark using FlatClaw's
+       sage accent so the partner card looks coherent until the real asset
+       drops in. -->
+  <text x="20" y="48" font-family="Inter, system-ui, sans-serif" font-size="28" font-weight="700" fill="#46663b">
+    Kirk Tech
+  </text>
+  <text x="20" y="68" font-family="Inter, system-ui, sans-serif" font-size="13" font-weight="500" letter-spacing="2" fill="#7cba47">
+    SOLUTIONS
+  </text>
+</svg>

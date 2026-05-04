@@ -1,0 +1,67 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+@source "../app";
+@source "../components";
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * FlatClaw — warm green + gray palette.
+ * Mirrors the portal's tokens (portal/styles/tokens.css) so the marketing
+ * site reads as the same product. All values are HSL components so we can
+ * compose with Tailwind's hsl(var(--x)) utility.
+ * ───────────────────────────────────────────────────────────────────────── */
+
+:root {
+  --pal-white: 60 12% 99%;
+  --pal-offblack: 100 15% 10%;
+  --pal-lightgrey: 60 8% 88%;
+  --pal-midgreylight: 60 6% 70%;
+  --pal-midgreydark: 100 8% 38%;
+  --pal-highlight: 100 45% 60%;
+
+  --fc-bg-primary: 60 10% 98%;
+  --fc-bg-secondary: 60 10% 95%;
+  --fc-bg-tertiary: 60 8% 88%;
+  --fc-bg-soft: 60 10% 96%;
+  --fc-bg-surface: 0 0% 100%;
+  --fc-fg-primary: 100 18% 12%;
+  --fc-fg-secondary: 100 12% 32%;
+  --fc-fg-muted: 100 8% 50%;
+
+  --brand-primary: 100 25% 32%;        /* medium forest header */
+  --brand-accent: 100 45% 50%;         /* bright sage CTA */
+  --brand-accent-fg: 60 12% 99%;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-sans);
+  color: hsl(var(--fc-fg-primary));
+  background-color: hsl(var(--fc-bg-primary));
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--pal-lightgrey)) hsl(var(--fc-bg-primary));
+}
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: hsl(var(--fc-bg-primary)); }
+*::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--pal-lightgrey));
+  border-radius: 5px;
+  border: 2px solid hsl(var(--fc-bg-primary));
+}
+*::-webkit-scrollbar-thumb:hover { background-color: hsl(var(--pal-midgreylight)); }
+
+:focus-visible {
+  outline: 2px solid hsl(var(--brand-accent));
+  outline-offset: 2px;
+}
+
+::selection {
+  background: hsl(var(--pal-highlight) / 0.25);
+  color: hsl(var(--pal-offblack));
+}

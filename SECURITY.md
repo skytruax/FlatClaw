@@ -17,15 +17,14 @@ We aim to:
 ## Scope
 
 **In scope:**
-- This repository — Console, FlatClaw Memory, infra scripts, inference Dockerfile + entrypoint, branding assets, documentation.
+- This repository — Portal, web/, infra scripts, inference Dockerfile + entrypoint, branding assets, documentation.
 - The published GHCR image [`ghcr.io/skytruax/flatclaw-inference:latest`](https://github.com/skytruax/FlatClaw/pkgs/container/flatclaw-inference).
 
 **Out of scope** (please report upstream):
 - Upstream OpenClaw — [github.com/steipete/openclaw](https://github.com/steipete/openclaw)
-- Upstream openclaw-studio (this Console is forked from it) — [github.com/grp06/openclaw-studio](https://github.com/grp06/openclaw-studio)
 - Upstream SGLang — [github.com/sgl-project/sglang](https://github.com/sgl-project/sglang)
 - Gemma 4 model weights, distributed by Google under [Gemma Terms of Use](https://ai.google.dev/gemma/terms)
-- Northflank, Google Cloud Platform, or Kaggle — please use their respective vulnerability-reporting channels.
+- Northflank or Kaggle — please use their respective vulnerability-reporting channels.
 
 ## Supported versions
 
