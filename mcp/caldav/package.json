@@ -1,0 +1,29 @@
+{
+  "name": "caldav-mcp-server",
+  "version": "0.1.0",
+  "description": "FlatClaw mailbox-account MCP — CalDAV (calendar), CardDAV (contacts), IMAP (read), SMTP (send). Authenticates per-user via email-account password fetched through the FlatClaw portal's capability-token bridge.",
+  "main": "build/index.js",
+  "type": "module",
+  "bin": {
+    "caldav-mcp-server": "./build/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node build/index.js",
+    "dev": "tsc --watch"
+  },
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.6.0",
+    "imapflow": "^1.0.198",
+    "node-ical": "^0.20.1",
+    "nodemailer": "^6.9.16",
+    "tsdav": "^2.1.8",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "@types/nodemailer": "^6.4.17",
+    "typescript": "^5.7.2"
+  }
+}

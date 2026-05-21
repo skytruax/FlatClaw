@@ -78,6 +78,11 @@ jobs:
             --env MODEL_DIR=/workspace/models \
             --env GEMMA_DIR_NAME=gemma-4-31B-it \
             --env PYTHONUNBUFFERED=1 \
+            --label org.opencontainers.image.title="FlatClaw inference" \
+            --label org.opencontainers.image.description="FlatClaw inference image — SGLang base + entrypoint, no baked model weights. One public image every FlatClaw tenant pulls; weights load at runtime from the per-tenant Northflank volume. Pull and audit it; nothing tenant-specific lives in the image. https://flatclaw.org" \
+            --label org.opencontainers.image.source="https://github.com/skytruax/FlatClaw" \
+            --label org.opencontainers.image.url="https://flatclaw.org" \
+            --label org.opencontainers.image.licenses="Apache-2.0" \
             --tag "${DST}:${IMAGE_TAG}"
 
       - name: Summary

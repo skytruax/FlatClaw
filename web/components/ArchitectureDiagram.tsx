@@ -6,12 +6,12 @@
  */
 export function ArchitectureDiagram() {
   return (
-    <div className="rounded-2xl bg-[hsl(var(--fc-bg-surface))] ring-1 ring-[hsl(var(--fc-bg-tertiary))] p-6 md:p-10 shadow-sm">
-      <div className="text-[11px] font-semibold uppercase tracking-widest text-[hsl(var(--brand-primary))] mb-4">
+    <div className="rounded-2xl bg-[hsl(var(--fc-bg-surface))] ring-1 ring-[hsl(var(--fc-bg-tertiary))] p-4 sm:p-6 md:p-10 shadow-sm">
+      <div className="text-[11px] font-semibold uppercase tracking-widest text-[hsl(var(--brand-primary))] mb-4 break-words">
         Customer&apos;s Northflank project · one per tenant
       </div>
 
-      <div className="border-2 border-dashed border-[hsl(var(--brand-primary))/0.35] rounded-xl p-5 md:p-7 space-y-5">
+      <div className="border-2 border-dashed border-[hsl(var(--brand-primary))/0.35] rounded-xl p-3 sm:p-5 md:p-7 space-y-4 sm:space-y-5">
         <Tier
           label="Browser"
           accent
@@ -26,8 +26,7 @@ export function ArchitectureDiagram() {
               "Agents",
               "Approvals",
               "Cron",
-              "Skills",
-              "Docs",
+              "MCP services",
               "Memory",
               "Admin",
             ]}
@@ -37,26 +36,40 @@ export function ArchitectureDiagram() {
 
         <Tier
           label="OpenClaw Gateway"
-          subtitle="Agent runtime · sessions · tool dispatch · RBAC"
+          subtitle="Agent runtime · sessions · tool dispatch · RBAC enforced at every tool call"
         />
-        <Arrow label="local IPC / HTTP — skills bus" />
+        <Arrow label="MCP (per-agent, deny-glob scoped) · before_tool_call RBAC hook" />
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <ServiceCard title="Postgres" tag="optional" />
-          <ServiceCard title="RAGFlow" tag="docs in · cited answers" />
-          <ServiceCard
-            title="Skills"
-            tag="gmail · gdrive · scrapling · rag · memory · fs-paths"
-          />
+          <ServiceCard title="Google" tag="Gmail · Calendar · Drive · Docs · Sheets · Contacts" />
+          <ServiceCard title="CalDAV / IMAP" tag="calendar · contacts · mail" />
+          <ServiceCard title="Jira" tag="Atlassian Cloud" />
           <ServiceCard
             title="Sandbox"
-            tag="podman per-tool exec · scoped credentials"
+            tag="per-tool exec · per-user scoped credentials"
           />
         </div>
 
         <div className="text-[11px] text-[hsl(var(--fc-fg-muted))] italic px-1">
-          Per-agent memory lives inside each agent&apos;s workspace
-          (~/.openclaw/workspace-&lt;id&gt;/memory/) — managed by OpenClaw itself.
+          MCP services are first-party servers the agent calls over Model Context
+          Protocol; per-user credentials scoped per (tenant, user, service). The
+          gateway enforces RBAC two ways — roster-level isolation (each agent
+          sees only its own servers&apos; tools) and a{" "}
+          <code className="font-mono text-[hsl(var(--fc-fg-secondary))]">
+            before_tool_call
+          </code>{" "}
+          policy hook that gates every call by role / group and writes an audit
+          log.
+        </div>
+
+        <div className="text-[11px] text-[hsl(var(--fc-fg-muted))] italic px-1">
+          Per-agent memory uses OpenClaw&apos;s built-in per-agent SQLite engine —
+          keyword (BM25) search over each agent&apos;s{" "}
+          <code className="font-mono text-[hsl(var(--fc-fg-secondary))]">
+            MEMORY.md
+          </code>{" "}
+          + memory/ files. Semantic recall via bge-m3 (on its own GPU card) and
+          RAGFlow cited-document retrieval land in v0.3.
         </div>
 
         <Arrow label="internal Northflank network · TLS · bearer-authenticated" />
@@ -67,7 +80,7 @@ export function ArchitectureDiagram() {
           </div>
           <Tier
             label="Inference service"
-            subtitle="Patched SGLang · Gemma 4 31B · bge-m3 · NVIDIA H100 (80 GB · sm_90 · native FP8)"
+            subtitle="Patched SGLang · Gemma 4 31B-IT (FP8) · 256K context · NVIDIA H100 (80 GB · sm_90 · native FP8)"
           />
           <div className="mt-3 text-xs text-[hsl(var(--fc-fg-muted))]">
             Weights served by the in-project{" "}
@@ -119,19 +132,19 @@ function Tier({
           : "bg-[hsl(var(--fc-bg-soft))] ring-1 ring-[hsl(var(--fc-bg-tertiary))]")
       }
     >
-      <div className="flex items-baseline justify-between gap-3">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1 sm:gap-3">
+        <div className="min-w-0">
           <div className="font-semibold text-[hsl(var(--fc-fg-primary))]">
             {label}
           </div>
           {subtitle && (
-            <div className="text-xs text-[hsl(var(--fc-fg-muted))] mt-0.5">
+            <div className="text-xs text-[hsl(var(--fc-fg-muted))] mt-0.5 break-words">
               {subtitle}
             </div>
           )}
         </div>
         {aside && (
-          <div className="text-[11px] text-[hsl(var(--fc-fg-muted))] italic shrink-0">
+          <div className="text-[11px] text-[hsl(var(--fc-fg-muted))] italic sm:shrink-0">
             {aside}
           </div>
         )}
@@ -158,9 +171,9 @@ function BadgeRow({ items }: { items: string[] }) {
 
 function Arrow({ label }: { label: string }) {
   return (
-    <div className="flex items-center gap-3 pl-4">
-      <div className="w-px h-6 bg-[hsl(var(--fc-bg-tertiary))]" />
-      <span className="text-[10.5px] font-mono text-[hsl(var(--fc-fg-muted))]">
+    <div className="flex items-center gap-3 pl-2 sm:pl-4">
+      <div className="w-px h-6 bg-[hsl(var(--fc-bg-tertiary))] shrink-0" />
+      <span className="text-[10.5px] font-mono text-[hsl(var(--fc-fg-muted))] break-words min-w-0">
         ↓ {label}
       </span>
     </div>

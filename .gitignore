@@ -62,3 +62,10 @@ branding/preview.html
 
 # Docs — fully ignored at any depth. Internal-only working notes.
 docs/
+# Cloned openclaw upstream — for reference only, not part of this project.
+# Anchored to repo root so we don't accidentally ignore portal/lib/openclaw/.
+/openclaw/
+# cpanel MCP — a third-party fork (github.com/0xHayd3n/cPanel-MCP-Server) we
+# run locally but do NOT vendor or relicense into FlatClaw. Not part of the
+# public offering; kept out of the repo. (Run locally via FLATCLAW_CPANEL_MCP_ENTRY.)
+/mcp/cpanel/

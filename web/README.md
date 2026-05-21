@@ -30,7 +30,8 @@ npm run dev       # runs on :3001 (portal stays on :3000)
 ## Build for cPanel / any static host
 
 This site is configured for static export — `next build` writes plain
-HTML/CSS/JS to `out/`. No Node runtime required at runtime.
+HTML/CSS/JS to `out/`. No Node runtime required at runtime. `out/` is
+generated build output — gitignored, never committed; rebuild it from source.
 
 ```bash
 cd web

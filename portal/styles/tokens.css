@@ -1,0 +1,102 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+@source "../app";
+@source "../lib";
+@source "../components";
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Warm green + gray palette (light, airy).
+ *   Hue 95–110 = warm/yellow-leaning green (moss, sage). All greens here
+ *   trend lighter: header is medium forest, accent is bright sage.
+ *   Grays carry a small warm undertone so they sit naturally next to greens.
+ *   All values are HSL components (no hsl() wrapper) so we can compose with
+ *   Tailwind's hsl(var(--x)) utility.
+ * ───────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* Static / brand-fixed (don't switch with light/dark) */
+  --pal-white: 60 12% 99%;
+  --pal-offblack: 100 15% 10%;
+  --pal-lightgrey: 60 8% 88%;
+  --pal-midgreylight: 60 6% 70%;
+  --pal-midgreydark: 100 8% 38%;
+  --pal-highlight: 100 45% 60%;       /* selection + admin pill (lighter sage) */
+
+  /* Semantic — light mode */
+  --fc-bg-primary: 60 10% 98%;
+  --fc-bg-secondary: 60 10% 95%;
+  --fc-bg-tertiary: 60 8% 88%;
+  --fc-bg-soft: 60 10% 96%;
+  --fc-bg-surface: 0 0% 100%;
+  --fc-fg-primary: 100 18% 12%;
+  --fc-fg-secondary: 100 12% 32%;
+  --fc-fg-muted: 100 8% 50%;
+
+  /* White-label brand — lighter warm green */
+  --brand-primary: 100 25% 32%;          /* medium forest header */
+  --brand-accent: 100 45% 50%;           /* bright sage CTA */
+  --brand-accent-fg: 60 12% 99%;
+}
+
+html.dark {
+  --fc-bg-primary: 100 12% 7%;
+  --fc-bg-secondary: 100 10% 11%;
+  --fc-bg-tertiary: 100 8% 17%;
+  --fc-bg-soft: 100 10% 13%;
+  --fc-bg-surface: 100 12% 10%;
+  --fc-fg-primary: 60 12% 96%;
+  --fc-fg-secondary: 60 6% 78%;
+  --fc-fg-muted: 60 6% 56%;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  font-family: var(--font-sans);
+  background-color: hsl(var(--brand-primary));
+  color: hsl(var(--fc-fg-primary));
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--pal-lightgrey)) hsl(var(--fc-bg-primary));
+}
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: hsl(var(--fc-bg-primary)); border-radius: 5px; }
+*::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--pal-lightgrey));
+  border-radius: 5px;
+  border: 2px solid hsl(var(--fc-bg-primary));
+}
+*::-webkit-scrollbar-thumb:hover { background-color: hsl(var(--pal-midgreylight)); }
+*::-webkit-scrollbar-corner { background: hsl(var(--fc-bg-primary)); }
+
+html.dark * { scrollbar-color: hsl(var(--fc-bg-tertiary)) hsl(var(--fc-bg-secondary)); }
+html.dark *::-webkit-scrollbar-track { background: hsl(var(--fc-bg-secondary)); }
+html.dark *::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--fc-bg-tertiary));
+  border: 2px solid hsl(var(--fc-bg-secondary));
+}
+html.dark *::-webkit-scrollbar-thumb:hover { background-color: hsl(var(--fc-bg-soft)); }
+html.dark *::-webkit-scrollbar-corner { background: hsl(var(--fc-bg-secondary)); }
+
+:focus-visible {
+  outline: 2px solid hsl(var(--brand-accent));
+  outline-offset: 2px;
+}
+
+::selection {
+  background: hsl(var(--pal-highlight) / 0.25);
+  color: hsl(var(--pal-offblack));
+}
+
+html.dark ::selection {
+  background: hsl(var(--pal-highlight) / 0.35);
+  color: hsl(var(--pal-white));
+}

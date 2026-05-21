@@ -66,10 +66,9 @@ export default function HomePage() {
         title="Single-tenant. Customer-owned. End-to-end."
         lede={
           <>
-            Everything — Portal, OpenClaw Gateway, Inference (H100), RAGFlow,
-            and the weights-server — lives in one Northflank project. Customer
-            holds the Northflank account directly. Nothing leaves their
-            tenancy.
+            Everything — Portal, OpenClaw Gateway, Inference (H100), and the
+            weights-server — lives in one Northflank project. Customer holds the
+            Northflank account directly. Nothing leaves their tenancy.
           </>
         }
       >
@@ -79,8 +78,8 @@ export default function HomePage() {
       <Section
         id="cost"
         eyebrow="Token Economics"
-        title="≈ $2,000 / month per tenant. Sized for 20–30 SMB seats."
-        lede="Indicative monthly cost at Northflank's published list pricing, single tenant, prod held warm 24/7. The H100 dominates; everything else combined is under $200."
+        title="≈ $2,000 / month per tenant. Flat rate, not per token."
+        lede="Indicative monthly cost at Northflank's published list pricing, single tenant, prod held warm 24/7. The H100 dominates; everything else combined is under $200. The rate is per tenant and scales with the tenant — not metered per token or per seat."
       >
         <div className="grid lg:grid-cols-2 gap-8">
           <div className="bg-[hsl(var(--fc-bg-surface))] rounded-xl ring-1 ring-[hsl(var(--fc-bg-tertiary))] p-6 shadow-sm">
@@ -125,12 +124,12 @@ export default function HomePage() {
 
           <div className="space-y-3">
             <h3 className="font-semibold text-base text-[hsl(var(--fc-fg-primary))]">
-              Why one H100 supports 20–30 daily active users at an SMB
+              How one H100 carries a tenant — and how it scales
             </h3>
             {[
               {
-                k: "Steady-state concurrency is low.",
-                v: "A 25-DAU SMB doesn't have 25 people typing at once. Empirically, peak concurrent active sessions land around 5–8 — people skim a result, edit a doc, take a call, ask a follow-up. The H100 needs to serve that peak, not the whole DAU number.",
+                k: "Concurrency, not headcount, sets the load.",
+                v: "What the GPU serves is peak concurrent active sessions, not the tenant's total user count — people skim a result, edit a doc, take a call, ask a follow-up. The H100 is sized to that concurrent peak; the per-tenant rate doesn't move with seat count.",
               },
               {
                 k: "The 31B path handles 8–12 concurrent streams.",
@@ -138,15 +137,15 @@ export default function HomePage() {
               },
               {
                 k: "Most user actions don't touch the LLM at all.",
-                v: "Memory recall, RAG retrieval, file reads, OAuth tool invocations — all gateway- or skill-side. The LLM is invoked for chat turns and tool-call planning. A typical SMB-coworker session is 3–15 LLM calls, not hundreds.",
+                v: "Memory recall, RAG retrieval, file reads, OAuth tool invocations — all gateway- or skill-side. The LLM is invoked for chat turns and tool-call planning. A typical coworker session is a handful of LLM calls, not hundreds.",
               },
               {
-                k: "Headroom for occasional bursts.",
-                v: "Gemma 4 31B FP8 (~33 GB) + KV cache + bge-m3 fits in 80 GB with ~25 GB free. The v0.3 cascade lands a co-resident Gemma 4 4B FP8 in that headroom for fast-turn / planning traffic — same hardware, ~2× concurrent capacity.",
+                k: "Headroom for bursts, then a cascade.",
+                v: "Gemma 4 31B FP8 (~33 GB) + KV cache + bge-m3 fits in 80 GB with ~25 GB free. The v0.3 cascade lands a co-resident smaller Gemma in that headroom for fast-turn / planning traffic — same hardware, ~2× concurrent capacity.",
               },
               {
-                k: "Larger tenants step up the GPU plan, not the architecture.",
-                v: "Beyond ~30 DAU, the next step is a higher-tier Northflank GPU plan or a second inference service for triage. Same project, same architecture.",
+                k: "Tenants scale the GPU plan, not the architecture.",
+                v: "When a tenant outgrows one card, the next step is a higher-tier Northflank GPU plan or a multi-GPU node — or a second inference service for triage. Same project, same architecture, same per-tenant model.",
               },
             ].map(({ k, v }) => (
               <div
@@ -210,9 +209,9 @@ export default function HomePage() {
             ["Agent runtime", "OpenClaw — RBAC at every tool call · per-agent memory built in"],
             ["Frontend", "Next.js 16 + React 19 + TypeScript + SQLite"],
             ["Auth", "better-auth (v1) · WorkOS SSO (v2)"],
-            ["Retrieval", "RAGFlow — wrapped as an OpenClaw skill"],
-            ["Memory", "OpenClaw per-agent — agent-owned markdown under each workspace"],
-            ["Embeddings", "bge-m3 · multilingual · long-context · ~2 GB VRAM"],
+            ["Memory", "OpenClaw built-in per-agent SQLite — keyword search, seeded per agent"],
+            ["Retrieval", "RAGFlow — cited document answers (v0.3)"],
+            ["Embeddings (v0.3)", "bge-m3 — semantic memory + RAG, on its own GPU card"],
             ["Voice (v0.3)", "VoxCPM2 — open-weight cloning + TTS"],
             ["Image (v0.3)", "ComfyUI + SDXL"],
           ].map(([k, v]) => (

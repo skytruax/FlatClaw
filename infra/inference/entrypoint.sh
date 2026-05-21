@@ -16,10 +16,27 @@ set -euo pipefail
 
 : "${MODEL_DIR:=/workspace/models}"
 : "${PORT:=8000}"
-: "${MAX_CONTEXT:=32768}"
+# Default to 262144 (256k) — Gemma 4 31B's native context window. Was 32768
+# (a stale legacy value); the H100 80 GB envelope holds it cleanly because:
+#   - FP8 weights (~33 GB) + FP8 KV cache (~32 GB at 256k) = ~65 GB used
+#   - Headroom for prefill + a few concurrent requests = ~15 GB free
+# Override per-deployment via Northflank service env if you ever need to
+# host co-resident models on the same card.
+: "${MAX_CONTEXT:=262144}"
 : "${TP:=1}"
 : "${GEMMA_DIR_NAME:=gemma-4-31b-it}"
 : "${SGLANG_EXTRA_ARGS:=}"
+# FP8 KV cache halves memory cost vs FP16 KV. At 256k that's the difference
+# between fitting (~32 GB KV) and not fitting (~64 GB KV which would push us
+# over after weights). On Hopper sm_90 native FP8 is supported.
+#
+# We pick `fp8_e4m3` over `fp8_e5m2` because Triton's `tl.dot` kernel (which
+# SGLang's Gemma 4 attention falls back to on some hardware) only accepts
+# fp8_e4m3 as an rhs dtype — fp8_e5m2 throws "Unsupported rhs dtype fp8e5"
+# at launch (verified on L4 sm_89). e4m3 works on both Hopper (sm_90) and
+# Ada (sm_89). SGLang's accepted choices: auto, fp8_e5m2, fp8_e4m3, bf16,
+# bfloat16, fp4_e2m1 — `fp8` (no suffix) is NOT in that set.
+: "${KV_CACHE_DTYPE:=fp8_e4m3}"
 
 say() { printf '\n\033[36m[entrypoint] %s\033[0m\n' "$*"; }
 
@@ -57,6 +74,7 @@ exec python3 -m sglang.launch_server \
   --context-length "$MAX_CONTEXT" \
   --tp "$TP" \
   --quantization fp8 \
+  --kv-cache-dtype "$KV_CACHE_DTYPE" \
   --served-model-name "gemma-4-31b-it" \
   --tool-call-parser gemma4 \
   --reasoning-parser gemma4 \

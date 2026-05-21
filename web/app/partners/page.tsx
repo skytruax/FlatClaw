@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import { Section } from "@/components/Section";
-import { ExternalLink, Wrench, Plug, Boxes } from "lucide-react";
+import { ExternalLink, Wrench, Plug, Boxes, Megaphone } from "lucide-react";
+import { KIRK_PRESS_RELEASE_URL, KIRK_SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Partners",
@@ -27,6 +28,35 @@ export default function PartnersPage() {
           </p>
         </div>
       </div>
+
+      <Section eyebrow="Announcement" title="Kirk Tech Solutions launches FlatClaw">
+        <div className="bg-[hsl(var(--brand-primary))/0.06] rounded-2xl ring-1 ring-[hsl(var(--brand-primary))/0.25] p-6 md:p-8">
+          <div className="flex items-start gap-4">
+            <div className="shrink-0 w-10 h-10 rounded-full bg-[hsl(var(--brand-accent))] text-[hsl(var(--brand-accent-fg))] flex items-center justify-center">
+              <Megaphone className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-sm leading-relaxed text-[hsl(var(--fc-fg-secondary))]">
+                Kirk Tech Solutions has announced the launch of FlatClaw —
+                private, secure, single-tenant AI coworkers deployed inside
+                customers&apos; own private cloud. The release marks the first
+                wave of FlatClaw deployments, with Kirk Tech delivering the
+                integration, custom skills, and MCP services that turn the
+                open-source platform into a working coworker for each customer.
+              </p>
+              <a
+                href={KIRK_PRESS_RELEASE_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-4 inline-flex items-center gap-2 rounded-md ring-1 ring-[hsl(var(--brand-primary))/0.4] text-[hsl(var(--brand-primary))] px-4 py-2 text-sm font-medium hover:bg-[hsl(var(--brand-primary))/0.08] transition"
+              >
+                Read the press release
+                <ExternalLink className="w-4 h-4" />
+              </a>
+            </div>
+          </div>
+        </div>
+      </Section>
 
       <Section eyebrow="Featured partner" title="Kirk Tech Solutions">
         <div className="bg-[hsl(var(--fc-bg-surface))] rounded-2xl ring-1 ring-[hsl(var(--fc-bg-tertiary))] overflow-hidden shadow-sm">
@@ -80,7 +110,7 @@ export default function PartnersPage() {
 
               <div className="mt-7 flex items-center gap-3">
                 <a
-                  href="https://kirktechsolutions.com"
+                  href={KIRK_SITE_URL}
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex items-center gap-2 rounded-md bg-[hsl(var(--brand-accent))] text-[hsl(var(--brand-accent-fg))] px-5 py-2.5 font-semibold hover:brightness-110 transition"

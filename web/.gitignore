@@ -1,8 +1,10 @@
-node_modules/
-.next/
-out/
-*.log
-.env
-.env.local
+# Build output — regenerable via `npm run build`, deployed straight to the
+# static host. Not versioned.
+/out/
+/.next/
+
+# Dependencies
+/node_modules/
+
+# Env
 .env*.local
-.DS_Store

@@ -38,7 +38,7 @@ export function Section({
 
   return (
     <section id={id} className={`${bg} ${borderTop} scroll-mt-20`}>
-      <div className="mx-auto max-w-6xl px-5 py-16 md:py-20">
+      <div className="mx-auto max-w-6xl px-5 py-12 sm:py-16 md:py-20">
         {eyebrow && (
           <div
             className={`text-[11px] font-semibold uppercase tracking-widest ${eyebrowColor} mb-3`}
@@ -46,15 +46,17 @@ export function Section({
             {eyebrow}
           </div>
         )}
-        <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
+        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight">
           {title}
         </h2>
         {lede && (
-          <p className={`mt-4 text-lg max-w-3xl leading-relaxed ${ledeColor}`}>
+          <p
+            className={`mt-4 text-base md:text-lg max-w-3xl leading-relaxed ${ledeColor}`}
+          >
             {lede}
           </p>
         )}
-        <div className="mt-10">{children}</div>
+        <div className="mt-8 md:mt-10">{children}</div>
       </div>
     </section>
   );

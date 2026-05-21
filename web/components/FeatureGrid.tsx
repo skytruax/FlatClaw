@@ -13,7 +13,7 @@ const features = [
   {
     Icon: MessageSquare,
     title: "FlatClaw Portal",
-    body: "Next.js 16 + React 19 product surface. Chat, agent fleet, approvals, cron, skills, Docs (RAGFlow), Memory, Admin (RBAC). SSE-streamed tool use.",
+    body: "Next.js 16 + React 19 product surface. Chat, agent fleet, approvals, cron, MCP services, workspace files, Memory, Admin (RBAC). SSE-streamed tool use.",
   },
   {
     Icon: Workflow,
@@ -23,17 +23,17 @@ const features = [
   {
     Icon: Cpu,
     title: "Inference",
-    body: "Patched SGLang + Gemma 4 31B Dense + bge-m3 embedder, co-resident on a single NVIDIA H100 (80 GB, native FP8) on Northflank's managed GPU fleet.",
+    body: "Patched SGLang + Gemma 4 31B Dense on a single NVIDIA H100 (80 GB, native FP8) on Northflank's managed GPU fleet, served at the model's native 256K context.",
   },
   {
     Icon: Database,
     title: "Per-agent memory",
-    body: "OpenClaw's built-in memory module — each user's agent owns its own markdown memory under its workspace. The agent decides what to remember; admins can prompt updates via a subagent. No separate service.",
+    body: "OpenClaw's built-in per-agent SQLite memory — keyword (BM25) search over each agent's MEMORY.md and memory/ files, seeded automatically for every agent. The agent maintains it across sessions. Semantic recall via bge-m3 lands in v0.3.",
   },
   {
     Icon: Boxes,
-    title: "Skills library",
-    body: "OpenClaw skills bundle. Gmail, Drive, Scrapling, fs-paths, rag-search, CRM. Per-user OAuth credentials, never tenant-wide.",
+    title: "MCP services",
+    body: "First-party Model Context Protocol servers: Google (Gmail/Calendar/Drive/Docs/Sheets), CalDAV/IMAP, and Jira. Per-user credentials scoped (tenant, user, service), never tenant-wide.",
   },
   {
     Icon: ShieldCheck,
