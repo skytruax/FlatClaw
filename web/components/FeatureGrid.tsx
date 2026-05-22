@@ -38,7 +38,7 @@ const features = [
   {
     Icon: ShieldCheck,
     title: "RBAC + per-user creds",
-    body: "Multiple users per tenant, distinct roles, per-role skill policy matrix. Per-user OAuth tokens scoped (tenant, user, service).",
+    body: "Multiple users per tenant. Per-user Tool Access (allow/deny over built-in + MCP tools) on OpenClaw's native tools.deny, plus always-on cross-user isolation. Per-user credentials scoped (tenant, user, service).",
   },
   {
     Icon: Container,

@@ -7,14 +7,14 @@ const milestones = [
       "MCP service integrations — Google, CalDAV/IMAP, Jira, per-user credentials",
       "Matured Portal — streamed chat with token + compaction meter, sessions, workspace files, MCP services, Admin",
       "Per-agent memory — built-in SQLite keyword search, seeded for every agent",
-      "RBAC enforcement at the OpenClaw PreToolUse hook, with an audit log",
-      "One-command tenant provisioning — provision-tenant.sh / destroy-tenant.sh",
+      "Per-user Tool Access — admin allow/deny over built-in + connected-MCP tools via OpenClaw's native tools.deny, on top of always-on cross-user isolation",
     ],
   },
   {
     version: "v0.3",
     status: "Next",
     points: [
+      "One-command tenant provisioning — provision-tenant.sh / destroy-tenant.sh (full Northflank tenant lifecycle)",
       "RAGFlow — cited document retrieval behind a stable interface",
       "Semantic memory + embeddings via bge-m3 — on its own GPU card",
       "Scrapling web fetch + a first CRM connector, as MCP services",

@@ -38,7 +38,7 @@ export function ArchitectureDiagram() {
           label="OpenClaw Gateway"
           subtitle="Agent runtime · sessions · tool dispatch · RBAC enforced at every tool call"
         />
-        <Arrow label="MCP (per-agent, deny-glob scoped) · before_tool_call RBAC hook" />
+        <Arrow label="MCP (per-agent, deny-glob scoped) · per-user Tool Access (native tools.deny)" />
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <ServiceCard title="Google" tag="Gmail · Calendar · Drive · Docs · Sheets · Contacts" />
@@ -52,14 +52,15 @@ export function ArchitectureDiagram() {
 
         <div className="text-[11px] text-[hsl(var(--fc-fg-muted))] italic px-1">
           MCP services are first-party servers the agent calls over Model Context
-          Protocol; per-user credentials scoped per (tenant, user, service). The
-          gateway enforces RBAC two ways — roster-level isolation (each agent
-          sees only its own servers&apos; tools) and a{" "}
+          Protocol; per-user credentials scoped per (tenant, user, service). RBAC
+          is OpenClaw&apos;s native per-agent{" "}
           <code className="font-mono text-[hsl(var(--fc-fg-secondary))]">
-            before_tool_call
+            tools.deny
           </code>{" "}
-          policy hook that gates every call by role / group and writes an audit
-          log.
+          — always-on cross-user roster isolation (each agent sees only its own
+          servers&apos; tools) plus a per-user Tool Access panel that toggles
+          built-in and MCP tools off; denied tools are filtered from the roster
+          before the model sees them.
         </div>
 
         <div className="text-[11px] text-[hsl(var(--fc-fg-muted))] italic px-1">
