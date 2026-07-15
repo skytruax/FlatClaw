@@ -4,6 +4,7 @@ import "@/lib/openclaw/services"; // registers plugins
 import {
   listManagedMcpServices,
   isServiceEnabled,
+  getHiddenServices,
 } from "@/lib/openclaw/managed-mcp";
 import { readOauthAppStatus } from "@/lib/credentials/oauth-app";
 
@@ -26,7 +27,10 @@ export async function GET(
   if (session.user.role !== "admin" && session.user.id !== userId) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
-  const services = listManagedMcpServices();
+  // Services hidden from the connections UI (admin Settings page) are omitted
+  // here so a demo stays simple — visibility only, no effect on provisioning.
+  const hidden = await getHiddenServices();
+  const services = listManagedMcpServices().filter((s) => !hidden.has(s.service));
   const out = await Promise.all(
     services.map(async (svc) => {
       const [status, enabled, oauthApp] = await Promise.all([

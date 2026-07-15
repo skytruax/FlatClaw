@@ -4,11 +4,10 @@
  * generated barrel that imports each one for its registration side effect.
  *
  * Why codegen instead of a hardcoded import list or runtime fs-scan:
- *   - A deployment may ship only a subset of plugin files; private or
- *     customer-specific add-ons can exist only on a downstream branch's
- *     working tree. A hardcoded `import "./some-private.plugin"` in tracked
- *     code would break `next build` wherever that file is absent (module not
- *     found).
+ *   - The public branch (main) ships only the public plugin files; private
+ *     add-ons (e.g. acme-crm-demo.plugin.ts) exist only on the private branch's
+ *     working tree. A hardcoded `import "./acme-crm-demo.plugin"` in tracked
+ *     code would break `next build` on main (module not found).
  *   - A runtime fs-scan + dynamic import is fragile under Next's bundler.
  *   - Build-time codegen resolves the set deterministically from whatever
  *     plugin files are actually present, and the generated file is a plain

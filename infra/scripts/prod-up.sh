@@ -34,7 +34,7 @@
 #     1024-token window), so widening the window barely grows the pool. So: 256K *window*, ~113K fittable
 #     per request — openclaw's compaction reserve keeps turns under that.
 #   - openclaw side (step 4): agents.defaults.model=openai/gemma-4-31b-it, contextTokens=262144,
-#     thinkingDefault=medium, timeoutSeconds=600,
+#     thinkingDefault=medium, timeoutSeconds=1800,
 #     provider contextWindow=262144 + provider timeoutSeconds=600 (lifts the LLM idle watchdog to 600s).
 #
 # Idempotent: if the service / model entry / env already match, this just resumes and refreshes config.
@@ -276,10 +276,12 @@ defaults["model"] = "openai/$PROD_MODEL_ID"
 # recover more pool, watching for OOM headroom.
 defaults["contextTokens"] = 262144
 # Overall per-turn timeout (default is none → the 120 s LLM idle watchdog is
-# the effective ceiling). 600 s gives a slow turn — a deep think, or a long
-# write/edit generation, or the retry after a botched tool call — room to
-# finish without masking a genuine hang.
-defaults["timeoutSeconds"] = 600
+# the effective ceiling). 1800 s: long multi-step agentic turns (site builds,
+# bulk uploads) were hitting the old 600 s cap while ACTIVELY working — a tool
+# call succeeded seconds before the abort (2026-07-08, pitfall_game turn). The
+# provider idle watchdog (600 s of silence, set above) remains the real hang
+# catcher; this cap only bounds runaway-but-busy turns.
+defaults["timeoutSeconds"] = 1800
 # Gemma 4 31B has a thinking channel. Prod default is "medium" — "high"
 # produces 1-3+ minutes of silent prefill+reasoning on big tool-heavy
 # contexts, which trips openclaw's idle watchdog and aborts the turn
@@ -351,7 +353,7 @@ json.dump(cfg, open(p, "w"), indent=2)
 print(f"  added openai (prod) provider with $PROD_MODEL_ID (timeoutSeconds=600 → idle watchdog 600s)")
 print(f"  set agents.defaults.model = openai/$PROD_MODEL_ID")
 print(f"  set agents.defaults.thinkingDefault = medium")
-print(f"  set agents.defaults.timeoutSeconds = 600")
+print(f"  set agents.defaults.timeoutSeconds = 1800")
 print(f"  set agents.defaults.contextTokens = 262144 (Gemma 4 31B native 256k window)")
 print(f"  set agents.defaults.compaction.{{notifyUser=true, postIndexSync=async, qualityGuard.enabled=true, recentTurnsPreserve=3, midTurnPrecheck.enabled=false}} (budget knobs left to safeguard defaults)")
 print(f"  cleared agents.defaults.contextPruning (openclaw default per-turn pruning)")

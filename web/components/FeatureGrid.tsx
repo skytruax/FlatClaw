@@ -33,7 +33,7 @@ const features = [
   {
     Icon: Boxes,
     title: "MCP services",
-    body: "First-party Model Context Protocol servers: Google (Gmail/Calendar/Drive/Docs/Sheets), CalDAV/IMAP, and Jira. Per-user credentials scoped (tenant, user, service), never tenant-wide.",
+    body: "First-party Model Context Protocol servers: Google (Gmail/Calendar/Drive/Docs/Sheets) and Jira, plus private add-on connectors through the same plugin registry. Consequential actions pause for human approval and replay with the user's own credentials. Per-user credentials scoped (tenant, user, service), never tenant-wide.",
   },
   {
     Icon: ShieldCheck,

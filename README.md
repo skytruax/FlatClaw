@@ -32,20 +32,22 @@ FlatClaw is the same product shape, built out of open-source components, running
 
 ---
 
-## v0.2.0 release scope
+## v0.3.0 release scope
 
-v0.1.0 shipped the architecture, the foundational components, and the published inference image. **v0.2.0 makes it real to use:** a matured Portal, live inference on a dedicated H100, and the first wave of MCP service integrations. What's working today vs. what's coming next is enumerated in the [Roadmap](#roadmap) section below.
+v0.1.0 shipped the architecture and the published inference image; v0.2.0 made it real to use (matured Portal, live H100 inference, first MCP services). **v0.3.0 hardens it into a governed product:** a human-approval engine on consequential MCP actions, a clean public/private split for MCP services, and the runtime pin moved to OpenClaw 2026.7.1. What's working today vs. what's coming next is enumerated in the [Roadmap](#roadmap) section below.
 
 **Working today**
 - **Live inference** — Gemma 4 31B-IT (FP8) on a single NVIDIA H100 via patched SGLang, served at the model's native **256K context window**, with the weights-server cold-boot pattern and one-command lane scripts (`prod-up.sh` / `prod-down.sh`, `dev-up.sh` / `dev-down.sh`).
 - **FlatClaw Portal** — Next.js 16 + React 19 product surface: SSE-streamed chat with live token-usage + compaction markers, session management, a workspace file explorer with upload, an MCP services panel, per-user OAuth credential management, and an Admin panel for user + RBAC management.
-- **MCP service integrations** — first-party Model Context Protocol servers shipping in `mcp/`: **Google** (Gmail / Calendar / Drive / Docs / Sheets / Contacts, OAuth), **CalDAV/IMAP** (calendar, contacts, mail), and **Jira** (Atlassian Cloud). Per-user credentials, scoped per `(tenant, user, service)`, never tenant-wide.
+- **MCP service integrations** — first-party Model Context Protocol servers shipping in [`mcp/public/`](mcp/public/): **Google** (Gmail / Calendar / Drive / Docs / Sheets / Contacts, OAuth) and **Jira** (Atlassian Cloud). Per-user credentials, scoped per `(tenant, user, service)`, never tenant-wide. Private add-on services (CRM, banking-core, host-panel connectors) follow the same plugin contract from `mcp/private/`, which stays out of the public repo by design.
+- **Human approval engine** — consequential tools (`gmail_send`, `gmail_send_draft`, `drive_delete`, `drive_share`, Jira `delete_attachment`; operator-configurable) are never executed by the agent. The MCP composes the exact REST call and pauses it as a pending approval; a human signs off in the Portal queue and the portal replays the request with that user's own credentials. Deny records the rejection; every decision lands in the audit log.
 - **Per-agent memory** via the OpenClaw runtime — built-in per-agent SQLite engine with keyword (BM25) search over each agent's `MEMORY.md` + `memory/*.md`; a starter `MEMORY.md` is seeded into every agent on creation / sync / backfill. No separate memory service to deploy or babysit. (Semantic recall via bge-m3 is v0.3.)
 - **RBAC / tool access** — OpenClaw's built-in tool policy, surfaced from the portal: always-on per-agent cross-user isolation (deny-globs) **plus** an admin per-user *Tool Access* panel that toggles built-in + MCP tools on/off (writing the agent's native `tools.deny`). The gateway filters denied tools from the roster before the model sees them; per-user capability tokens scope data access underneath.
 - **Public inference image** at [`ghcr.io/skytruax/flatclaw-inference:latest`](https://github.com/skytruax/FlatClaw/pkgs/container/flatclaw-inference) — SGLang base + entrypoint, lightweight, GHCR-published, GitHub Actions rebuilds on every Dockerfile/entrypoint change. Public — pull it and audit it.
+- **Pinned, verified runtime** — OpenClaw **2026.7.1**, re-verified against the RBAC contract (tool-name flattening, deny-glob pipeline) on every pin bump; the verified version + date are surfaced in admin/audit.
 - Apache 2.0 license, OSI-approved.
 
-**Not in v0.2.0 — see [Roadmap](#roadmap)**
+**Not in v0.3.0 — see [Roadmap](#roadmap)**
 - **One-command tenant provisioning** — `provision-tenant.sh` / `destroy-tenant.sh` are honest stubs today; the working `{dev,prod}-up.sh` / `{dev,prod}-down.sh` lane scripts cover inference bring-up, and full net-new-tenant orchestration is the next deliverable.
 - RAGFlow service manifest and ingest watcher (design shipped; deploy manifest is next).
 - Additional skills (Scrapling web fetch, a first CRM connector).
@@ -63,7 +65,7 @@ A complete coworker stack, not a framework. Every component is included and pre-
 | **OpenClaw runtime** | Self-hosted agent loop. Session management, tool use, multi-step planning, cron, approval gates, sandboxed tool execution. Enforces RBAC at every tool call. |
 | **Inference service** | Patched SGLang + Gemma 4 31B Dense on a single NVIDIA H100 (80 GB, sm_90, native FP8) on Northflank's managed GPU fleet, served at the model's native 256K context. Model weights live on a Northflank-managed volume served internally by the weights-server pod; new inference pods cold-boot in 60-90 seconds. |
 | **Per-agent memory** | OpenClaw's built-in per-agent SQLite memory engine. Keyword (BM25) search over each agent's `MEMORY.md` and `memory/*.md`, indexed to `~/.openclaw/memory/<agentId>.sqlite`. A starter `MEMORY.md` is seeded into every agent on creation / sync / backfill; the agent maintains it across sessions. No separate memory service. Semantic (vector) recall via bge-m3 lands in v0.3. |
-| **MCP service integrations** | First-party Model Context Protocol servers in [`mcp/`](mcp/): **Google** (Gmail / Calendar / Drive / Docs / Sheets / Contacts, OAuth), **CalDAV/IMAP** (calendar, contacts, mail), and **Jira** (Atlassian Cloud). Each is a self-contained package the agent calls over MCP. Per-user credentials, scoped per `(tenant, user, service)`, never tenant-wide. Destructive tool calls are gated by OpenClaw and surface in the Portal as approval cards. |
+| **MCP service integrations** | First-party Model Context Protocol servers in [`mcp/public/`](mcp/public/): **Google** (Gmail / Calendar / Drive / Docs / Sheets / Contacts, OAuth) and **Jira** (Atlassian Cloud). Each is a self-contained package the agent calls over MCP. Per-user credentials, scoped per `(tenant, user, service)`, never tenant-wide. Consequential tools are composed (never executed) by the agent, pause in the Portal approvals queue for human sign-off, and are replayed with the user's own credentials on approve. Private add-on connectors plug into the same registry from `mcp/private/`. |
 | **RAGFlow integration** *(roadmap, v0.3)* | Private document ingest and retrieval with cited sources. PDF, Docx, Excel, PPT, markdown, email, OCR'd scans, web pages. v0.2.0 ships the design; the deploy manifest + ingest watcher land next. |
 | **RBAC + per-user credentials** | Multiple users per tenant, each a distinct agent. Tool access is OpenClaw's native per-agent `tools.deny`, surfaced as an admin **Tool Access** panel (per-user allow/deny over built-in + connected-MCP tools) on top of always-on cross-user roster isolation. Per-user credentials live in a per-tenant vault scoped `(tenant, user, service)`, brokered to each MCP via short-lived capability tokens. |
 | **One-command tenant provisioning** *(roadmap, v0.3)* | The working `{dev,prod}-up.sh` / `{dev,prod}-down.sh` lane scripts cover inference bring-up today. `provision-tenant.sh` / `destroy-tenant.sh` — full net-new Northflank tenant lifecycle (project → weights volume → stager job → services → RBAC seed → Portal URL, and clean teardown) — are honest stubs; full orchestration is the next deliverable. |
@@ -197,7 +199,7 @@ Every dependency is MIT / Apache / BSD compatible.
 The privacy story is not a marketing claim. It is a test you can run yourself.
 
 1. Provision a tenant in your own Northflank project.
-2. Exercise the shipped features end-to-end (chat, per-agent memory, MCP services — Google / CalDAV / Jira — scheduled-task fire, GPU cold-boot). As more land (RAG, Scrapling, voice, image), each is added to this test loop.
+2. Exercise the shipped features end-to-end (chat, per-agent memory, MCP services — Google / Jira — approval-gated actions, scheduled-task fire, GPU cold-boot). As more land (RAG, Scrapling, voice, image), each is added to this test loop.
 3. Run `tcpdump` on the tenant's Northflank project egress for the full session.
 4. Confirm zero packets to Anthropic, OpenAI, Google AI (the hosted Gemini/Vertex APIs), Hugging Face at runtime, ElevenLabs, Chroma Cloud, or any third-party inference endpoint. Only expected egress: services the user explicitly connected via OAuth (Gmail, Drive, scrape targets). Inference traffic stays inside the project — Portal → Gateway → Inference (H100) is all internal Northflank network. Kaggle is accessed only at the one-time weight-staging step, never at runtime.
 
@@ -209,10 +211,12 @@ This check runs mechanically on every release. It is the promise the project exi
 
 FlatClaw leans entirely on OpenClaw's **built-in tool policy** — there's no custom gate to trust. Both layers are expressed as the agent's native `agents.list[<agentId>].tools.deny`, which the gateway applies *before the model sees its roster* (deny wins; denied tools are filtered out, not runtime-intercepted):
 
-1. **Cross-user isolation (always on).** The portal computes per-agent deny-globs so each agent only ever sees its own per-user MCP servers; another user's `google-…__*` / `caldav-…__*` tools are stripped from the roster before the model sees them.
+1. **Cross-user isolation (always on).** The portal computes per-agent deny-globs so each agent only ever sees its own per-user MCP servers; another user's `google-…__*` / `jira-…__*` tools are stripped from the roster before the model sees them.
 2. **Per-user Tool Access (admin).** The Admin → Users → **Tool access** panel lists every tool the user's agent can use — built-in/plugin groups (read live from the gateway's `tools.catalog`) and each connected MCP service's tools (Gmail, Calendar, Jira, …), grouped and collapsible — as allow/deny toggles. Unchecking a tool writes its id into that agent's `tools.deny`; the gateway drops it from the roster on the next turn.
 
 Underneath both, per-user **capability tokens** scoped `(tenant, user, service)` remain the data-access boundary — a user's MCP server can only reach that user's data regardless of which tools are exposed.
+
+On top of tool visibility sits the **human approval engine**: approval-gated tools (outbound mail, destructive or exposing actions; operator-configurable per service) run their handler against a compose-mode API client — reads pass through, and the first mutating REST call is captured instead of sent. The captured request (method + URL + body, never credentials) surfaces as a pending card in the Portal approvals queue; on approve, the portal replays it with the requesting user's own vaulted credentials, guarded to that user's own workspace/API hosts. On deny, nothing executes. Both outcomes are recorded in the audit log with the approver's identity.
 
 Nothing custom to install or enable: it's the gateway's own enforcement, configured from the portal.
 
@@ -233,7 +237,7 @@ It is the SGLang base plus a single `entrypoint.sh` layer, built registry-to-reg
 | Path | What it is |
 |---|---|
 | [`portal/`](portal/) | FlatClaw Portal — Next.js 16 + React 19 admin + user surface, chat + fleet + approvals + cron + MCP services + Docs + Memory. |
-| [`mcp/`](mcp/) | First-party Model Context Protocol servers — `google`, `caldav`, `jira`. One self-contained package per service; per-user, per-`(tenant, user, service)` credentials. |
+| [`mcp/public/`](mcp/public/) | First-party Model Context Protocol servers — `google`, `jira`. One self-contained package per service; per-user, per-`(tenant, user, service)` credentials. Private add-on services live in `mcp/private/` (gitignored) and self-register through the same plugin contract. |
 | [`web/`](web/) | flatclaw.org informational site — Next.js static export. |
 | [`infra/inference/`](infra/inference/) | Inference service — Dockerfile (SGLang base), entrypoint, Northflank service manifest, and the stager-job recipe for one-time per-tenant weight staging onto the weights volume. |
 | [`infra/scripts/`](infra/scripts/) | Inference + tenant lifecycle — the working `{dev,prod}-up.sh` / `{dev,prod}-down.sh` inference lane scripts and `install-openclaw.sh`; `provision-tenant.sh` / `destroy-tenant.sh` are v0.3 stubs (full net-new tenant orchestration). |
@@ -247,11 +251,13 @@ It is the SGLang base plus a single `entrypoint.sh` layer, built registry-to-reg
 
 Every release ships with end-to-end tests for the features in scope. Tests grow as features land, never the other way around — silent hangs and feature claims without verification are release blockers.
 
-**v0.2.0 verifies:**
+**v0.3.0 verifies:**
 - Inference image build pipeline: GitHub Actions republishes `:latest` on every change to `Dockerfile` or `entrypoint.sh`
 - License + data-locality smoke: image manifest + LICENSE files match what the README claims
-- MCP service round-trip: Google / CalDAV / Jira tool call through the Portal with per-user credentials
+- MCP service round-trip: Google / Jira tool call through the Portal with per-user credentials
 - RBAC / tool access: a tool denied for a user in the admin Tool Access panel is written to the agent's native `tools.deny` and filtered from its roster — verified end-to-end on a live model turn (denied → the model has no such tool; re-enabled → it returns), and via `portal/scripts/verify-tool-access.ts`
+- Approval gating: an approval-gated tool (e.g. `gmail_send`) returns `PENDING_HUMAN_APPROVAL` with the composed request instead of executing; the roster advertises it as HUMAN-APPROVAL GATED; approve replays it with the user's own credentials, deny executes nothing
+- OpenClaw pin: `agent-tool-policy` unit tests + a live deny round-trip re-run against the pinned runtime (2026.7.1) on every bump
 
 **Roadmap (added as features land):**
 - `provision-tenant.sh` → working tenant with TLS, and `destroy-tenant.sh` leaves no orphaned Northflank resources (v0.3)
@@ -264,24 +270,28 @@ Every release ships with end-to-end tests for the features in scope. Tests grow 
 
 ## Roadmap
 
-### v0.2.0 (this release)
+### v0.2.0 (shipped)
 
 - **Live inference** — Gemma 4 31B-IT FP8 on a dedicated H100 at 256K context, via patched SGLang + the weights-server cold-boot pattern, with one-command lane scripts.
-- **MCP service integrations** — first-party Google, CalDAV/IMAP, and Jira servers under `mcp/`, with per-`(tenant, user, service)` credentials and a generic per-service credential vault.
-- **Matured Portal** — SSE-streamed chat with live token + compaction meter, sessions, workspace file explorer, MCP services panel, per-user OAuth, and the Admin panel.
-- **Per-user Tool Access** — admin allow/deny over every built-in + connected-MCP tool, written to OpenClaw's native per-agent `tools.deny` and enforced by the gateway; on top of always-on cross-user roster isolation.
+- **First MCP services** with per-`(tenant, user, service)` credentials and a generic per-service credential vault; matured Portal (SSE chat, sessions, file explorer, services panel, Admin); **per-user Tool Access** on OpenClaw's native `tools.deny` over always-on cross-user isolation.
 
-### v0.3 (next)
+### v0.3.0 (this release)
+
+- **Human approval engine** — consequential MCP tools are composed, never executed: `PENDING_HUMAN_APPROVAL` envelope → Portal approvals queue → human sign-off → the portal replays the exact request with the requesting user's own credentials (workspace/host-guarded). Operator-configurable per service (`FLATCLAW_JIRA_APPROVAL_TOOLS`, `FLATCLAW_GOOGLE_APPROVAL_TOOLS`).
+- **Public/private MCP split** — the repo ships `mcp/public/` (Google, Jira); private add-on connectors live in `mcp/private/` (gitignored) and self-register through the same plugin registry, so a tenant's add-ons never touch the public tree.
+- **OpenClaw 2026.7.1** — runtime pin bumped and re-verified (tool-name contract, deny-glob pipeline, live deny round-trip); Portal approvals panel + per-service admin visibility controls.
+
+### v0.4 (next)
 
 - **One-command tenant provisioning** — `provision-tenant.sh` / `destroy-tenant.sh`: full net-new Northflank tenant lifecycle (currently honest stubs; the `{dev,prod}-up.sh` lane scripts cover bring-up today).
 - **RAGFlow service** — Northflank service manifest + per-tenant namespace template + ingest watcher daemon + `destroy-hook.sh`. Wrapped behind a stable retrieval interface.
-- **Scrapling web fetch + a first CRM connector** (Salesforce or HubSpot), each as an MCP service under `mcp/`.
+- **Scrapling web fetch**, as an MCP service under `mcp/public/`; additional CRM/ERP connectors continue to ship as add-on services through the plugin registry.
 - **Voice — VoxCPM2** open-weight cloning + TTS, co-resident on the H100.
 - **Image — ComfyUI + SDXL**, same disk-staging pattern.
 - **Cascade routing — multi-process serving on the same H100.** Small Gemma 4 4B FP8 (~4 GB) on `:8001` for simple chat / fast turns, Gemma 4 31B FP8 (~33 GB) on `:8000` for complex agent runs, voice on `:8002`, image on `:8003` — all co-resident under `--mem-fraction-static`, with ~25 GB headroom on the 80 GB card. OpenClaw routes by skill / agent.
 - **TurboQuant turbo4** KV compression — custom CUDA kernels for Gemma 4 head dimensions on Hopper. Unlocks 1M-token context on a single card.
 
-### v0.4+
+### v0.5+
 
 - WorkOS SSO for v2 enterprise tenants (per-tenant Okta / Azure AD / Google Workspace SAML).
 - Optional multi-tenancy on a shared GPU node for an entry tier (with strict K8s namespace + per-tenant volume isolation) — for tenants below the dedicated-GPU utilization threshold.

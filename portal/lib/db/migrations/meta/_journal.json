@@ -57,6 +57,13 @@
       "when": 1778691442049,
       "tag": "0007_service_vault",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1779400000000,
+      "tag": "0008_service_hidden",
+      "breakpoints": true
     }
   ]
 }

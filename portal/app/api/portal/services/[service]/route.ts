@@ -5,6 +5,8 @@ import {
   getManagedMcpService,
   isServiceEnabled,
   setServiceEnabled,
+  isServiceHidden,
+  setServiceHidden,
 } from "@/lib/openclaw/managed-mcp";
 import { db, schema } from "@/lib/db/client";
 import { randomUUID } from "node:crypto";
@@ -47,8 +49,11 @@ export async function GET(
   const svc = getManagedMcpService(service);
   if (!svc)
     return NextResponse.json({ error: `unknown service ${service}` }, { status: 404 });
-  const enabled = await isServiceEnabled(service);
-  return NextResponse.json({ ok: true, service, enabled });
+  const [enabled, hidden] = await Promise.all([
+    isServiceEnabled(service),
+    isServiceHidden(service),
+  ]);
+  return NextResponse.json({ ok: true, service, enabled, hidden });
 }
 
 export async function PATCH(
@@ -64,37 +69,64 @@ export async function PATCH(
   if (!svc)
     return NextResponse.json({ error: `unknown service ${service}` }, { status: 404 });
 
-  const body = (await req.json().catch(() => ({}))) as { enabled?: boolean };
-  if (typeof body.enabled !== "boolean") {
+  const body = (await req.json().catch(() => ({}))) as {
+    enabled?: boolean;
+    hidden?: boolean;
+  };
+  if (typeof body.enabled !== "boolean" && typeof body.hidden !== "boolean") {
     return NextResponse.json(
-      { error: "body must include `enabled: boolean`" },
+      { error: "body must include `enabled: boolean` and/or `hidden: boolean`" },
       { status: 400 },
     );
   }
 
-  let sync;
-  try {
-    sync = await setServiceEnabled(service, body.enabled);
-  } catch (err) {
-    return NextResponse.json(
-      {
-        error: err instanceof Error ? err.message : String(err),
-      },
-      { status: 502 },
-    );
+  // `hidden` is a UI-only visibility toggle (admin Settings page) — no
+  // provisioning. `enabled` is the tenant on/off that provisions/deprovisions.
+  if (typeof body.hidden === "boolean") {
+    try {
+      await setServiceHidden(service, body.hidden);
+    } catch (err) {
+      return NextResponse.json(
+        { error: err instanceof Error ? err.message : String(err) },
+        { status: 502 },
+      );
+    }
+    await db.insert(schema.auditLog).values({
+      id: randomUUID(),
+      actorUserId: guard.actorId,
+      action: `service.${service}.${body.hidden ? "hide" : "show"}`,
+      targetUserId: null,
+      metadata: { hidden: body.hidden },
+    });
   }
 
-  await db.insert(schema.auditLog).values({
-    id: randomUUID(),
-    actorUserId: guard.actorId,
-    action: `service.${service}.${body.enabled ? "enable" : "disable"}`,
-    targetUserId: null,
-    metadata: {
-      provisioned: sync.provisioned,
-      deprovisioned: sync.deprovisioned,
-      skipped: sync.skipped,
-    },
-  });
+  let sync;
+  if (typeof body.enabled === "boolean") {
+    try {
+      sync = await setServiceEnabled(service, body.enabled);
+    } catch (err) {
+      return NextResponse.json(
+        { error: err instanceof Error ? err.message : String(err) },
+        { status: 502 },
+      );
+    }
+    await db.insert(schema.auditLog).values({
+      id: randomUUID(),
+      actorUserId: guard.actorId,
+      action: `service.${service}.${body.enabled ? "enable" : "disable"}`,
+      targetUserId: null,
+      metadata: {
+        provisioned: sync.provisioned,
+        deprovisioned: sync.deprovisioned,
+        skipped: sync.skipped,
+      },
+    });
+  }
 
-  return NextResponse.json({ ok: true, enabled: body.enabled, sync });
+  return NextResponse.json({
+    ok: true,
+    enabled: body.enabled,
+    hidden: body.hidden,
+    sync,
+  });
 }

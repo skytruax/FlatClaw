@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type DragEvent } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Send, Square, Sparkles, MessageSquarePlus } from "lucide-react";
+import { Send, Square, Sparkles, MessageSquarePlus, Paperclip, X, FileText, Upload } from "lucide-react";
 import CompactionControls, {
   CompactionMarker,
   type CompactionCheckpoint,
@@ -19,6 +19,13 @@ interface ToolEvent {
   status: "pending" | "done" | "failed";
 }
 
+/** An attachment shown in a sent bubble (image thumb / file chip). */
+interface BubbleAttachment {
+  fileName: string;
+  mimeType: string;
+  dataUrl: string;
+}
+
 interface ChatBubble {
   id: string;
   role: "user" | "assistant";
@@ -27,6 +34,29 @@ interface ChatBubble {
   tools: ToolEvent[];
   streaming?: boolean;
   timestamp: number;
+  attachments?: BubbleAttachment[];
+}
+
+/** A file staged in the composer before send. */
+interface ComposerAttachment {
+  id: string;
+  fileName: string;
+  mimeType: string;
+  /** data:<mime>;base64,<...> — used for preview and as the base64 source on send. */
+  dataUrl: string;
+  sizeBytes: number;
+}
+
+/** Accept list mirrors openclaw's chat (images, audio, pdf, text, office docs, zip). */
+const ATTACH_ACCEPT =
+  "image/*,audio/*,application/pdf,text/*,.csv,.json,.md,.txt,.zip,.doc,.docx,.xls,.xlsx,.ppt,.pptx";
+/** openclaw's default per-attachment cap (DEFAULT_CHAT_ATTACHMENT_MAX_MB). */
+const ATTACH_MAX_BYTES = 20 * 1024 * 1024;
+
+/** Split a data URL into its mime + bare base64 (no prefix) — the shape openclaw's chat.send wants. */
+function splitDataUrl(dataUrl: string): { mimeType: string; content: string } | null {
+  const m = /^data:([^;]+);base64,(.+)$/.exec(dataUrl);
+  return m ? { mimeType: m[1], content: m[2] } : null;
 }
 
 interface ChatPanelProps {
@@ -233,6 +263,11 @@ export default function ChatPanel({
   // someone else wrote to this session via the openclaw control UI) and
   // re-hydrate when that happens, instead of refetching on every tick.
   const hydratedCountRef = useRef(0);
+  // Wall-clock of the last stream event accepted for the rendered session.
+  // The heartbeat uses it to detect a run that died without a terminal event
+  // (gateway restart mid-turn, dropped SSE final frame) and recover, instead
+  // of pinning a streaming bubble — and the "thinking…" indicator — forever.
+  const lastStreamActivityRef = useRef(0);
 
   // ── compaction state ──────────────────────────────────────────────────
   const [checkpoints, setCheckpoints] = useState<CompactionCheckpoint[]>([]);
@@ -331,15 +366,26 @@ export default function ChatPanel({
         // streaming. This keeps the heartbeat cheap and avoids overwriting
         // an in-flight assistant bubble.
         const isStreaming = bubblesRef.current.some((b) => b.streaming);
-        if (
-          !force &&
-          (isStreaming ||
-            (data.messageCount ?? 0) === hydratedCountRef.current)
-        ) {
-          return;
+        // A run gone quiet for too long without a terminal event — gateway
+        // restart mid-turn, or an SSE reconnect that dropped the final frame
+        // (webchat 1006/1012) — would otherwise pin the "thinking…" indicator
+        // (and any streaming bubble) forever, and the isStreaming guard below
+        // would keep the heartbeat from re-hydrating. Recover on staleness.
+        // Covers BOTH: a pinned streaming bubble, AND an `activeRunId` with no
+        // streaming bubble (an all-tool-call turn whose final frame dropped).
+        // Only active-generation events refresh lastStreamActivity (see
+        // applyEvent), so legitimately long, chatty tool calls keep this fresh
+        // and this only trips on a genuinely dead run.
+        const runActive = isStreaming || activeRunIdRef.current != null;
+        const runStale =
+          runActive && Date.now() - lastStreamActivityRef.current > 15_000;
+        if (!force && !runStale) {
+          if (isStreaming) return;
+          if ((data.messageCount ?? 0) === hydratedCountRef.current) return;
         }
         hydratedCountRef.current = data.messageCount ?? 0;
         setBubbles((data.bubbles ?? []) as ChatBubble[]);
+        if (runStale) setActiveRunId(null);
       } catch {
         // best-effort — heartbeat will try again
       }
@@ -377,6 +423,12 @@ export default function ChatPanel({
   useEffect(() => {
     sessionKeyRef.current = sessionKey;
   }, [sessionKey]);
+  // So the heartbeat's stale-run recovery can see whether a run is still
+  // "active" (the thinking indicator) without retaking the EventSource.
+  const activeRunIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    activeRunIdRef.current = activeRunId;
+  }, [activeRunId]);
 
   // ── stream subscription ────────────────────────────────────────────────
   useEffect(() => {
@@ -423,6 +475,22 @@ export default function ChatPanel({
     const evtSessionKey = typeof e.sessionKey === "string" ? e.sessionKey : null;
     if (evtSessionKey && evtSessionKey !== sessionKeyRef.current) return;
 
+    // Only ACTIVE-GENERATION events count as run activity for the heartbeat's
+    // stale-run recovery: assistant text (`chat`), the agent run/tool stream
+    // (`agent`), and tool lifecycle (`session.tool`). Post-turn metadata —
+    // `sessions.changed` (compaction / async index-sync) and the finalized
+    // `session.message` — must NOT refresh the timer, or a dropped terminal
+    // frame leaves the "thinking…" indicator pinned forever while harmless
+    // post-turn events keep resetting the staleness clock.
+    if (
+      evtSessionKey === sessionKeyRef.current &&
+      (eventName === "chat" ||
+        eventName === "agent" ||
+        eventName === "session.tool")
+    ) {
+      lastStreamActivityRef.current = Date.now();
+    }
+
     // The "chat" event carries assistant text. Payload shape:
     //   { runId, sessionKey, seq, state: "delta"|"final"|..., message: {
     //       role, content: [{ type: "text", text: <full accumulated> }, ...]
@@ -449,6 +517,14 @@ export default function ChatPanel({
         // do this, but it doesn't always arrive before the run ends, so
         // we belt-and-braces it here.
         void refreshCompactionRef.current?.();
+        // A turn often composes a held action (transfer/loan origination) or
+        // writes files (reports, exports). Nudge the approvals and files tabs
+        // to refetch immediately so their badge/queue/tree update the moment
+        // the agent finishes — no manual refresh.
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new Event("flatclaw:approvals-refresh"));
+          window.dispatchEvent(new Event("flatclaw:files-refresh"));
+        }
       }
       return;
     }
@@ -505,6 +581,10 @@ export default function ChatPanel({
       const reason = String(e.reason ?? "");
       const evtKey = typeof e.sessionKey === "string" ? e.sessionKey : null;
       if (evtKey && evtKey !== sessionKeyRef.current) return;
+      // A finished run carries endedAt (status done/timeout/error). Use it as
+      // a secondary finalize signal in case the terminal `chat` frame was
+      // missed (e.g. dropped during an SSE reconnect).
+      if (e.endedAt != null) finalizeAssistant();
       // For non-compact reasons we don't need to refresh checkpoints, but we
       // do want to keep the token meter current — usage refresh is cheap.
       if (
@@ -565,11 +645,30 @@ export default function ChatPanel({
     const cleaned = sanitizeAssistantText(fullText);
     setBubbles((prev) => {
       const last = prev[prev.length - 1];
-      if (last && last.role === "assistant" && last.streaming) {
-        const updated: ChatBubble = isReasoning
-          ? { ...last, reasoning: cleaned }
-          : { ...last, text: cleaned };
-        return [...prev.slice(0, -1), updated];
+      if (last && last.role === "assistant") {
+        // Update the tail assistant bubble when this frame belongs to the SAME
+        // turn — either it's still streaming, or it was just finalized and this
+        // frame continues its content. The gateway races the terminal `chat`
+        // frame against `session.message`/`sessions.changed` (which set
+        // streaming:false); if the bubble finalized first, a trailing `chat`
+        // frame must merge in place, NOT append a duplicate of the same turn.
+        // `chat` carries the FULL accumulated text, so "continues" = one string
+        // is a prefix of the other.
+        const continuesText =
+          !isReasoning &&
+          typeof last.text === "string" &&
+          (cleaned.startsWith(last.text) || last.text.startsWith(cleaned));
+        const continuesReasoning =
+          isReasoning &&
+          typeof last.reasoning === "string" &&
+          last.reasoning.length > 0 &&
+          (cleaned.startsWith(last.reasoning) || last.reasoning.startsWith(cleaned));
+        if (last.streaming || continuesText || continuesReasoning) {
+          const updated: ChatBubble = isReasoning
+            ? { ...last, reasoning: cleaned }
+            : { ...last, text: cleaned };
+          return [...prev.slice(0, -1), updated];
+        }
       }
       const fresh: ChatBubble = {
         id: uuid(),
@@ -643,18 +742,88 @@ export default function ChatPanel({
     el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
   }, [input]);
 
+  // ── attachments (drop / paste / pick files & images) ─────────────────
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [attachments, setAttachments] = useState<ComposerAttachment[]>([]);
+  const [dragActive, setDragActive] = useState(false);
+  // Drag events bubble from children, so a single boolean flickers as the
+  // cursor crosses descendant elements. Count enter/leave to know when the
+  // drag has truly left the whole panel.
+  const dragDepth = useRef(0);
+  const dragHasFiles = (e: DragEvent) =>
+    Array.from(e.dataTransfer?.types ?? []).includes("Files");
+
+  const addFiles = useCallback((files: FileList | File[]) => {
+    for (const file of Array.from(files)) {
+      if (file.size > ATTACH_MAX_BYTES) {
+        console.warn(
+          `[chat] skipped ${file.name} — ${(file.size / 1048576).toFixed(1)}MB exceeds the 20MB limit`,
+        );
+        continue;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = String(reader.result || "");
+        if (!dataUrl.startsWith("data:")) return;
+        setAttachments((prev) => [
+          ...prev,
+          {
+            id: uuid(),
+            fileName: file.name || "file",
+            mimeType: file.type || "application/octet-stream",
+            dataUrl,
+            sizeBytes: file.size,
+          },
+        ]);
+      };
+      reader.readAsDataURL(file);
+    }
+  }, []);
+
+  const removeAttachment = useCallback((id: string) => {
+    setAttachments((prev) => prev.filter((a) => a.id !== id));
+  }, []);
+
   // ── send / abort ──────────────────────────────────────────────────────
   const send = useCallback(async () => {
     const message = input.trim();
-    if (!message || sending) return;
+    const staged = attachments;
+    if ((!message && staged.length === 0) || sending) return;
     const idempotencyKey = uuid();
     setSending(true);
     setActiveRunId(idempotencyKey);
+    lastStreamActivityRef.current = Date.now();
     setBubbles((prev) => [
       ...prev,
-      { id: uuid(), role: "user", text: message, tools: [], timestamp: Date.now() },
+      {
+        id: uuid(),
+        role: "user",
+        text: message,
+        tools: [],
+        timestamp: Date.now(),
+        attachments: staged.map((a) => ({
+          fileName: a.fileName,
+          mimeType: a.mimeType,
+          dataUrl: a.dataUrl,
+        })),
+      },
     ]);
     setInput("");
+    setAttachments([]);
+
+    // Strip the `data:` prefix → bare base64, the shape openclaw's chat.send wants.
+    const apiAttachments = staged
+      .map((a) => {
+        const parsed = splitDataUrl(a.dataUrl);
+        if (!parsed) return null;
+        return {
+          type: parsed.mimeType.startsWith("image/") ? "image" : "file",
+          mimeType: parsed.mimeType,
+          fileName: a.fileName,
+          content: parsed.content,
+        };
+      })
+      .filter((x): x is NonNullable<typeof x> => x !== null);
 
     try {
       const r = await fetch("/api/runtime/chat-send", {
@@ -665,6 +834,7 @@ export default function ChatPanel({
           message,
           idempotencyKey,
           sessionKey,
+          ...(apiAttachments.length ? { attachments: apiAttachments } : {}),
         }),
       });
       const json = await r.json();
@@ -696,7 +866,7 @@ export default function ChatPanel({
     } finally {
       setSending(false);
     }
-  }, [input, sending, targetUserId, sessionKey]);
+  }, [input, attachments, sending, targetUserId, sessionKey]);
 
   const abort = useCallback(async () => {
     if (!activeRunId) return;
@@ -709,7 +879,50 @@ export default function ChatPanel({
   }, [activeRunId, targetUserId, finalizeAssistant]);
 
   return (
-    <div className="flex flex-col h-[75vh] rounded-xl bg-[hsl(var(--fc-bg-surface))] ring-1 ring-[hsl(var(--fc-bg-tertiary))] overflow-hidden shadow-sm">
+    <div
+      className="relative flex flex-col h-[75vh] rounded-xl bg-[hsl(var(--fc-bg-surface))] ring-1 ring-[hsl(var(--fc-bg-tertiary))] overflow-hidden shadow-sm"
+      onDragEnter={(e) => {
+        if (!dragHasFiles(e)) return;
+        e.preventDefault();
+        dragDepth.current += 1;
+        setDragActive(true);
+      }}
+      onDragOver={(e) => {
+        if (!dragHasFiles(e)) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "copy";
+      }}
+      onDragLeave={(e) => {
+        if (!dragHasFiles(e)) return;
+        e.preventDefault();
+        dragDepth.current = Math.max(0, dragDepth.current - 1);
+        if (dragDepth.current === 0) setDragActive(false);
+      }}
+      onDrop={(e) => {
+        if (!dragHasFiles(e)) return;
+        e.preventDefault();
+        dragDepth.current = 0;
+        setDragActive(false);
+        if (e.dataTransfer?.files?.length) addFiles(e.dataTransfer.files);
+      }}
+    >
+      {dragActive && (
+        <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center bg-[hsl(var(--fc-bg-surface))/0.82] backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-[hsl(var(--brand-accent))] bg-[hsl(var(--fc-bg-soft))/0.9] px-10 py-8 shadow-lg">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[hsl(var(--brand-accent))/0.15]">
+              <Upload className="h-7 w-7 text-[hsl(var(--brand-accent))]" />
+            </div>
+            <div className="text-center">
+              <p className="text-sm font-semibold text-[hsl(var(--fc-fg-primary))]">
+                Drop files to attach
+              </p>
+              <p className="mt-0.5 text-xs text-[hsl(var(--fc-fg-muted))]">
+                Images, PDFs, CSVs, documents — up to 20MB each
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
       <header className="flex items-center justify-between px-4 py-2.5 border-b border-[hsl(var(--fc-bg-tertiary))] bg-gradient-to-r from-[hsl(var(--fc-bg-soft))] to-[hsl(var(--fc-bg-surface))]">
         <div className="flex items-center gap-2.5 text-sm min-w-0">
           <Sparkles className="w-4 h-4 text-[hsl(var(--brand-accent))] shrink-0" />
@@ -794,30 +1007,92 @@ export default function ChatPanel({
           e.preventDefault();
           send();
         }}
-        className="flex items-end gap-2 p-3 border-t border-[hsl(var(--fc-bg-tertiary))] bg-[hsl(var(--fc-bg-soft))]"
+        className="flex flex-col gap-2 p-3 border-t border-[hsl(var(--fc-bg-tertiary))] bg-[hsl(var(--fc-bg-soft))]"
       >
-        <textarea
-          ref={composerRef}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          rows={1}
-          placeholder={`Send as ${identityName}…`}
-          className="flex-1 resize-none rounded-lg border border-[hsl(var(--fc-bg-tertiary))] bg-[hsl(var(--fc-bg-surface))] px-3 py-2 text-sm leading-6 max-h-[200px] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--brand-accent))/0.4] focus:border-[hsl(var(--brand-accent))]"
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              send();
-            }
-          }}
-        />
-        <button
-          type="submit"
-          disabled={sending || !input.trim()}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-[hsl(var(--brand-accent))] px-3.5 py-2 text-sm font-semibold text-[hsl(var(--brand-accent-fg))] hover:bg-[hsl(var(--brand-primary))] disabled:opacity-50 transition-colors"
-        >
-          <Send className="w-3.5 h-3.5" />
-          {sending ? "Sending" : "Send"}
-        </button>
+        {attachments.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {attachments.map((a) => (
+              <div
+                key={a.id}
+                className="flex items-center gap-2 rounded-lg border border-[hsl(var(--fc-bg-tertiary))] bg-[hsl(var(--fc-bg-surface))] p-1 pr-2 text-xs"
+              >
+                {a.mimeType.startsWith("image/") ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={a.dataUrl}
+                    alt={a.fileName}
+                    className="h-10 w-10 rounded object-cover"
+                  />
+                ) : (
+                  <span className="flex h-10 w-10 items-center justify-center rounded bg-[hsl(var(--fc-bg-tertiary))] text-[hsl(var(--fc-fg-secondary))]">
+                    <FileText className="h-5 w-5" />
+                  </span>
+                )}
+                <span className="max-w-[10rem] truncate text-[hsl(var(--fc-fg-secondary))]">
+                  {a.fileName}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => removeAttachment(a.id)}
+                  aria-label={`Remove ${a.fileName}`}
+                  className="ml-0.5 rounded-full p-0.5 text-[hsl(var(--fc-fg-muted))] hover:bg-[hsl(var(--fc-bg-tertiary))] hover:text-[hsl(var(--fc-fg-primary))]"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="flex items-end gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept={ATTACH_ACCEPT}
+            className="hidden"
+            onChange={(e) => {
+              if (e.target.files?.length) addFiles(e.target.files);
+              e.target.value = "";
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            title="Attach files or images"
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[hsl(var(--fc-bg-tertiary))] bg-[hsl(var(--fc-bg-surface))] text-[hsl(var(--fc-fg-secondary))] hover:text-[hsl(var(--brand-accent))] hover:border-[hsl(var(--brand-accent))] transition-colors"
+          >
+            <Paperclip className="h-4 w-4" />
+          </button>
+          <textarea
+            ref={composerRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onPaste={(e) => {
+              const f = e.clipboardData?.files;
+              if (f && f.length) {
+                e.preventDefault();
+                addFiles(f);
+              }
+            }}
+            rows={1}
+            placeholder={`Send as ${identityName}…  ·  drop or paste files`}
+            className="flex-1 resize-none rounded-lg border border-[hsl(var(--fc-bg-tertiary))] bg-[hsl(var(--fc-bg-surface))] px-3 py-2 text-sm leading-6 max-h-[200px] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--brand-accent))/0.4] focus:border-[hsl(var(--brand-accent))]"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                send();
+              }
+            }}
+          />
+          <button
+            type="submit"
+            disabled={sending || (!input.trim() && attachments.length === 0)}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-[hsl(var(--brand-accent))] px-3.5 py-2 text-sm font-semibold text-[hsl(var(--brand-accent-fg))] hover:bg-[hsl(var(--brand-primary))] disabled:opacity-50 transition-colors"
+          >
+            <Send className="w-3.5 h-3.5" />
+            {sending ? "Sending" : "Send"}
+          </button>
+        </div>
       </form>
     </div>
   );
@@ -886,9 +1161,34 @@ function Bubble({
               <span className="text-[10px] text-[hsl(var(--fc-fg-muted))]">{time}</span>
             )}
           </div>
-          <div className="rounded-lg px-3 py-2 text-sm whitespace-pre-wrap bg-[hsl(var(--fc-bg-soft))] text-[hsl(var(--fc-fg-primary))] ring-1 ring-[hsl(var(--fc-bg-tertiary))] inline-block max-w-full">
-            {bubble.text}
-          </div>
+          {bubble.attachments && bubble.attachments.length > 0 && (
+            <div className="mb-1.5 flex flex-wrap gap-2">
+              {bubble.attachments.map((a, i) =>
+                a.mimeType.startsWith("image/") ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    key={i}
+                    src={a.dataUrl}
+                    alt={a.fileName}
+                    className="max-h-40 rounded-lg ring-1 ring-[hsl(var(--fc-bg-tertiary))]"
+                  />
+                ) : (
+                  <span
+                    key={i}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-[hsl(var(--fc-bg-soft))] px-2 py-1 text-xs text-[hsl(var(--fc-fg-secondary))] ring-1 ring-[hsl(var(--fc-bg-tertiary))]"
+                  >
+                    <FileText className="h-3.5 w-3.5" />
+                    {a.fileName}
+                  </span>
+                ),
+              )}
+            </div>
+          )}
+          {bubble.text.trim().length > 0 && (
+            <div className="rounded-lg px-3 py-2 text-sm whitespace-pre-wrap bg-[hsl(var(--fc-bg-soft))] text-[hsl(var(--fc-fg-primary))] ring-1 ring-[hsl(var(--fc-bg-tertiary))] inline-block max-w-full">
+              {bubble.text}
+            </div>
+          )}
         </div>
       </div>
     );
@@ -917,6 +1217,13 @@ function Bubble({
         </div>
         <div className="space-y-2">
           {hasReasoning && <Reasoning text={bubble.reasoning!} />}
+          {/* Tools render above the narration text. A live turn collapses the
+              whole turn into one streaming bubble; the model runs its tool(s)
+              first and then narrates the result, so text-above-tools would show
+              the answer with the tool box floating below it. Ordering tools
+              first matches that flow and the way openclaw splits the finalized
+              transcript (tool message, then text message) on re-hydrate. */}
+          {hasTools && <ToolList tools={bubble.tools} />}
           {hasText ? (
             <div
               className={[
@@ -937,7 +1244,6 @@ function Bubble({
           ) : !hasReasoning && !hasTools && bubble.streaming ? (
             <TypingDots />
           ) : null}
-          {hasTools && <ToolList tools={bubble.tools} />}
         </div>
       </div>
     </div>

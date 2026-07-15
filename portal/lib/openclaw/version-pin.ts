@@ -32,14 +32,14 @@ import { execSync } from "node:child_process";
  * The openclaw version every Phase 1 / 2 / 3 design decision in this
  * repo has been tested against. Bump only after the procedure above.
  */
-export const OPENCLAW_VERIFIED_VERSION = "2026.5.19";
+export const OPENCLAW_VERIFIED_VERSION = "2026.7.1";
 
 /**
  * Date the verification ran (UTC ISO date). Surfaced in admin/audit so an
  * operator inspecting an RBAC decision knows how stale the pin is relative
  * to upstream.
  */
-export const OPENCLAW_VERIFIED_AT = "2026-05-19";
+export const OPENCLAW_VERIFIED_AT = "2026-07-15";
 
 /**
  * Resolves the openclaw install path — symlink chain from `which openclaw`

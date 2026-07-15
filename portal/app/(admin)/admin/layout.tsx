@@ -38,6 +38,9 @@ export default async function AdminLayout({
             <Link href="/admin/audit" className="hover:opacity-100">
               Audit log
             </Link>
+            <Link href="/admin/settings" className="hover:opacity-100">
+              Settings
+            </Link>
           </nav>
         </div>
         <div className="flex items-center gap-3 text-sm">

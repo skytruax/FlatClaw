@@ -42,7 +42,7 @@ export function ArchitectureDiagram() {
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <ServiceCard title="Google" tag="Gmail · Calendar · Drive · Docs · Sheets · Contacts" />
-          <ServiceCard title="CalDAV / IMAP" tag="calendar · contacts · mail" />
+          <ServiceCard title="Add-on connectors" tag="CRM · ERP · private services" />
           <ServiceCard title="Jira" tag="Atlassian Cloud" />
           <ServiceCard
             title="Sandbox"

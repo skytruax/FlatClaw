@@ -232,6 +232,11 @@ export const serviceToolGroupPolicy = sqliteTable(
 export const serviceSettings = sqliteTable("service_settings", {
   service: text("service").primaryKey(),
   enabled: integer("enabled", { mode: "boolean" }).notNull().default(false),
+  // UI-only visibility flag (separate from `enabled`). When true the service's
+  // connection card is hidden from the per-user connections panel — used to
+  // simplify a demo without disabling/deprovisioning the service. Toggled from
+  // the admin Settings page; does NOT touch provisioning.
+  hidden: integer("hidden", { mode: "boolean" }).notNull().default(false),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" })
     .notNull()
     .default(sql`(unixepoch() * 1000)`),

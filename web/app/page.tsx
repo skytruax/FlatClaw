@@ -141,7 +141,7 @@ export default function HomePage() {
               },
               {
                 k: "Headroom for bursts, then a cascade.",
-                v: "Gemma 4 31B FP8 (~33 GB) + KV cache + bge-m3 fits in 80 GB with ~25 GB free. The v0.3 cascade lands a co-resident smaller Gemma in that headroom for fast-turn / planning traffic — same hardware, ~2× concurrent capacity.",
+                v: "Gemma 4 31B FP8 (~33 GB) + KV cache + bge-m3 fits in 80 GB with ~25 GB free. The v0.4 cascade lands a co-resident smaller Gemma in that headroom for fast-turn / planning traffic — same hardware, ~2× concurrent capacity.",
               },
               {
                 k: "Tenants scale the GPU plan, not the architecture.",
@@ -174,7 +174,7 @@ export default function HomePage() {
         <ol className="space-y-3">
           {[
             "Provision a tenant in your own Northflank project.",
-            "Exercise the v0.1.0-shipped features end-to-end (chat, memory recall/write, scheduled-task fire, GPU cold-boot). As skills land in v0.2, each is added to this test loop.",
+            "Exercise the shipped features end-to-end (chat, memory, MCP services with approval-gated actions, scheduled-task fire, GPU cold-boot). As features land, each is added to this test loop.",
             "Run tcpdump on the tenant's Northflank project egress for the full session.",
             "Confirm zero packets to Anthropic, OpenAI, Google AI, Hugging Face, ElevenLabs, Chroma Cloud, or any third-party inference endpoint. Inference traffic stays inside the project — Portal → Gateway → H100 is all internal Northflank network. The only external egress: services the user explicitly connected via OAuth.",
           ].map((step, i) => (
@@ -210,10 +210,10 @@ export default function HomePage() {
             ["Frontend", "Next.js 16 + React 19 + TypeScript + SQLite"],
             ["Auth", "better-auth (v1) · WorkOS SSO (v2)"],
             ["Memory", "OpenClaw built-in per-agent SQLite — keyword search, seeded per agent"],
-            ["Retrieval", "RAGFlow — cited document answers (v0.3)"],
-            ["Embeddings (v0.3)", "bge-m3 — semantic memory + RAG, on its own GPU card"],
-            ["Voice (v0.3)", "VoxCPM2 — open-weight cloning + TTS"],
-            ["Image (v0.3)", "ComfyUI + SDXL"],
+            ["Retrieval", "RAGFlow — cited document answers (v0.4)"],
+            ["Embeddings (v0.4)", "bge-m3 — semantic memory + RAG, on its own GPU card"],
+            ["Voice (v0.4)", "VoxCPM2 — open-weight cloning + TTS"],
+            ["Image (v0.4)", "ComfyUI + SDXL"],
           ].map(([k, v]) => (
             <div
               key={k}

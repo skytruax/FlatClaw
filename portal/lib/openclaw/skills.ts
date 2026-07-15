@@ -18,7 +18,7 @@ import { getGatewayClient } from "./adapter";
  * policy layers on top via the per-agent allowlist.
  *
  * Note: there is no longer any "gog" CLI in the FlatClaw deployment. The
- * per-user `google-<safeAgentId>` MCP at `mcp/google/` talks directly to
+ * per-user `google-<safeAgentId>` MCP at `mcp/public/google/` talks directly to
  * Gmail / Drive / Calendar / Docs / Sheets / People REST APIs using the
  * cap-token bridge for fresh access tokens. The legacy
  * `skills.entries.gog.env.GOG_KEYRING_*` tenant-global env has been

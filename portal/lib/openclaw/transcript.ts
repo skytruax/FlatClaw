@@ -66,7 +66,8 @@ interface MessageBlock {
 interface RawMessage {
   id?: string;
   role?: string;
-  content?: MessageBlock[];
+  // openclaw emits either a block array or, since 2026.5.27, a plain string.
+  content?: string | MessageBlock[];
   // toolResult message-level fields
   toolCallId?: string;
   toolName?: string;
@@ -139,11 +140,18 @@ export function transcriptToBubbles(messages: RawMessage[]): TranscriptBubble[] 
     const blocks = Array.isArray(msg.content) ? msg.content : [];
 
     if (role === "user") {
-      const text = blocks
-        .filter((b) => normalizeType(b.type) === "text")
-        .map(asText)
-        .join("\n")
-        .trim();
+      // openclaw 2026.5.27 emits user messages with `content` as a plain
+      // string (chat-send path; carries an `idempotencyKey`), while seeded /
+      // older messages use the `[{type:"text"}]` block array. Handle both, or
+      // every typed message gets dropped here and never renders.
+      const text =
+        typeof msg.content === "string"
+          ? msg.content.trim()
+          : blocks
+              .filter((b) => normalizeType(b.type) === "text")
+              .map(asText)
+              .join("\n")
+              .trim();
       if (!text) continue;
       bubbles.push({
         id: msg.id ?? crypto.randomUUID(),
@@ -160,6 +168,9 @@ export function transcriptToBubbles(messages: RawMessage[]): TranscriptBubble[] 
       const textParts: string[] = [];
       const reasoningParts: string[] = [];
       const tools: TranscriptToolEvent[] = [];
+      // Same 2026.5.27 string-content shape can appear on plain assistant
+      // replies (no tools/thinking); without this they'd be dropped as empty.
+      if (typeof msg.content === "string") textParts.push(msg.content);
       for (const b of blocks) {
         const t = normalizeType(b.type);
         if (t === "text") textParts.push(asText(b));

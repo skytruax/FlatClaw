@@ -25,6 +25,35 @@ interface FileEntry {
   lastModified: string;
 }
 
+/** openclaw runtime files the operator never needs to touch — hidden from the tree. */
+const HIDDEN_FILES = new Set(["MEMORY.md", "openclaw-workspace-state.json"]);
+
+/** Extensions we render as an inline image rather than as text. */
+const IMAGE_EXTS = new Set([
+  "png", "jpg", "jpeg", "gif", "webp", "bmp", "ico", "avif", "svg",
+]);
+/** Binary/document extensions whose text preview is garbage — download instead. */
+const BINARY_EXTS = new Set([
+  "docx", "doc", "xlsx", "xls", "pptx", "ppt", "pdf", "rtf", "odt", "ods", "odp",
+  "zip", "gz", "tgz", "tar", "rar", "7z", "bz2", "xz",
+  "mp3", "wav", "ogg", "flac", "m4a", "mp4", "mov", "webm", "mkv", "avi",
+  "woff", "woff2", "ttf", "otf", "eot",
+  "bin", "exe", "dll", "so", "dylib", "wasm", "o", "a",
+  "db", "sqlite", "sqlite3", "parquet", "wal",
+]);
+
+function fileExt(name: string): string {
+  const i = name.lastIndexOf(".");
+  return i >= 0 ? name.slice(i + 1).toLowerCase() : "";
+}
+/** How to present a file in the preview popup. */
+function previewKind(name: string): "text" | "image" | "binary" {
+  const ext = fileExt(name);
+  if (IMAGE_EXTS.has(ext)) return "image";
+  if (BINARY_EXTS.has(ext)) return "binary";
+  return "text";
+}
+
 interface FileExplorerProps {
   targetUserId?: string;
   agentId: string;
@@ -63,7 +92,11 @@ export default function FileExplorer({
       const r = await fetch(`/api/portal/workspace/list?${buildQuery({ path })}`);
       const json = await r.json();
       if (!r.ok) throw new Error(json.error ?? "list failed");
-      return (json.entries ?? []) as FileEntry[];
+      // openclaw scaffolds these into the workspace root; they're runtime
+      // bookkeeping, not user files — keep them out of the operator's view.
+      return ((json.entries ?? []) as FileEntry[]).filter(
+        (e) => !HIDDEN_FILES.has(e.name),
+      );
     },
     [buildQuery],
   );
@@ -99,11 +132,64 @@ export default function FileExplorer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [agentId, targetUserId]);
 
+  // Quiet variant of `refresh` for background auto-reload: re-fetches root and
+  // any open dirs WITHOUT toggling `loading`, so the tree doesn't flicker a
+  // spinner every few seconds. Errors stay silent — the visible `refresh`
+  // (mount / user actions) is what surfaces them.
+  const expandedRef = useRef(expanded);
+  useEffect(() => {
+    expandedRef.current = expanded;
+  }, [expanded]);
+  const backgroundRefresh = useCallback(async () => {
+    try {
+      setRoot(await loadDir(""));
+      const reopened = new Map<string, FileEntry[]>();
+      for (const dir of expandedRef.current.keys()) {
+        try {
+          reopened.set(dir, await loadDir(dir));
+        } catch {
+          /* skip a dir that vanished */
+        }
+      }
+      setExpanded(reopened);
+    } catch {
+      /* silent — background poll, don't clobber the visible error state */
+    }
+  }, [loadDir]);
+
+  // Auto-reload the workspace: the agent writes files mid-turn (reports,
+  // exports, downloads). Primary trigger is the `flatclaw:files-refresh`
+  // event the chat panel fires when a turn finishes; a gentle poll and a
+  // focus/visibility refresh back it up.
+  useEffect(() => {
+    const t = setInterval(() => void backgroundRefresh(), 8_000);
+    const onSignal = () => void backgroundRefresh();
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void backgroundRefresh();
+    };
+    window.addEventListener("flatclaw:files-refresh", onSignal);
+    window.addEventListener("focus", onSignal);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(t);
+      window.removeEventListener("flatclaw:files-refresh", onSignal);
+      window.removeEventListener("focus", onSignal);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [backgroundRefresh]);
+
   const toggle = useCallback(
     async (entry: FileEntry) => {
       if (entry.kind === "file") {
         setSelected(entry);
         setFileContent(null);
+        // Binary/document/image files have no readable text preview — skip the
+        // read entirely (it would just stream garbage) and let the popup show a
+        // download prompt or render the image from the download URL.
+        if (previewKind(entry.name) !== "text") {
+          setFileLoading(false);
+          return;
+        }
         setFileLoading(true);
         try {
           const r = await fetch(
@@ -429,13 +515,49 @@ function FilePopup({
             </button>
           </div>
         </header>
-        <div className="flex-1 overflow-auto p-4 text-xs font-mono whitespace-pre-wrap text-[hsl(var(--fc-fg-primary))] bg-[hsl(var(--fc-bg-primary))]">
-          {loading ? (
-            <span className="text-[hsl(var(--fc-fg-muted))]">loading…</span>
-          ) : (
-            content
-          )}
-        </div>
+        {(() => {
+          const kind = previewKind(file.name);
+          if (kind === "image") {
+            return (
+              <div className="flex-1 overflow-auto p-4 flex items-center justify-center bg-[hsl(var(--fc-bg-primary))]">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={downloadUrl}
+                  alt={file.name}
+                  className="max-w-full max-h-full object-contain rounded"
+                />
+              </div>
+            );
+          }
+          if (kind === "binary") {
+            return (
+              <div className="flex-1 flex flex-col items-center justify-center gap-3 p-10 text-center bg-[hsl(var(--fc-bg-primary))]">
+                <FileText className="w-10 h-10 text-[hsl(var(--fc-fg-muted))]" />
+                <div className="text-sm text-[hsl(var(--fc-fg-secondary))]">
+                  No preview for{" "}
+                  <span className="font-mono">.{fileExt(file.name)}</span> files.
+                </div>
+                <a
+                  href={downloadUrl}
+                  download
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-[hsl(var(--brand-accent))] text-[hsl(var(--brand-accent-fg))] hover:bg-[hsl(var(--brand-primary))]"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Download to view
+                </a>
+              </div>
+            );
+          }
+          return (
+            <div className="flex-1 overflow-auto p-4 text-xs font-mono whitespace-pre-wrap text-[hsl(var(--fc-fg-primary))] bg-[hsl(var(--fc-bg-primary))]">
+              {loading ? (
+                <span className="text-[hsl(var(--fc-fg-muted))]">loading…</span>
+              ) : (
+                content
+              )}
+            </div>
+          );
+        })()}
       </div>
     </div>
   );

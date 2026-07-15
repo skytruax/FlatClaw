@@ -22,6 +22,7 @@ import {
   readServiceOauthStatus,
   deleteServiceOauthToken,
 } from "@/lib/credentials/oauth";
+import { executeGoogleApproval } from "./google/execute";
 
 /**
  * Wide-open Google scopes — the per-user `gog` MCP wrapper covers every
@@ -176,8 +177,21 @@ registerManagedMcpService({
     // Full toolset everywhere — A100 dev has KV room.
     const toolset = process.env.FLATCLAW_GOOGLE_MCP_TOOLSET ?? "full";
     const mode = process.env.FLATCLAW_GOOGLE_MCP_MODE ?? "verbose";
-    return { GOOGLE_MCP_TOOLSET: toolset, GOOGLE_MCP_MODE: mode };
+    // Approval-gated tools (comma list; empty string = nothing gated). The
+    // MCP composes these instead of executing; executeApproval below replays
+    // on human sign-off. Default: outbound mail + destructive/exposing Drive.
+    const approvalTools =
+      process.env.FLATCLAW_GOOGLE_APPROVAL_TOOLS ??
+      "gmail_send,gmail_send_draft,drive_delete,drive_share";
+    return {
+      GOOGLE_MCP_TOOLSET: toolset,
+      GOOGLE_MCP_MODE: mode,
+      GOOGLE_APPROVAL_TOOLS: approvalTools,
+    };
   },
+  // On approve, replay the composed REST call with a fresh access token for
+  // the requesting user (guarded to googleapis.com hosts).
+  executeApproval: (input) => executeGoogleApproval(input),
   auth: {
     kind: "oauth",
     provider: "google",

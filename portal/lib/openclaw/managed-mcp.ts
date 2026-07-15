@@ -16,6 +16,8 @@
  * lives next to its descriptor. Everything that generalizes lives here.
  */
 
+import fs from "node:fs";
+import path from "node:path";
 import { getGatewayClient } from "./adapter";
 import { db, schema } from "@/lib/db/client";
 import { eq } from "drizzle-orm";
@@ -206,6 +208,22 @@ export interface ManagedMcpService {
    */
   toolGroups?: readonly ToolGroupDescriptor[];
   /**
+   * Optional per-role tool-access policy. Returns the `toolGroups` ids this
+   * user's role should NOT have. Seeded into the agent's native `tools.deny`
+   * at provision and on every sync, so role-appropriate tool availability is
+   * automatic — an admin never has to hand-untick a restricted role's tools. The
+   * MCP still role-gates returned DATA regardless of which tools are exposed.
+   * Requires `toolGroups`. Return [] for a role that gets everything.
+   */
+  roleDeniedGroups?: (userId: string) => Promise<string[]>;
+  /**
+   * Optional skill directories to seed into a connected user's agent workspace
+   * (`<workspace>/skills/<name>/`). Returns absolute source dirs; each is copied
+   * recursively on provision and every sync (idempotent). Lets a service ship a
+   * bundled skill (e.g. a doc-fill helper) that its agents can run locally.
+   */
+  workspaceSkills?: () => readonly string[];
+  /**
    * Optional per-service prompt sections. When the user has this service
    * connected, `sync-skills` calls these to fold a service-specific bullet
    * into the agent's AGENTS.md / TOOLS.md — so a private add-on service can
@@ -221,6 +239,25 @@ export interface ManagedMcpService {
    * `CPANEL_MCP_TOOLSET=core|full` lane gate.
    */
   buildExtraEnv?: () => Record<string, string>;
+  /**
+   * Optional execution hook for the human-approval queue. When an approval
+   * for THIS service is approved, the queue calls this with the action `kind`
+   * and the `composedRequest` the tool returned, and the service performs the
+   * real effect (e.g. apply the transfer / open the loan in its data store)
+   * and returns a short human summary. Absence = approve records the sign-off
+   * only (and a service detached from the build simply can't execute — the
+   * queue degrades gracefully). Never called on deny.
+   */
+  executeApproval?: (input: {
+    kind: string;
+    composedRequest: unknown;
+    /**
+     * Agent that composed the request, derived by the queue from the session
+     * the pending item was found in (never from envelope content). Services
+     * with per-user credentials use this to act as the requesting user.
+     */
+    requestedByAgentId?: string;
+  }) => Promise<{ summary: string } | null>;
   /**
    * Persist a credential payload to the vault. Required only for
    * `auth.kind === "form"` plugins (the generic OAuth router writes
@@ -314,6 +351,22 @@ export async function provisionManagedMcpForUser(
 
   const capToken = await ensureCapabilityToken(userId, svc.capabilityScope);
   const serverName = managedMcpServerName(svc, u.agentId!);
+
+  // Seed any bundled workspace skills into the agent's workspace (idempotent).
+  if (typeof svc.workspaceSkills === "function") {
+    const workspaceRoot = `${process.env.HOME ?? "/home/sky"}/.openclaw/workspace-${u.agentId!}`;
+    for (const sourceDir of svc.workspaceSkills()) {
+      try {
+        if (!fs.existsSync(sourceDir)) continue;
+        const dest = path.join(workspaceRoot, "skills", path.basename(sourceDir));
+        fs.mkdirSync(path.dirname(dest), { recursive: true });
+        fs.cpSync(sourceDir, dest, { recursive: true });
+      } catch (err) {
+        console.warn(`[managed-mcp] skill seed ${sourceDir} → ${u.agentId} failed:`, err);
+      }
+    }
+  }
+
   const extraEnv = svc.buildExtraEnv ? svc.buildExtraEnv() : {};
   // Tools that need to write directly into the agent's workspace
   // (e.g. cpanel download_file, drive_download) read these to derive the
@@ -423,6 +476,52 @@ export async function isServiceEnabled(service: string): Promise<boolean> {
   return rows.length > 0 ? rows[0].enabled === true : false;
 }
 
+/**
+ * UI-only visibility (separate from `enabled`). A hidden service is omitted
+ * from the per-user connections panel so a demo stays simple — it does NOT
+ * deprovision or disable anything. Toggled from the admin Settings page.
+ */
+export async function isServiceHidden(service: string): Promise<boolean> {
+  const rows = await db
+    .select()
+    .from(schema.serviceSettings)
+    .where(eq(schema.serviceSettings.service, service))
+    .limit(1);
+  return rows.length > 0 ? rows[0].hidden === true : false;
+}
+
+/** Set of service ids currently hidden from the connections UI. */
+export async function getHiddenServices(): Promise<Set<string>> {
+  const rows = await db.select().from(schema.serviceSettings);
+  return new Set(rows.filter((r) => r.hidden === true).map((r) => r.service));
+}
+
+/** Toggle a service's UI visibility. No provisioning side effects. */
+export async function setServiceHidden(
+  service: string,
+  hidden: boolean,
+): Promise<void> {
+  if (!REGISTRY.has(service)) throw new Error(`unknown service "${service}"`);
+  const existing = await db
+    .select()
+    .from(schema.serviceSettings)
+    .where(eq(schema.serviceSettings.service, service))
+    .limit(1);
+  if (existing.length === 0) {
+    await db.insert(schema.serviceSettings).values({
+      service,
+      enabled: false,
+      hidden,
+      updatedAt: new Date(),
+    });
+  } else {
+    await db
+      .update(schema.serviceSettings)
+      .set({ hidden, updatedAt: new Date() })
+      .where(eq(schema.serviceSettings.service, service));
+  }
+}
+
 async function writeServiceEnabled(
   service: string,
   enabled: boolean,
@@ -503,6 +602,10 @@ export async function syncManagedMcpForAllUsers(
     if (shouldBeUp) {
       try {
         await provisionManagedMcpForUser(service, u.id);
+        // Seed role-appropriate tool access now that the MCP is connected.
+        if (typeof svc.roleDeniedGroups === "function") {
+          await seedRoleToolAccessForUser(u.id);
+        }
         result.provisioned.push(u.id);
       } catch (err) {
         result.skipped.push({
@@ -523,6 +626,75 @@ export async function syncManagedMcpForAllUsers(
     }
   }
   return result;
+}
+
+/**
+ * Seeds role-appropriate tool access for a user from every connected managed
+ * service that declares a `roleDeniedGroups` policy. The denied groups' tool
+ * ids become native `tools.deny` entries — so a restricted role never even sees
+ * its denied tool groups, automatically, the moment they're connected/synced.
+ *
+ * Role is the source of truth for the role-policy services' tool space: on
+ * each run we clear those services' existing deny entries and rewrite them
+ * from the current role. Operator denies on OTHER services and the managed
+ * cross-user globs are preserved (setAgentToolDeny owns the globs).
+ *
+ * Dynamic-imports tool-access to avoid a managed-mcp ⇄ tool-access import cycle.
+ */
+export async function seedRoleToolAccessForUser(
+  userId: string,
+): Promise<{ changed: boolean }> {
+  const userRows = await db
+    .select({ agentId: schema.users.agentId })
+    .from(schema.users)
+    .where(eq(schema.users.id, userId))
+    .limit(1);
+  const agentId = userRows[0]?.agentId;
+  if (!agentId) return { changed: false };
+
+  const roleServices = listManagedMcpServices().filter(
+    (s) => typeof s.roleDeniedGroups === "function" && (s.toolGroups?.length ?? 0) > 0,
+  );
+  if (roleServices.length === 0) return { changed: false };
+
+  // Tool ids owned by any role-policy service (cleared each run), and the
+  // fresh deny ids for this user's role on each connected such service.
+  const ownedToolIds = new Set<string>();
+  const roleDenyIds = new Set<string>();
+  for (const svc of roleServices) {
+    const serverName = managedMcpServerName(svc, agentId);
+    const groups = svc.toolGroups ?? [];
+    for (const g of groups)
+      for (const t of g.tools) ownedToolIds.add(`${serverName}__${t}`);
+
+    let connected = false;
+    try {
+      connected = (await svc.readStatus(userId)).connected === true;
+    } catch {
+      connected = false;
+    }
+    if (!connected) continue; // disconnected → just clear stale denies, add none
+
+    let deniedGroups: string[] = [];
+    try {
+      deniedGroups = await svc.roleDeniedGroups!(userId);
+    } catch (err) {
+      console.error(`[managed-mcp] roleDeniedGroups(${svc.service}, ${userId}) failed:`, err);
+      continue;
+    }
+    const denySet = new Set(deniedGroups);
+    for (const g of groups)
+      if (denySet.has(g.id))
+        for (const t of g.tools) roleDenyIds.add(`${serverName}__${t}`);
+  }
+
+  const { readAgentToolAccess, setAgentToolDeny } = await import("./tool-access");
+  const acc = await readAgentToolAccess(agentId);
+  // Keep operator denies on non-role-policy tools; rewrite the role-policy
+  // services' deny space from the role.
+  const kept = acc.denied.filter((d) => !ownedToolIds.has(d));
+  const next = Array.from(new Set([...kept, ...roleDenyIds]));
+  return await setAgentToolDeny(agentId, next);
 }
 
 /**
@@ -563,6 +735,13 @@ export async function syncAllManagedMcpsForUser(
       );
       out[svc.service] = "skipped";
     }
+  }
+  // Seed role-appropriate tool access from every connected role-policy service
+  // (e.g. a restricted role's denied tool groups are applied automatically).
+  try {
+    await seedRoleToolAccessForUser(userId);
+  } catch (err) {
+    console.error(`[managed-mcp] seedRoleToolAccessForUser(${userId}) failed:`, err);
   }
   return out;
 }

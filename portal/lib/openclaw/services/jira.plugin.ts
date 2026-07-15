@@ -18,6 +18,7 @@ import {
   readJiraStatus,
   deleteJiraCredential,
 } from "@/lib/credentials/jira";
+import { executeJiraApproval } from "./jira/execute";
 
 registerManagedMcpService({
   service: "jira",
@@ -86,8 +87,20 @@ registerManagedMcpService({
     // Full toolset everywhere — A100 dev has KV room.
     const toolset = process.env.FLATCLAW_JIRA_MCP_TOOLSET ?? "full";
     const mode = process.env.FLATCLAW_JIRA_MCP_MODE ?? "verbose";
-    return { JIRA_MCP_TOOLSET: toolset, JIRA_MCP_MODE: mode };
+    // Approval-gated tools (comma list; empty string = nothing gated). The
+    // MCP composes these instead of executing; executeApproval below replays
+    // on human sign-off. Default: the destructive attachment delete.
+    const approvalTools =
+      process.env.FLATCLAW_JIRA_APPROVAL_TOOLS ?? "delete_attachment";
+    return {
+      JIRA_MCP_TOOLSET: toolset,
+      JIRA_MCP_MODE: mode,
+      JIRA_APPROVAL_TOOLS: approvalTools,
+    };
   },
+  // On approve, replay the composed REST call with the requesting user's
+  // own vault credentials (guarded to their own workspace).
+  executeApproval: (input) => executeJiraApproval(input),
   auth: {
     kind: "form",
     fields: [

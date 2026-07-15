@@ -1,30 +1,28 @@
 const milestones = [
   {
-    version: "v0.2.0",
+    version: "v0.3.0",
     status: "This release",
     points: [
-      "Live inference — Gemma 4 31B-IT FP8 on a dedicated H100 at the native 256K context",
-      "MCP service integrations — Google, CalDAV/IMAP, Jira, per-user credentials",
-      "Matured Portal — streamed chat with token + compaction meter, sessions, workspace files, MCP services, Admin",
-      "Per-agent memory — built-in SQLite keyword search, seeded for every agent",
-      "Per-user Tool Access — admin allow/deny over built-in + connected-MCP tools via OpenClaw's native tools.deny, on top of always-on cross-user isolation",
+      "Human approval engine — consequential MCP actions (outbound mail, destructive/exposing calls) are composed, pause for human sign-off in the Portal, and replay with the user's own credentials on approve",
+      "Public/private MCP split — the repo ships mcp/public (Google, Jira); private add-on connectors self-register through the same plugin registry",
+      "OpenClaw 2026.7.1 — runtime pin bumped and re-verified against the RBAC contract",
+      "Portal approvals queue + per-service admin visibility controls",
     ],
   },
   {
-    version: "v0.3",
+    version: "v0.4",
     status: "Next",
     points: [
       "One-command tenant provisioning — provision-tenant.sh / destroy-tenant.sh (full Northflank tenant lifecycle)",
       "RAGFlow — cited document retrieval behind a stable interface",
       "Semantic memory + embeddings via bge-m3 — on its own GPU card",
-      "Scrapling web fetch + a first CRM connector, as MCP services",
-      "Voice — VoxCPM2 open-weight cloning + TTS",
-      "Image — ComfyUI + SDXL",
+      "Scrapling web fetch; additional CRM/ERP connectors as add-on services",
+      "Voice — VoxCPM2 open-weight cloning + TTS; Image — ComfyUI + SDXL",
       "Cascade routing + TurboQuant turbo4 — 1M-token context on a single card",
     ],
   },
   {
-    version: "v0.4+",
+    version: "v0.5+",
     status: "Future",
     points: [
       "WorkOS SSO for enterprise tenants (Okta / Azure AD / Google Workspace)",

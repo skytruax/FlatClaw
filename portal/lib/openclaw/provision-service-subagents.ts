@@ -22,23 +22,14 @@ import {
   buildServiceSubagentSoul,
   subagentIdFor,
 } from "@/lib/openclaw/service-subagents";
-import { readCpanelStatus } from "@/lib/credentials/cpanel";
-import { readCaldavStatus } from "@/lib/credentials/caldav";
-import { readServiceOauthStatus } from "@/lib/credentials/oauth";
-import { readJiraStatus } from "@/lib/credentials/jira";
+import { listManagedMcpServices } from "@/lib/openclaw/managed-mcp";
+import "@/lib/openclaw/services"; // populate the registry (plugin side effects)
 import type { ConfigBlob } from "@/lib/openclaw/agent-tool-policy";
 
 interface ConfigGetResult {
   blob?: ConfigBlob;
   hash?: string;
 }
-
-const SERVICE_LABELS: Record<SubagentService, string> = {
-  cpanel: "cPanel hosting",
-  caldav: "Mailbox / CalDAV / CardDAV",
-  google: "Google Workspace",
-  jira: "Atlassian Jira",
-};
 
 /**
  * Returns true if subagents are activated for this deployment. Gated
@@ -50,22 +41,34 @@ export function subagentsEnabled(): boolean {
 }
 
 /**
- * Detect which services the user has credentials for. Subagents are
- * minted only for connected services — no point creating
- * `<user>-cpanel` if cpanel creds aren't in the vault.
+ * Detect which services the user has credentials for, via the plugin
+ * registry (no hardcoded service list — a service absent from this build
+ * simply never registers and never connects). Subagents are minted only
+ * for connected services in the subagent-supported set.
  */
 async function detectConnectedServices(
   userId: string,
 ): Promise<SubagentService[]> {
-  const checks = await Promise.all<SubagentService | null>([
-    readCpanelStatus(userId).then((s) => (s.connected ? "cpanel" : null)),
-    readCaldavStatus(userId).then((s) => (s.connected ? "caldav" : null)),
-    readServiceOauthStatus(userId, "google").then((s) =>
-      s.connected ? "google" : null,
-    ),
-    readJiraStatus(userId).then((s) => (s.connected ? "jira" : null)),
-  ]);
+  const supported = listManagedMcpServices().filter((svc) =>
+    (SUBAGENT_SERVICES as readonly string[]).includes(svc.service),
+  );
+  const checks = await Promise.all(
+    supported.map(async (svc) => {
+      try {
+        return (await svc.readStatus(userId)).connected
+          ? (svc.service as SubagentService)
+          : null;
+      } catch {
+        return null;
+      }
+    }),
+  );
   return checks.filter((s): s is SubagentService => s != null);
+}
+
+/** Display label for a service, from its registry descriptor. */
+function serviceLabel(service: SubagentService): string {
+  return listManagedMcpServices().find((s) => s.service === service)?.label ?? service;
 }
 
 /**
@@ -121,7 +124,7 @@ export async function provisionServiceSubagentsForUser(
     const soul = buildServiceSubagentSoul({
       service,
       parentIdentityName,
-      serviceLabel: SERVICE_LABELS[service],
+      serviceLabel: serviceLabel(service),
       agentId: subagentId,
     });
     try {
