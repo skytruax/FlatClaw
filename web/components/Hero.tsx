@@ -41,13 +41,12 @@ export function Hero() {
           <span className="text-[hsl(var(--brand-accent))]">Private AI Platform</span>.
         </h1>
         <p className="mt-5 md:mt-6 text-base md:text-xl max-w-3xl leading-relaxed text-[hsl(var(--brand-accent-fg))/0.9]">
-          Agents, chat, tools, memory and scheduled work on infrastructure
-          you own. The capabilities of Claude Cowork, Gemini Enterprise Agent
-          and GPT‑6 Atlas, with none of the data egress. Single‑tenant, deployed
-          end-to-end into the customer&apos;s own cloud — Azure, AWS, Google
-          Cloud, Northflank, or their own hardware — control plane and GPU
-          under one roof. Every line auditable. Data locality is mechanically
-          verifiable, not marketed.
+          Voice agents on your phone lines. Intake that reads every file.
+          Reporting across five ERPs. Search walled by matter and role.
+          Actions that wait for approval. One platform runs all of it, with
+          inference on your own GPU, inside a tenancy you own on Azure, AWS,
+          Google Cloud, Northflank or your own hardware. Every line auditable.
+          Data locality mechanically verifiable, not marketed.
         </p>
         <div className="mt-8 md:mt-9 flex flex-wrap gap-3">
           <a
@@ -70,7 +69,7 @@ export function Hero() {
             href="/use-cases"
             className="inline-flex items-center gap-2 rounded-md ring-1 ring-[hsl(var(--brand-accent-fg))/0.3] px-5 py-2.5 font-medium hover:bg-[hsl(var(--brand-accent-fg))/0.08] transition"
           >
-            See it in use
+            See what it runs
           </Link>
         </div>
 

@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     template: "%s · FlatClaw",
   },
   description:
-    "FlatClaw is the open-source Private AI Platform: agents, chat, tools, memory and scheduled work, running entirely inside infrastructure the customer owns, on Azure, AWS, Google Cloud, Northflank, or their own hardware. Open source, single-tenant, no vendor egress.",
+    "FlatClaw is the open-source Private AI Platform: voice agents, document intake, consolidated reporting, governed knowledge search, approval-gated operations and content, running entirely inside infrastructure the customer owns, on Azure, AWS, Google Cloud, Northflank, or their own hardware. Open source, single-tenant, no vendor egress.",
   openGraph: {
     title: "FlatClaw — the open-source Private AI Platform",
     description:

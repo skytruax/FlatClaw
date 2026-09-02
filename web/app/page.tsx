@@ -5,7 +5,8 @@ import { ArchitectureDiagram } from "@/components/ArchitectureDiagram";
 import { Roadmap } from "@/components/Roadmap";
 import { CloudGrid } from "@/components/CloudGrid";
 import { FeaturedSpotlights } from "@/components/FeaturedSpotlights";
-import { GITHUB_URL, GHCR_INFERENCE_URL } from "@/lib/site";
+import { PlatformCapabilities } from "@/components/PlatformCapabilities";
+import { GITHUB_URL, GHCR_INFERENCE_URL, SCHEDULE_DEMO_URL } from "@/lib/site";
 
 export default function HomePage() {
   return (
@@ -13,30 +14,41 @@ export default function HomePage() {
       <Hero />
 
       <Section
+        id="platform"
+        eyebrow="One platform, every kind of work"
+        title="Built for the work your data can't leave the building for."
+        lede="Voice on your phone lines, documents in your drop folders, reporting over your ERPs, search inside your files, actions in your systems. FlatClaw is one platform for all of it, and every family below is backed by a real engagement: a deployment, a demo or a signed proposal, anonymized."
+      >
+        <PlatformCapabilities />
+      </Section>
+
+      <Section
         id="why"
         eyebrow="Why it exists"
-        title="Same capabilities. None of the data egress."
+        title="A platform you deploy, not a service you rent."
         lede={
           <>
-            Between January and April 2026, every frontier lab converged on the
-            same product: an agentic AI with a task inbox, saved
-            schedules, document memory, and direct access to local files and
-            connected apps. <strong>Claude Cowork</strong> defined the
-            category. <strong>Gemini Enterprise Agent</strong> is the
-            identical-shaped response. <strong>GPT‑6 + Atlas</strong> is the
-            unified version.
+            The frontier labs have shown what AI can do inside an organization:
+            agents with a task inbox, scheduled work, document memory, direct
+            access to files and connected apps. <strong>Claude Cowork</strong>,{" "}
+            <strong>Gemini Enterprise Agent</strong> and{" "}
+            <strong>GPT‑6 + Atlas</strong> all deliver it the same way: as a
+            service, on their servers, with your data sent over on every
+            request.
           </>
         }
+        variant="soft"
       >
         <div className="grid md:grid-cols-2 gap-6">
           <div className="bg-[hsl(var(--fc-bg-surface))] rounded-xl p-6 ring-1 ring-[hsl(var(--fc-bg-tertiary))]">
             <h3 className="font-semibold text-lg mb-2">The problem</h3>
             <p className="text-sm leading-relaxed text-[hsl(var(--fc-fg-secondary))]">
-              Every one of those products is structurally cloud-hosted and
-              sends your data to the vendor&apos;s servers on every request.
-              For firms whose data contractually or legally cannot leave their
-              own infrastructure — legal, healthcare, accounting, finance,
-              government, and everyone adjacent — that category is unreachable.
+              For a large part of the economy that is a non-starter. Law firms,
+              healthcare, banks, collections, manufacturers with confidential
+              financials, anyone with a contract that says the data stays put:
+              the most capable AI on the market is the AI they are not allowed
+              to use. The usual fallback is a narrow point solution per
+              problem, each with its own vendor and its own copy of the data.
             </p>
           </div>
           <div className="bg-[hsl(var(--brand-accent))/0.08] rounded-xl p-6 ring-1 ring-[hsl(var(--brand-accent))/0.35]">
@@ -44,10 +56,12 @@ export default function HomePage() {
               The answer
             </h3>
             <p className="text-sm leading-relaxed text-[hsl(var(--fc-fg-secondary))]">
-              FlatClaw is a platform with the same capabilities, built out of open-source
-              components, running entirely inside infrastructure the operator
-              controls — on whichever cloud they already run. Apache 2.0.
-              Pulled, audited, deployed. Every line is yours.
+              FlatClaw is the whole platform, deployed into a tenancy you own:
+              inference on your own GPU, agents, voice, retrieval, connectors,
+              approvals, scheduling and memory, with role-based access at every
+              tool call and an audit trail under all of it. Build every use
+              case on the same foundation instead of buying a vendor per
+              problem. Open source, Apache 2.0, every line yours to read.
             </p>
           </div>
         </div>
@@ -58,7 +72,6 @@ export default function HomePage() {
         eyebrow="Cloud partners"
         title="Runs on the cloud you already trust."
         lede="FlatClaw is a set of containers and one GPU node. It deploys into a tenancy the customer owns on any of these, with the same image, the same control plane, and the same privacy proof."
-        variant="soft"
       >
         <CloudGrid compact />
       </Section>
@@ -66,8 +79,8 @@ export default function HomePage() {
       <Section
         id="what"
         eyebrow="What's in the box"
-        title="A complete Private AI Platform — not a framework."
-        lede="Eight pre-integrated components. Pull, deploy, use. Each one is replaceable and auditable on its own."
+        title="Everything a Private AI Platform needs, pre-integrated."
+        lede="Eight components, one image, one tenancy. Every use case above runs on the same eight. Each one is replaceable and auditable on its own."
       >
         <FeatureGrid />
       </Section>
@@ -75,8 +88,8 @@ export default function HomePage() {
       <Section
         id="use-cases"
         eyebrow="Use case spotlights"
-        title="What the platform actually does."
-        lede="Anonymized workflows FlatClaw runs inside customers' own tenancies. Filter the full set by use case and industry."
+        title="Real deployments, anonymized."
+        lede="How organizations run the platform inside their own tenancies, from the proposals and demos behind it. Filter the full set by use case and industry."
         variant="soft"
       >
         <FeaturedSpotlights />
@@ -102,8 +115,8 @@ export default function HomePage() {
       <Section
         id="cost"
         eyebrow="Token Economics"
-        title="≈ $2,000 / month per tenant. Flat rate, not per token."
-        lede="Indicative monthly cost for a single tenant held warm 24/7 on a managed H100 plan, at the reference lane's published list pricing. Azure and AWS H100 classes land in the same band on reserved terms; bare metal amortizes lower. The H100 dominates; everything else combined is under $200. The rate is per tenant and scales with the tenant — not metered per token or per seat."
+        title="≈ $2,000 / month per tenant. Every use case, one flat rate."
+        lede="One GPU carries a tenant's whole workload: voice, intake, reporting, search and agents share it. Indicative monthly cost for a single tenant held warm 24/7 on a managed H100 plan, at the reference lane's published list pricing. Azure and AWS H100 classes land in the same band on reserved terms; bare metal amortizes lower. The H100 dominates; everything else combined is under $200. The rate is per tenant and scales with the tenant — not metered per token or per seat."
       >
         <div className="grid lg:grid-cols-2 gap-8">
           <div className="bg-[hsl(var(--fc-bg-surface))] rounded-xl ring-1 ring-[hsl(var(--fc-bg-tertiary))] p-6 shadow-sm">
@@ -268,15 +281,23 @@ export default function HomePage() {
         id="cta"
         eyebrow="Get started"
         title="Pull it. Audit it. Run it."
-        lede="Apache 2.0 — explicit patent grant. OSI-approved. Bring your own cloud, or your own hardware."
+        lede="Apache 2.0 with an explicit patent grant. Bring your own cloud, or your own hardware. Or bring a workload and see the platform run it."
         variant="dark"
       >
         <div className="flex flex-wrap gap-3">
           <a
-            href={GITHUB_URL}
+            href={SCHEDULE_DEMO_URL}
             target="_blank"
             rel="noreferrer"
             className="inline-flex items-center rounded-md bg-[hsl(var(--brand-accent))] text-[hsl(var(--brand-accent-fg))] px-5 py-2.5 font-semibold hover:brightness-110 transition"
+          >
+            Schedule a demo
+          </a>
+          <a
+            href={GITHUB_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center rounded-md ring-1 ring-[hsl(var(--brand-accent-fg))/0.3] px-5 py-2.5 font-medium hover:bg-[hsl(var(--brand-accent-fg))/0.08] transition"
           >
             github.com/skytruax/FlatClaw
           </a>
