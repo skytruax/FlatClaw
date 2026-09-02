@@ -109,6 +109,8 @@ export const SPOTLIGHTS: Spotlight[] = [
     useCases: ["Voice Agents", "Operations Automation"],
     industries: ["Financial Services"],
     hue: 230,
+    revenue: "≈ $40M revenue (approx.)",
+    scale: "~250 agents · three sites",
   },
   {
     id: "contact-refresh",
@@ -149,7 +151,8 @@ export const SPOTLIGHTS: Spotlight[] = [
     useCases: ["Analytics & Reporting", "Knowledge Search"],
     industries: ["Healthcare"],
     hue: 196,
-    scale: "Clinical reporting app used by sleep clinics",
+    revenue: "≈ $60M revenue (approx.)",
+    scale: "40 clinics · one clinical reporting app",
   },
   {
     id: "matter-wall",
@@ -176,7 +179,8 @@ export const SPOTLIGHTS: Spotlight[] = [
     useCases: ["Knowledge Search", "Compliance & Approvals"],
     industries: ["Financial Services"],
     hue: 214,
-    scale: "Community institution in the $1–3B asset class",
+    revenue: "≈ $2.4B in assets (approx.)",
+    scale: "30 branches · ~400 employees",
   },
   {
     id: "franchise-coach",
@@ -203,6 +207,8 @@ export const SPOTLIGHTS: Spotlight[] = [
     useCases: ["Operations Automation"],
     industries: ["Professional Services"],
     hue: 220,
+    revenue: "≈ $350M revenue (approx.)",
+    scale: "PE-owned · six operating companies · a 12-person corporate team",
   },
   {
     id: "content-coworker",
@@ -215,7 +221,8 @@ export const SPOTLIGHTS: Spotlight[] = [
     useCases: ["Operations Automation", "Sales & Marketing"],
     industries: ["Software / Technology", "Professional Services"],
     hue: 206,
-    scale: "Boutique consultancy",
+    revenue: "≈ $8M revenue (approx.)",
+    scale: "Boutique consultancy · ~25 consultants",
   },
   {
     id: "hosting-ops",
@@ -228,6 +235,8 @@ export const SPOTLIGHTS: Spotlight[] = [
     useCases: ["Operations Automation", "Compliance & Approvals"],
     industries: ["IT & MSP"],
     hue: 218,
+    revenue: "≈ $15M revenue (approx.)",
+    scale: "3,000+ hosted accounts · a 24/7 operations team",
   },
   {
     id: "drawing-takeoff",
@@ -254,6 +263,7 @@ export const SPOTLIGHTS: Spotlight[] = [
     useCases: ["Estimating & Quoting", "Data Consolidation", "Analytics & Reporting"],
     industries: ["Construction"],
     hue: 208,
+    revenue: "≈ $25M revenue (approx.)",
     scale: "12 years of job history · Zoho CRM · Azure tenant",
   },
   {
@@ -281,6 +291,8 @@ export const SPOTLIGHTS: Spotlight[] = [
     useCases: ["Sales & Marketing", "Customer Engagement"],
     industries: ["Software / Technology", "Professional Services"],
     hue: 216,
+    revenue: "≈ $120M revenue (approx.)",
+    scale: "35-person sales team · one CRM",
   },
   {
     id: "voice-booking",
