@@ -100,17 +100,15 @@ export const SPOTLIGHTS: Spotlight[] = [
   },
   {
     id: "voicemail-lane",
-    title: "Collections floor",
-    useCase: "Personalized voicemail lane in the collector's own voice",
+    title: "Regulated outbound contact center",
+    useCase: "Compliant voicemail lane beside the existing dialer",
     results:
-      "A compliant voicemail lane leaves every message personal to the account, in the assigned collector's own consented voice, at a volume no floor can match, and shares one attempt ledger with the dialer so contact caps stay enforced in one place.",
+      "A voicemail lane leaves a message specific to each account, in a consented agent voice, at a volume no floor can match, and shares one attempt ledger with the dialer so contact limits stay enforced in one place.",
     detail:
-      "Open-weight voice cloning from a thirty-second sample runs on the agency's own hardware. Messages follow the limited-content format, every attempt feeds the dialer's daily file, and the debtor who calls back reaches the very voice they heard.",
-    useCases: ["Voice Agents", "Operations Automation"],
-    industries: ["Collections"],
+      "Open-weight speech synthesis runs on the organization's own hardware. Messages follow the limited-content format the rules define, every attempt feeds the dialer's daily file, and a return call reaches the team that left the message.",
+    useCases: ["Voice Agents", "Operations Automation", "Compliance & Approvals"],
+    industries: ["Collections", "Financial Services"],
     hue: 230,
-    revenue: "≈ $10M revenue (approx.)",
-    scale: "~60 employees · one collections floor",
   },
   {
     id: "contact-refresh",

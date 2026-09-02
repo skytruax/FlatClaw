@@ -154,29 +154,29 @@ export const SPOTLIGHT_DETAILS: Record<string, SpotlightDetail> = {
   },
   "voicemail-lane": {
     facts: [
-      ["Organization", "Collections floor inside a receivables agency"],
-      ["Reality", "Most of a collector's day is answering machines"],
-      ["Runs on", "Two GPUs in the agency's building"],
+      ["Organization", "Regulated outbound contact center"],
+      ["Reality", "Most of an agent's day is answering machines"],
+      ["Runs on", "The organization's own hardware"],
       ["Scope", "A compliant voicemail lane beside the existing dialer"],
     ],
     situation:
-      "Collectors spend the majority of their day leaving voicemails. A human leaves a hundred rushed, identical messages; a robocall leaves a voice nobody returns. The dialer vendor's virtual agent was quoted at six figures and would not share the agency's own attempt limits.",
+      "Agents on a regulated outbound floor spend most of the day leaving voicemails. A person leaves a hundred rushed, identical messages; a robocall leaves a voice nobody returns. Hosted virtual-agent products would not share the organization's own contact limits, and the conversations are regulated, so the audio could not leave the building.",
     solution: [
-      "Each collector's voice is cloned from a thirty-second sample, with written consent, using an open-weight voice model on the agency's own GPU.",
-      "Every message is personal to the account and spoken in the assigned collector's voice, with that collector's callback line, and every message follows the limited-content format the regulation defines.",
-      "Attempts feed the dialer's daily file, so contact caps are enforced in one place, and the debtor who calls back reaches the voice they heard.",
-      "The lane runs beside the existing dialer through its supported file and transfer surfaces; collectors keep their tools.",
+      "An open-weight speech model on the organization's own GPU speaks in consented agent voices, licensed in writing per team.",
+      "Every message is specific to the account and follows the limited-content format the rules define, with the right callback line.",
+      "Attempts feed the dialer's daily file, so contact caps are enforced in one place, and a return call reaches the team that left the message.",
+      "The lane runs beside the existing dialer through its supported file and transfer surfaces; agents keep their tools.",
     ],
     outcomes: [
-      "Personal outreach at machine scale, in the voice the account already knows.",
+      "Personal outreach at machine scale, inside the organization's own contact limits.",
       "One attempt ledger shared with the dialer instead of a second system to reconcile.",
-      "No per-minute vendor bill, and the voices are the agency's own assets.",
-      "The same voice stack carries the agency's other phone workflows.",
+      "No per-minute vendor bill, and the voices remain the organization's own assets.",
+      "The same voice stack carries the organization's other phone workflows.",
     ],
-    stack: ["Open-weight voice cloning and synthesis", "Streaming speech recognition", "Dialer file and transfer integration", "Attempt ledger", "Private inference on on-prem GPUs"],
+    stack: ["Open-weight speech synthesis", "Streaming speech recognition", "Dialer file and transfer integration", "Attempt ledger", "Private inference on on-prem GPUs"],
     runsOn: "On-premise hardware",
     whyPrivate:
-      "Debtor conversations are regulated and sensitive. Keeping the voice loop and the transcripts inside the building keeps the agency's certifications intact.",
+      "The conversations are regulated and sensitive. Keeping the voice loop and the transcripts inside the building keeps the organization's certifications intact.",
   },
   "contact-refresh": {
     facts: [
