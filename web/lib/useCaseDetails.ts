@@ -25,15 +25,15 @@ export const SPOTLIGHT_DETAILS: Record<string, SpotlightDetail> = {
       ["Organization", "Multi-brand industrial manufacturer, several acquired business units"],
       ["Systems", "Four ERPs, one CRM, spreadsheet-driven consolidation"],
       ["Runs on", "Microsoft Azure, in the customer's own tenant"],
-      ["Scope", "Governed lakehouse plus an AI coworker over it"],
+      ["Scope", "Governed lakehouse plus an AI agent over it"],
     ],
     situation:
       "Each acquired brand kept its own ERP, and the group's consolidated view lived in spreadsheets stitched together every month by hand. Leadership could not ask a simple question across brands, could not trust a number without knowing which spreadsheet it came from, and every new acquisition restarted the whole exercise. The group runs on Microsoft, so a second data cloud was never on the table.",
     solution: [
       "A governed lakehouse in the customer's Azure tenant, fed from all four ERPs and the CRM on a schedule, with entity mapping and consolidation logic that keeps an audit trail back to the source transaction.",
       "FlatClaw on top, connected through MCP tools: finance asks why a margin moved and gets a cited answer; sales gets a 360-degree view of a strategic account across every brand it touches, with updates written back to the CRM.",
-      "Board-grade consolidated financials and business-unit scorecards produced from the same governed data the coworker answers from, so the report and the conversation never disagree.",
-      "An onboarding pattern for the next acquisition: map the new ERP once, and the coworker, the scorecards and the consolidation inherit it.",
+      "Board-grade consolidated financials and business-unit scorecards produced from the same governed data the agent answers from, so the report and the conversation never disagree.",
+      "An onboarding pattern for the next acquisition: map the new ERP once, and the agent, the scorecards and the consolidation inherit it.",
     ],
     outcomes: [
       "One set of numbers, traceable to source, instead of a monthly reconciliation exercise.",
@@ -44,7 +44,7 @@ export const SPOTLIGHT_DETAILS: Record<string, SpotlightDetail> = {
     stack: ["FlatClaw Portal", "Agent harness (Pi core)", "ERP and CRM MCP connectors", "Lakehouse on Microsoft Fabric", "Private inference on a dedicated GPU", "Entra ID sign-in"],
     runsOn: "Microsoft Azure",
     whyPrivate:
-      "Consolidated financials for a private group are exactly the data that cannot be sent to a third-party model on every question. The coworker answers from the lakehouse inside the tenant, and the audit trail makes every answer defensible.",
+      "Consolidated financials for a private group are exactly the data that cannot be sent to a third-party model on every question. The agent answers from the lakehouse inside the tenant, and the audit trail makes every answer defensible.",
   },
   "voice-booking": {
     facts: [
@@ -82,7 +82,7 @@ export const SPOTLIGHT_DETAILS: Record<string, SpotlightDetail> = {
     situation:
       "Every client sends placement files in its own layout. A person and a half spent their days turning those files into the one upload format the thirty-year-old collection system accepts. A failed system conversion the year before had made the agency rightly cautious: whatever came next could not touch the system of record.",
     solution: [
-      "The coworker watches the drop locations, reads each incoming placement file, and maps its columns onto the house schema using rules the intake team helped write.",
+      "The agent watches the drop locations, reads each incoming placement file, and maps its columns onto the house schema using rules the intake team helped write.",
       "Anything it is unsure about is flagged, not guessed; the whole batch waits in an approval queue where a reviewer sees the mapping and the exceptions before release.",
       "Output is exactly the upload file the collection system already accepts, so nothing about the system of record changes.",
       "Runs entirely on hardware inside the agency's building.",
@@ -96,7 +96,7 @@ export const SPOTLIGHT_DETAILS: Record<string, SpotlightDetail> = {
     stack: ["FlatClaw Portal", "Agent harness (Pi core)", "Approval engine", "File-watch and normalization skills", "Private inference on an on-prem GPU"],
     runsOn: "On-premise hardware",
     whyPrivate:
-      "Placement files carry protected health information. The agency's compliance posture depends on that data never leaving the building, so the coworker runs where the data already lives.",
+      "Placement files carry protected health information. The agency's compliance posture depends on that data never leaving the building, so the agent runs where the data already lives.",
   },
   "phi-gate": {
     facts: [
@@ -109,7 +109,7 @@ export const SPOTLIGHT_DETAILS: Record<string, SpotlightDetail> = {
       "A file sent to the wrong recipient with protected health information inside is the agency's worst day. The manual control was attention: a person checking a highlighted list before hitting send. It worked until the day it did not, and the compliance team that followed needed a control that could not be skipped.",
     solution: [
       "Built on FlatClaw's approval engine: the agent composes every outbound send that carries protected information, but never executes it.",
-      "Before the file reaches the queue, the coworker checks it against the placement it belongs to, the recipient, and the expected shape of the data, and attaches the evidence and any anomalies.",
+      "Before the file reaches the queue, the agent checks it against the placement it belongs to, the recipient, and the expected shape of the data, and attaches the evidence and any anomalies.",
       "A compliance reviewer approves or denies from the queue; on approve, the send replays with the reviewer's own credentials; on deny, nothing happens.",
       "Both outcomes, with the approver's identity, land in the audit log.",
     ],
@@ -117,7 +117,7 @@ export const SPOTLIGHT_DETAILS: Record<string, SpotlightDetail> = {
       "The control is structural: a send cannot happen without a recorded human decision.",
       "Reviewers see evidence, not a highlighted spreadsheet.",
       "Audit questions are answered from the log, not from memory.",
-      "The same engine gates every other consequential action the coworker can take.",
+      "The same engine gates every other consequential action the agent can take.",
     ],
     stack: ["Approval engine", "FlatClaw Portal approvals queue", "Agent harness (Pi core)", "Audit log", "Private inference on an on-prem GPU"],
     runsOn: "On-premise hardware",
@@ -184,7 +184,7 @@ export const SPOTLIGHT_DETAILS: Record<string, SpotlightDetail> = {
       ["Scope", "A quote control tower for three internal consumers"],
     ],
     situation:
-      "Quotes depend on inputs that change daily, fuel above all, and on data scattered across forwarding systems and a partner's API. Finance, operations and an innovation team each wanted a different view of the same facts, and a data-lake program was already underway that the coworker could sit on top of rather than replace.",
+      "Quotes depend on inputs that change daily, fuel above all, and on data scattered across forwarding systems and a partner's API. Finance, operations and an innovation team each wanted a different view of the same facts, and a data-lake program was already underway that the agent could sit on top of rather than replace.",
     solution: [
       "FlatClaw as a consumer of the group's data lake: a control tower that reads the forwarding systems and the partner API through governed connectors.",
       "Agents assemble quotes that track fuel, routing and risk, and hand them to the desk with the reasoning attached rather than a number alone.",
@@ -236,15 +236,15 @@ export const SPOTLIGHT_DETAILS: Record<string, SpotlightDetail> = {
       ["Scope", "Research and drafting inside the wall"],
     ],
     situation:
-      "The firm benchmarks every AI tool on the market and has the productivity numbers to prove the category works. What it cannot do is send client documents to a vendor's model, or let a lawyer on one matter retrieve documents from another. The frontier coworkers are built on both.",
+      "The firm benchmarks every AI tool on the market and has the productivity numbers to prove the category works. What it cannot do is send client documents to a vendor's model, or let a lawyer on one matter retrieve documents from another. The frontier agents are built on both.",
     solution: [
       "FlatClaw deployed inside the firm's tenancy with role-based access mapped to matter teams.",
-      "Retrieval scoped before the model sees a document: a lawyer's coworker can only search the matters that lawyer is on.",
+      "Retrieval scoped before the model sees a document: a lawyer's agent can only search the matters that lawyer is on.",
       "Every answer cited to its source document, so a draft can be checked rather than trusted.",
-      "The same governed coworker for research, drafting and summarization, with the firm's own style and precedents in its knowledge base.",
+      "The same governed agent for research, drafting and summarization, with the firm's own style and precedents in its knowledge base.",
     ],
     outcomes: [
-      "The productivity of a frontier coworker with the data posture the firm's clients require.",
+      "The productivity of a frontier agent with the data posture the firm's clients require.",
       "Matter isolation enforced by the system, not by policy reminders.",
       "Answers that carry their citations into the work product.",
       "A platform the firm owns and can extend for practice groups.",
@@ -278,7 +278,7 @@ export const SPOTLIGHT_DETAILS: Record<string, SpotlightDetail> = {
     stack: ["Core-banking MCP connectors", "Approval engine", "Per-user credential vault", "FlatClaw Portal", "Private inference on a dedicated GPU"],
     runsOn: "The institution's own cloud tenancy",
     whyPrivate:
-      "Account data does not leave a bank's boundary, full stop. The coworker's usefulness had to be earned without any of that data reaching a third party.",
+      "Account data does not leave a bank's boundary, full stop. The agent's usefulness had to be earned without any of that data reaching a third party.",
   },
   "franchise-coach": {
     facts: [
@@ -291,7 +291,7 @@ export const SPOTLIGHT_DETAILS: Record<string, SpotlightDetail> = {
       "A small team of business coaches is responsible for helping every franchisee maximize an investment. The coaches carry the playbook, the marketing tactics, the systems knowledge and the numbers in their heads, and there are not enough of them to reach every location as often as the network needs.",
     solution: [
       "The operating playbook, marketing and systems knowledge in a maintained knowledge base, refreshed as the underlying sources change.",
-      "The coworker connected to the franchisor's data platform, so it knows every location's numbers and the network's patterns: what a healthy first year looks like, where cash problems tend to appear.",
+      "The agent connected to the franchisor's data platform, so it knows every location's numbers and the network's patterns: what a healthy first year looks like, where cash problems tend to appear.",
       "For each location, the agent surfaces the opportunities and drafts the conversation; a human coach has it.",
       "Franchisees ask their own questions of the same governed knowledge, within what they are allowed to see.",
     ],
@@ -304,7 +304,7 @@ export const SPOTLIGHT_DETAILS: Record<string, SpotlightDetail> = {
     stack: ["FlatClaw Portal", "Knowledge base with continuous refresh", "Data-platform connectors", "Role-based access for coaches and owners", "Private inference on a dedicated GPU"],
     runsOn: "The franchisor's cloud tenancy",
     whyPrivate:
-      "Every location's financial performance is confidential to the franchisor and the owner. A private coworker can reason over all of it; a hosted one could not be given it.",
+      "Every location's financial performance is confidential to the franchisor and the owner. A private agent can reason over all of it; a hosted one could not be given it.",
   },
   "back-office": {
     facts: [
@@ -317,7 +317,7 @@ export const SPOTLIGHT_DETAILS: Record<string, SpotlightDetail> = {
       "People were already using chat assistants for invoice coding, presentations and reports, and getting different answers, in different formats, from the same prompt. Skills could not be shared between individual accounts, brand guidelines were reapplied by hand every time, and the private inference bill would have grown with every seat.",
     solution: [
       "An administrator publishes shared skills once: invoice coding rules, the monthly report, the presentation template.",
-      "The brand kit and data connections live in one place and every user's coworker calls the same tools, so the output is the same for everyone.",
+      "The brand kit and data connections live in one place and every user's agent calls the same tools, so the output is the same for everyone.",
       "Role-based access keeps finance tools with finance and marketing assets with marketing.",
       "Flat-rate private inference: adding a user adds no per-seat model cost.",
     ],
@@ -337,7 +337,7 @@ export const SPOTLIGHT_DETAILS: Record<string, SpotlightDetail> = {
       ["Organization", "Technology consultancy"],
       ["Reality", "Proposals, decks and campaign copy produced daily, to a brand standard"],
       ["Runs on", "The consultancy's own inference"],
-      ["Scope", "A content coworker with the brand system as a skill"],
+      ["Scope", "A content agent with the brand system as a skill"],
     ],
     situation:
       "A consulting team produces proposals, one-pagers and decks constantly, and every one has to pass review on brand and on substance. Prompts and brand rules lived in individual chat histories and were pasted between people, and the results varied with whoever wrote the prompt.",
@@ -441,12 +441,12 @@ export const SPOTLIGHT_DETAILS: Record<string, SpotlightDetail> = {
       ["Organization", "Sales team on a CRM"],
       ["Reality", "Deal data visible to some, not to all"],
       ["Runs on", "The company's cloud tenancy"],
-      ["Scope", "A CRM-connected coworker with per-user credentials"],
+      ["Scope", "A CRM-connected agent with per-user credentials"],
     ],
     situation:
-      "Sales wanted a coworker that could answer pipeline questions, draft follow-ups and summarize accounts. The blocker was access: a shared integration would let anyone's assistant see everyone's deals, and outbound messages sent by an agent without review were a non-starter.",
+      "Sales wanted an agent that could answer pipeline questions, draft follow-ups and summarize accounts. The blocker was access: a shared integration would let anyone's assistant see everyone's deals, and outbound messages sent by an agent without review were a non-starter.",
     solution: [
-      "The CRM connected as a first-party MCP service with credentials scoped to tenant, user and service: each person's coworker sees exactly what that person can see.",
+      "The CRM connected as a first-party MCP service with credentials scoped to tenant, user and service: each person's agent sees exactly what that person can see.",
       "Outbound messages composed by the agent and approval-gated before they leave.",
       "Pipeline questions, account summaries and follow-up drafts as a conversation with the data.",
       "Scheduled work, like a Monday pipeline brief, run per user with that user's own access.",
@@ -460,6 +460,6 @@ export const SPOTLIGHT_DETAILS: Record<string, SpotlightDetail> = {
     stack: ["CRM MCP connector", "Per-user OAuth credentials", "Approval engine", "Scheduled tasks", "FlatClaw Portal", "Private inference"],
     runsOn: "The company's cloud tenancy",
     whyPrivate:
-      "Pipeline data is the company's forecast. Per-user credentials and private inference keep it exactly as visible as it was before the coworker arrived, and no more.",
+      "Pipeline data is the company's forecast. Per-user credentials and private inference keep it exactly as visible as it was before the agent arrived, and no more.",
   },
 };

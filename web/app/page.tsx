@@ -15,11 +15,11 @@ export default function HomePage() {
       <Section
         id="why"
         eyebrow="Why it exists"
-        title="Same product shape. None of the data egress."
+        title="Same capabilities. None of the data egress."
         lede={
           <>
             Between January and April 2026, every frontier lab converged on the
-            same product: an agentic AI coworker with a task inbox, saved
+            same product: an agentic AI with a task inbox, saved
             schedules, document memory, and direct access to local files and
             connected apps. <strong>Claude Cowork</strong> defined the
             category. <strong>Gemini Enterprise Agent</strong> is the
@@ -44,7 +44,7 @@ export default function HomePage() {
               The answer
             </h3>
             <p className="text-sm leading-relaxed text-[hsl(var(--fc-fg-secondary))]">
-              FlatClaw is the same product shape, built out of open-source
+              FlatClaw is a platform with the same capabilities, built out of open-source
               components, running entirely inside infrastructure the operator
               controls — on whichever cloud they already run. Apache 2.0.
               Pulled, audited, deployed. Every line is yours.
@@ -66,7 +66,7 @@ export default function HomePage() {
       <Section
         id="what"
         eyebrow="What's in the box"
-        title="A complete coworker stack — not a framework."
+        title="A complete private AI platform — not a framework."
         lede="Eight pre-integrated components. Pull, deploy, use. Each one is replaceable and auditable on its own."
       >
         <FeatureGrid />
@@ -75,7 +75,7 @@ export default function HomePage() {
       <Section
         id="use-cases"
         eyebrow="Use case spotlights"
-        title="What a private coworker actually does."
+        title="What the platform actually does."
         lede="Anonymized workflows FlatClaw runs inside customers' own tenancies. Filter the full set by use case and industry."
         variant="soft"
       >
@@ -161,7 +161,7 @@ export default function HomePage() {
               },
               {
                 k: "Most user actions don't touch the LLM at all.",
-                v: "Memory recall, RAG retrieval, file reads, OAuth tool invocations — all gateway- or skill-side. The LLM is invoked for chat turns and tool-call planning. A typical coworker session is a handful of LLM calls, not hundreds.",
+                v: "Memory recall, RAG retrieval, file reads, OAuth tool invocations — all gateway- or skill-side. The LLM is invoked for chat turns and tool-call planning. A typical session is a handful of LLM calls, not hundreds.",
               },
               {
                 k: "Headroom for bursts, then a cascade.",

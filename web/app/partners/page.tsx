@@ -31,7 +31,7 @@ export default function PartnersPage() {
           <p className="mt-5 text-lg max-w-3xl leading-relaxed text-[hsl(var(--brand-accent-fg))/0.9]">
             FlatClaw is the platform. Implementation partners build the skills,
             MCP servers and bespoke workflows that turn it into the specific
-            coworker a firm needs, and deliver the tenancy on the cloud the
+            solution a firm needs, and deliver the tenancy on the cloud the
             customer already trusts: Azure, AWS, Google Cloud, Northflank, or
             their own hardware.
           </p>
@@ -62,12 +62,12 @@ export default function PartnersPage() {
             </div>
             <div>
               <p className="text-sm leading-relaxed text-[hsl(var(--fc-fg-secondary))]">
-                Kirk Tech Solutions has announced the launch of FlatClaw:
-                private, secure, single-tenant AI coworkers deployed inside
+                Kirk Tech Solutions has announced the launch of FlatClaw: a
+                private, secure, single-tenant AI platform deployed inside
                 customers&apos; own private cloud. The release marks the first
                 wave of FlatClaw deployments, with Kirk Tech delivering the
                 integration, custom skills, and MCP services that turn the
-                open-source platform into a working coworker for each customer.
+                open-source platform into working solutions for each customer.
               </p>
               <a
                 href={KIRK_PRESS_RELEASE_URL}
@@ -101,7 +101,7 @@ export default function PartnersPage() {
               </h3>
               <p className="mt-3 text-sm leading-relaxed text-[hsl(var(--fc-fg-secondary))]">
                 Kirk Tech Solutions builds the skills, MCP servers and bespoke
-                workflows that turn FlatClaw into the specific coworker a firm
+                workflows that turn FlatClaw into the specific solution a firm
                 needs, and delivers the tenancy on the customer&apos;s cloud of
                 choice: Azure, AWS, Google Cloud, Northflank, or a rack in the
                 building.
@@ -205,7 +205,7 @@ export default function PartnersPage() {
       <Section
         eyebrow="Meet with FlatClaw"
         title="Let us help you deliver your next AI project on infrastructure you own."
-        lede="Thirty minutes: your workflow, your cloud, and whether a private coworker is the right shape for it."
+        lede="Thirty minutes: your workflow, your cloud, and whether a private AI platform is the right fit for it."
         variant="dark"
       >
         <a

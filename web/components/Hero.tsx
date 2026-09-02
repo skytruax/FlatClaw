@@ -37,12 +37,13 @@ export function Hero() {
           </span>
         </div>
         <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold tracking-tight leading-[1.1] md:leading-[1.05] max-w-4xl">
-          The open-source private-cloud{" "}
-          <span className="text-[hsl(var(--brand-accent))]">AI coworker</span>.
+          The open-source{" "}
+          <span className="text-[hsl(var(--brand-accent))]">private AI platform</span>.
         </h1>
         <p className="mt-5 md:mt-6 text-base md:text-xl max-w-3xl leading-relaxed text-[hsl(var(--brand-accent-fg))/0.9]">
-          Same product shape as Claude Cowork, Gemini Enterprise Agent, and
-          GPT‑6 Atlas. None of the data egress. Single‑tenant, deployed
+          Agents, chat, tools, memory and scheduled work on infrastructure
+          you own. The capabilities of Claude Cowork, Gemini Enterprise Agent
+          and GPT‑6 Atlas, with none of the data egress. Single‑tenant, deployed
           end-to-end into the customer&apos;s own cloud — Azure, AWS, Google
           Cloud, Northflank, or their own hardware — control plane and GPU
           under one roof. Every line auditable. Data locality is mechanically

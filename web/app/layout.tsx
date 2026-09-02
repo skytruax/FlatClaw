@@ -16,24 +16,24 @@ const mono = JetBrains_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL("https://flatclaw.org"),
   title: {
-    default: "FlatClaw — the open-source private-cloud AI coworker",
+    default: "FlatClaw — the open-source private AI platform",
     template: "%s · FlatClaw",
   },
   description:
-    "An agentic AI coworker — chat, tools, memory, scheduled work — running entirely inside infrastructure the customer controls, on Azure, AWS, Google Cloud, Northflank, or their own hardware. Open source, single-tenant, no vendor egress.",
+    "FlatClaw is the open-source private AI platform: agents, chat, tools, memory and scheduled work, running entirely inside infrastructure the customer owns, on Azure, AWS, Google Cloud, Northflank, or their own hardware. Open source, single-tenant, no vendor egress.",
   openGraph: {
-    title: "FlatClaw — the open-source private-cloud AI coworker",
+    title: "FlatClaw — the open-source private AI platform",
     description:
-      "Same product shape as the frontier-lab coworkers. None of the data egress. Apache 2.0.",
+      "The private AI platform you own. The capabilities of the frontier-lab products, none of the data egress. Apache 2.0.",
     url: "https://flatclaw.org",
     siteName: "FlatClaw",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "FlatClaw — the open-source private-cloud AI coworker",
+    title: "FlatClaw — the open-source private AI platform",
     description:
-      "Same product shape as the frontier-lab coworkers. None of the data egress. Apache 2.0.",
+      "The private AI platform you own. The capabilities of the frontier-lab products, none of the data egress. Apache 2.0.",
   },
 };
 

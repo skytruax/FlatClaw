@@ -40,10 +40,10 @@ export function SiteNav() {
           onClick={() => setOpen(false)}
         >
           <Image
-            src="/branding/wordmark-white.svg"
-            alt="FlatClaw"
-            width={140}
-            height={28}
+            src="/branding/wordmark-tagline-white.svg"
+            alt="FlatClaw, private AI platform"
+            width={134}
+            height={40}
             priority
             style={{ height: "auto" }}
           />

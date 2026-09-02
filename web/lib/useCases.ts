@@ -57,7 +57,7 @@ export const SPOTLIGHTS: Spotlight[] = [
     title: "Multi-brand industrial manufacturer",
     useCase: "Financial consolidation across four ERPs",
     results:
-      "One governed lakehouse behind an AI coworker: consolidated financials that trace to source transactions, business-unit scorecards, and plain-English inquiry over all of it, inside the company's own Azure tenant.",
+      "One governed lakehouse behind an AI agent: consolidated financials that trace to source transactions, business-unit scorecards, and plain-English inquiry over all of it, inside the company's own Azure tenant.",
     detail:
       "Four ERPs and a CRM feed a lakehouse in the customer's tenant. FlatClaw sits on top through MCP connectors: finance asks why a number moved and gets a grounded, cited answer; sales gets a 360-degree view of strategic accounts with the CRM written back. Acquisitions onboard as a repeatable pattern rather than a project each time.",
     useCases: ["Data Consolidation", "Analytics & Reporting", "Knowledge Search"],
@@ -83,7 +83,7 @@ export const SPOTLIGHTS: Spotlight[] = [
     results:
       "Placement files arriving in any layout are normalized into the agency's existing upload format, with a human approval queue before anything reaches the system of record. A one-and-a-half-person manual job becomes a review step.",
     detail:
-      "The coworker watches the drop locations, reads each placement file, maps twenty-five to fifty columns onto the house schema, flags anything it is unsure about, and emits exactly the file the legacy collection system already accepts. Nothing about the system of record changes.",
+      "The agent watches the drop locations, reads each placement file, maps twenty-five to fifty columns onto the house schema, flags anything it is unsure about, and emits exactly the file the legacy collection system already accepts. Nothing about the system of record changes.",
     useCases: ["Intake Automation", "Compliance & Approvals"],
     industries: ["Collections", "Healthcare"],
     hue: 212,
@@ -155,7 +155,7 @@ export const SPOTLIGHTS: Spotlight[] = [
     results:
       "Document search and drafting inside the firm's own tenancy: every answer cited to its source, every matter isolated by role, and nothing ever sent to a third-party model.",
     detail:
-      "Role-based access maps to matter teams, and retrieval is scoped before the model sees a document. The firm keeps the productivity of a frontier coworker and the data posture its clients require.",
+      "Role-based access maps to matter teams, and retrieval is scoped before the model sees a document. The firm keeps the productivity of a frontier agent and the data posture its clients require.",
     useCases: ["Knowledge Search", "Compliance & Approvals"],
     industries: ["Legal", "Professional Services"],
     hue: 226,
@@ -191,7 +191,7 @@ export const SPOTLIGHTS: Spotlight[] = [
     results:
       "Invoice coding, on-brand presentations and monthly reports from one shared portal where the logic and the assets live in one place, instead of in each person's chat window.",
     detail:
-      "An administrator publishes the shared skills, the brand kit and the data connections once; every user's coworker calls the same tool and gets the same report, and the private inference bill does not grow per seat.",
+      "An administrator publishes the shared skills, the brand kit and the data connections once; every user's agent calls the same tool and gets the same report, and the private inference bill does not grow per seat.",
     useCases: ["Operations Automation"],
     industries: ["Professional Services"],
     hue: 220,
@@ -199,11 +199,11 @@ export const SPOTLIGHTS: Spotlight[] = [
   {
     id: "content-coworker",
     title: "Technology consultancy",
-    useCase: "Content production coworker",
+    useCase: "Content production agent",
     results:
-      "Sales decks, one-pagers and campaign copy from a private coworker with the brand system loaded, running on the company's own inference, with skills shared across the team rather than pasted between chats.",
+      "Sales decks, one-pagers and campaign copy from a private agent with the brand system loaded, running on the company's own inference, with skills shared across the team rather than pasted between chats.",
     detail:
-      "The house brand skill carries colors, typography, logo files and a PDF renderer; the coworker produces proposals and decks that pass review on the first read, on hardware the company controls.",
+      "The house brand skill carries colors, typography, logo files and a PDF renderer; the agent produces proposals and decks that pass review on the first read, on hardware the company controls.",
     useCases: ["Operations Automation", "Sales & Marketing"],
     industries: ["Software / Technology", "Professional Services"],
     hue: 206,
@@ -239,7 +239,7 @@ export const SPOTLIGHTS: Spotlight[] = [
     results:
       "Monthly operating reports assembled by agents from three ERPs that never agreed with each other, with every figure traceable to its source system, so leadership reads one report instead of reconciling three.",
     detail:
-      "Each plant runs its own ERP and the corporate month-end was a manual merge. The coworker pulls the same figures from each system through governed connectors, normalizes units and entities, flags the mismatches instead of hiding them, and drafts the narrative around the numbers for a human to edit.",
+      "Each plant runs its own ERP and the corporate month-end was a manual merge. The agent pulls the same figures from each system through governed connectors, normalizes units and entities, flags the mismatches instead of hiding them, and drafts the narrative around the numbers for a human to edit.",
     useCases: ["Analytics & Reporting", "Data Consolidation"],
     industries: ["Manufacturing"],
     hue: 224,
@@ -247,7 +247,7 @@ export const SPOTLIGHTS: Spotlight[] = [
   {
     id: "sales-ops",
     title: "Sales team",
-    useCase: "CRM-connected coworker",
+    useCase: "CRM-connected agent",
     results:
       "Pipeline questions, follow-up drafts and account summaries with the CRM connected through each user's own OAuth credentials, so nobody's agent can reach a deal its user cannot see.",
     detail:

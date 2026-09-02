@@ -5,7 +5,7 @@ import { Linkedin, Github, Mail } from "lucide-react";
 export const metadata: Metadata = {
   title: "About",
   description:
-    "FlatClaw is built by Skyler Truax — an engineer focused on private-cloud AI infrastructure for regulated industries.",
+    "FlatClaw is built by Skyler Truax — an engineer focused on private AI infrastructure for regulated industries.",
 };
 
 export default function AboutPage() {
@@ -32,7 +32,7 @@ export default function AboutPage() {
       <Section
         eyebrow="Who's behind it"
         title="Skyler Truax"
-        lede="Engineer focused on practical agent infrastructure — runtimes, RBAC, deploy automation, and the unsexy plumbing that makes private-cloud AI actually work in production."
+        lede="Engineer focused on practical agent infrastructure — runtimes, RBAC, deploy automation, and the unsexy plumbing that makes private AI actually work in production."
       >
         <div className="grid md:grid-cols-[1.5fr_1fr] gap-6">
           <div className="bg-[hsl(var(--fc-bg-surface))] rounded-xl ring-1 ring-[hsl(var(--fc-bg-tertiary))] p-6 md:p-8">
@@ -40,16 +40,16 @@ export default function AboutPage() {
               Why FlatClaw
             </h3>
             <p className="mt-2 text-sm leading-relaxed text-[hsl(var(--fc-fg-secondary))]">
-              The frontier-lab AI coworker product is genuinely useful — task
-              inboxes, scheduled work, persistent memory, tool access. It just
-              comes with a constraint that disqualifies most of the customers
+              The frontier-lab AI products are genuinely useful — task
+              inboxes, scheduled work, persistent memory, tool access. They just
+              come with a constraint that disqualifies most of the customers
               who&apos;d benefit from it most: the data has to leave their
               tenancy on every turn.
             </p>
             <p className="mt-3 text-sm leading-relaxed text-[hsl(var(--fc-fg-secondary))]">
-              FlatClaw is the same shape, built out of components anyone can
-              audit, deployed onto infrastructure the customer pays for and
-              controls directly. The privacy story is a{" "}
+              FlatClaw delivers the same capabilities as a platform the
+              customer owns, built out of components anyone can audit, deployed
+              onto infrastructure the customer pays for and controls directly. The privacy story is a{" "}
               <code className="font-mono bg-[hsl(var(--fc-bg-tertiary))/0.5] px-1.5 py-0.5 rounded text-xs">
                 tcpdump
               </code>{" "}
