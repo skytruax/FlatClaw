@@ -6,21 +6,34 @@ export function SiteFooter() {
   return (
     <footer className="bg-[hsl(var(--brand-primary))] text-[hsl(var(--brand-accent-fg))]">
       <div className="mx-auto max-w-6xl px-5 py-12 md:py-14">
-        <div className="grid gap-10 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
+        <div className="grid gap-10 md:grid-cols-[1.7fr_1fr_1fr_1fr]">
           {/* Brand + CTA */}
           <div>
-            <Image
-              src="/branding/kirk-flatclaw-lockup-white.svg"
-              alt="Kirk Tech Solutions and FlatClaw"
-              width={258}
-              height={24}
-              style={{ height: "auto" }}
-            />
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+              <Image
+                src="/partners/kirk-tech-solutions-white.svg"
+                alt="Kirk Tech Solutions"
+                width={120}
+                height={24}
+                className="h-6 w-auto"
+              />
+              <span
+                aria-hidden="true"
+                className="hidden sm:block w-px h-10 bg-[hsl(var(--brand-accent-fg))/0.3]"
+              />
+              <Image
+                src="/branding/wordmark-tagline-white.svg"
+                alt="FlatClaw, Private AI Platform"
+                width={167}
+                height={50}
+                className="h-[50px] w-auto"
+              />
+            </div>
             <a
               href={GITHUB_URL}
               target="_blank"
               rel="noreferrer"
-              className="mt-2 inline-block text-[11px] uppercase tracking-widest text-[hsl(var(--brand-accent-fg))/0.6] hover:text-[hsl(var(--brand-accent))] transition"
+              className="mt-4 inline-block text-[11px] uppercase tracking-widest text-[hsl(var(--brand-accent-fg))/0.6] hover:text-[hsl(var(--brand-accent))] transition"
             >
               A Kirk Open Source Community Project
             </a>

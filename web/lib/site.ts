@@ -26,7 +26,7 @@ export const DEMO_POSTER_URL = "/branding/demo-poster.jpg";
 //   copy the booking-page link (https://calendar.app.google/XXXXXXXX) and
 //   replace the value below, then rebuild + redeploy web/.
 export const SCHEDULE_DEMO_URL =
-  "https://calendar.google.com/calendar/render?action=TEMPLATE&text=FlatClaw%20Demo&details=Demo%20of%20FlatClaw%20%E2%80%94%20the%20open-source%20private-cloud%20AI%20platform%2C%20delivered%20by%20Kirk%20Tech%20Solutions.%20https%3A%2F%2Fflatclaw.org&add=skyler%40kirktechsolutions.com&add=nate%40kirktechsolutions.com";
+  "https://calendar.google.com/calendar/render?action=TEMPLATE&text=FlatClaw%20Demo&details=Demo%20of%20FlatClaw%20%E2%80%94%20the%20open-source%20Private%20AI%20Platform%2C%20delivered%20by%20Kirk%20Tech%20Solutions.%20https%3A%2F%2Fflatclaw.org&add=skyler%40kirktechsolutions.com&add=nate%40kirktechsolutions.com";
 
 // Kirk Tech Solutions partnership press release.
 export const KIRK_PRESS_RELEASE_URL =
