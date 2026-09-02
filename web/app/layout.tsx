@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     template: "%s · FlatClaw",
   },
   description:
-    "An agentic AI coworker — chat, tools, memory, scheduled work — running entirely inside infrastructure the customer controls. Open source, single-tenant, no vendor egress.",
+    "An agentic AI coworker — chat, tools, memory, scheduled work — running entirely inside infrastructure the customer controls, on Azure, AWS, Google Cloud, Northflank, or their own hardware. Open source, single-tenant, no vendor egress.",
   openGraph: {
     title: "FlatClaw — the open-source private-cloud AI coworker",
     description:

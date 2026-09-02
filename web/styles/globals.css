@@ -4,32 +4,33 @@
 @source "../components";
 
 /* ─────────────────────────────────────────────────────────────────────────
- * FlatClaw — warm green + gray palette.
- * Mirrors the portal's tokens (portal/styles/tokens.css) so the marketing
- * site reads as the same product. All values are HSL components so we can
+ * FlatClaw — navy + signal-blue palette, aligned with the Kirk Tech Solutions
+ * brand system (navy #22314A, deep #27436C, slate #415A80, signal blue
+ * #0099FF, dark blue #006BB2). All values are HSL components so we can
  * compose with Tailwind's hsl(var(--x)) utility.
  * ───────────────────────────────────────────────────────────────────────── */
 
 :root {
-  --pal-white: 60 12% 99%;
-  --pal-offblack: 100 15% 10%;
-  --pal-lightgrey: 60 8% 88%;
-  --pal-midgreylight: 60 6% 70%;
-  --pal-midgreydark: 100 8% 38%;
-  --pal-highlight: 100 45% 60%;
+  --pal-white: 0 0% 100%;
+  --pal-offblack: 218 37% 12%;
+  --pal-lightgrey: 214 22% 90%;
+  --pal-midgreylight: 214 18% 72%;
+  --pal-midgreydark: 214 20% 45%;
+  --pal-highlight: 204 100% 50%;      /* #0099FF */
 
-  --fc-bg-primary: 60 10% 98%;
-  --fc-bg-secondary: 60 10% 95%;
-  --fc-bg-tertiary: 60 8% 88%;
-  --fc-bg-soft: 60 10% 96%;
+  --fc-bg-primary: 210 25% 98%;
+  --fc-bg-secondary: 210 22% 95%;
+  --fc-bg-tertiary: 214 22% 88%;
+  --fc-bg-soft: 210 28% 96%;
   --fc-bg-surface: 0 0% 100%;
-  --fc-fg-primary: 100 18% 12%;
-  --fc-fg-secondary: 100 12% 32%;
-  --fc-fg-muted: 100 8% 50%;
+  --fc-fg-primary: 218 37% 21%;       /* #22314A navy */
+  --fc-fg-secondary: 216 33% 38%;     /* #415A80 slate */
+  --fc-fg-muted: 214 19% 58%;         /* #7F91A8 mute */
 
-  --brand-primary: 100 25% 32%;        /* medium forest header */
-  --brand-accent: 100 45% 50%;         /* bright sage CTA */
-  --brand-accent-fg: 60 12% 99%;
+  --brand-primary: 218 37% 21%;       /* #22314A — navy ground: header, hero, footer */
+  --brand-accent: 204 100% 50%;       /* #0099FF — signal blue: CTAs, highlights */
+  --brand-accent-deep: 204 100% 35%;  /* #006BB2 — dark blue: hover, eyebrows on light */
+  --brand-accent-fg: 0 0% 100%;
 }
 
 html,

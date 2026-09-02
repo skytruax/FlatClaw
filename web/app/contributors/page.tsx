@@ -50,7 +50,8 @@ const builtOn: [string, string, string][] = [
   ["RAGFlow", "Document ingest & retrieval with cited answers.", "Apache 2.0"],
   ["bge-m3 (BAAI)", "Multilingual long-context embeddings, co-resident on the GPU.", "MIT"],
   ["Next.js + React", "Portal and marketing site.", "MIT"],
-  ["Northflank", "Managed GPU substrate — one project per tenant.", "—"],
+  ["Northflank", "Reference managed-GPU substrate — the first scripted deployment lane; every release is verified here.", "—"],
+  ["Azure · AWS · Google Cloud", "Customer-owned tenancies for the same containers — resource group, account, or project per customer.", "—"],
   ["Model Context Protocol", "The MCP standard the service integrations speak.", "MIT"],
 ];
 

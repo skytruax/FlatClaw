@@ -3,6 +3,9 @@ import { Section } from "@/components/Section";
 import { FeatureGrid } from "@/components/FeatureGrid";
 import { ArchitectureDiagram } from "@/components/ArchitectureDiagram";
 import { Roadmap } from "@/components/Roadmap";
+import { CloudGrid } from "@/components/CloudGrid";
+import { FeaturedSpotlights } from "@/components/FeaturedSpotlights";
+import { GITHUB_URL, GHCR_INFERENCE_URL } from "@/lib/site";
 
 export default function HomePage() {
   return (
@@ -36,18 +39,28 @@ export default function HomePage() {
               government, and everyone adjacent — that category is unreachable.
             </p>
           </div>
-          <div className="bg-[hsl(var(--brand-primary))/0.07] rounded-xl p-6 ring-1 ring-[hsl(var(--brand-primary))/0.25]">
-            <h3 className="font-semibold text-lg mb-2 text-[hsl(var(--brand-primary))]">
+          <div className="bg-[hsl(var(--brand-accent))/0.08] rounded-xl p-6 ring-1 ring-[hsl(var(--brand-accent))/0.35]">
+            <h3 className="font-semibold text-lg mb-2 text-[hsl(var(--brand-accent-deep))]">
               The answer
             </h3>
             <p className="text-sm leading-relaxed text-[hsl(var(--fc-fg-secondary))]">
               FlatClaw is the same product shape, built out of open-source
               components, running entirely inside infrastructure the operator
-              controls. Apache 2.0. Pulled, audited, deployed. Every line is
-              yours.
+              controls — on whichever cloud they already run. Apache 2.0.
+              Pulled, audited, deployed. Every line is yours.
             </p>
           </div>
         </div>
+      </Section>
+
+      <Section
+        id="clouds"
+        eyebrow="Cloud partners"
+        title="Runs on the cloud you already trust."
+        lede="FlatClaw is a set of containers and one GPU node. It deploys into a tenancy the customer owns on any of these, with the same image, the same control plane, and the same privacy proof."
+        variant="soft"
+      >
+        <CloudGrid compact />
       </Section>
 
       <Section
@@ -55,9 +68,18 @@ export default function HomePage() {
         eyebrow="What's in the box"
         title="A complete coworker stack — not a framework."
         lede="Eight pre-integrated components. Pull, deploy, use. Each one is replaceable and auditable on its own."
-        variant="soft"
       >
         <FeatureGrid />
+      </Section>
+
+      <Section
+        id="use-cases"
+        eyebrow="Use case spotlights"
+        title="What a private coworker actually does."
+        lede="Anonymized workflows FlatClaw runs inside customers' own tenancies. Filter the full set by use case and industry."
+        variant="soft"
+      >
+        <FeaturedSpotlights />
       </Section>
 
       <Section
@@ -66,9 +88,11 @@ export default function HomePage() {
         title="Single-tenant. Customer-owned. End-to-end."
         lede={
           <>
-            Everything — Portal, OpenClaw Gateway, Inference (H100), and the
-            weights-server — lives in one Northflank project. Customer holds the
-            Northflank account directly. Nothing leaves their tenancy.
+            Everything — Portal, OpenClaw Gateway, Inference (GPU), and the
+            weights-server — lives in one tenancy on the cloud the customer
+            already runs: an Azure resource group, an AWS account, a Google
+            Cloud project, a Northflank project, or a rack in their building.
+            The customer holds the account. Nothing leaves it.
           </>
         }
       >
@@ -79,7 +103,7 @@ export default function HomePage() {
         id="cost"
         eyebrow="Token Economics"
         title="≈ $2,000 / month per tenant. Flat rate, not per token."
-        lede="Indicative monthly cost at Northflank's published list pricing, single tenant, prod held warm 24/7. The H100 dominates; everything else combined is under $200. The rate is per tenant and scales with the tenant — not metered per token or per seat."
+        lede="Indicative monthly cost for a single tenant held warm 24/7 on a managed H100 plan, at the reference lane's published list pricing. Azure and AWS H100 classes land in the same band on reserved terms; bare metal amortizes lower. The H100 dominates; everything else combined is under $200. The rate is per tenant and scales with the tenant — not metered per token or per seat."
       >
         <div className="grid lg:grid-cols-2 gap-8">
           <div className="bg-[hsl(var(--fc-bg-surface))] rounded-xl ring-1 ring-[hsl(var(--fc-bg-tertiary))] p-6 shadow-sm">
@@ -90,8 +114,8 @@ export default function HomePage() {
               <tbody className="divide-y divide-[hsl(var(--fc-bg-tertiary))]">
                 {[
                   ["Inference (H100 80GB, held warm)", "~$1,800"],
-                  ["Portal — nf-compute-400", "~$50"],
-                  ["OpenClaw Gateway — nf-compute-400", "~$50"],
+                  ["Portal — small compute (4 vCPU / 8 GB)", "~$50"],
+                  ["OpenClaw Gateway — small compute", "~$50"],
                   ["RAGFlow + corpus volume", "~$30"],
                   ["weights-server + 200 GB nvme", "~$30"],
                   ["Egress · TLS · observability", "included"],
@@ -105,20 +129,20 @@ export default function HomePage() {
                     </td>
                   </tr>
                 ))}
-                <tr className="border-t-2 border-[hsl(var(--brand-primary))/0.4]">
+                <tr className="border-t-2 border-[hsl(var(--brand-accent))/0.5]">
                   <td className="pt-3 font-semibold text-[hsl(var(--fc-fg-primary))]">
                     Total per tenant, all-in
                   </td>
-                  <td className="pt-3 text-right font-mono font-bold text-[hsl(var(--brand-primary))]">
+                  <td className="pt-3 text-right font-mono font-bold text-[hsl(var(--brand-accent-deep))]">
                     ~$2,000 / mo
                   </td>
                 </tr>
               </tbody>
             </table>
             <p className="mt-4 text-xs text-[hsl(var(--fc-fg-muted))] leading-relaxed">
-              List prices, round numbers. Committed-use or annual deals on
-              Northflank typically reduce the GPU line. No second cloud,
-              no BYOC plumbing — one bill, one vendor relationship.
+              List prices, round numbers. Committed-use or annual terms on any
+              of the clouds typically reduce the GPU line. One bill, from the
+              cloud the customer already has a relationship with.
             </p>
           </div>
 
@@ -145,7 +169,7 @@ export default function HomePage() {
               },
               {
                 k: "Tenants scale the GPU plan, not the architecture.",
-                v: "When a tenant outgrows one card, the next step is a higher-tier Northflank GPU plan or a multi-GPU node — or a second inference service for triage. Same project, same architecture, same per-tenant model.",
+                v: "When a tenant outgrows one card, the next step is a higher-tier GPU plan or a multi-GPU node on the same cloud — or a second inference service for triage. Same tenancy, same architecture, same per-tenant model.",
               },
             ].map(({ k, v }) => (
               <div
@@ -168,15 +192,15 @@ export default function HomePage() {
         id="privacy"
         eyebrow="Private LLM"
         title="Mechanically provable, not marketed."
-        lede="The privacy story is not a marketing claim. It is a test you can run yourself."
+        lede="The privacy story is not a marketing claim. It is a test you can run yourself, on whichever cloud you deploy to."
         variant="soft"
       >
         <ol className="space-y-3">
           {[
-            "Provision a tenant in your own Northflank project.",
+            "Provision a tenant in your own cloud tenancy — Azure, AWS, Google Cloud, Northflank, or your own hardware.",
             "Exercise the shipped features end-to-end (chat, memory, MCP services with approval-gated actions, scheduled-task fire, GPU cold-boot). As features land, each is added to this test loop.",
-            "Run tcpdump on the tenant's Northflank project egress for the full session.",
-            "Confirm zero packets to Anthropic, OpenAI, Google AI, Hugging Face, ElevenLabs, Chroma Cloud, or any third-party inference endpoint. Inference traffic stays inside the project — Portal → Gateway → H100 is all internal Northflank network. The only external egress: services the user explicitly connected via OAuth.",
+            "Run tcpdump on the tenancy's egress for the full session.",
+            "Confirm zero packets to Anthropic, OpenAI, Google AI, Hugging Face, ElevenLabs, Chroma Cloud, or any third-party inference endpoint. Inference traffic stays inside the tenancy — Portal → Gateway → GPU is all internal network. The only external egress: services the user explicitly connected via OAuth.",
           ].map((step, i) => (
             <li key={i} className="flex gap-4 items-start">
               <span className="shrink-0 w-7 h-7 rounded-full bg-[hsl(var(--brand-accent))] text-[hsl(var(--brand-accent-fg))] font-bold text-sm flex items-center justify-center">
@@ -198,13 +222,13 @@ export default function HomePage() {
         id="stack"
         eyebrow="Technology"
         title="Best-in-class open-source, end to end."
-        lede="Every dependency is MIT / Apache / BSD compatible. Nothing here is a vendor lock-in."
+        lede="Every dependency is MIT / Apache / BSD compatible. Nothing here is a vendor lock-in — including the cloud."
       >
         <div className="grid md:grid-cols-2 gap-4">
           {[
             ["Inference", "Patched SGLang + Gemma 4 31B Dense"],
-            ["Silicon", "NVIDIA H100 · 80 GB · sm_90 · native FP8"],
-            ["Substrate", "Northflank's managed GPU fleet — one project per tenant"],
+            ["Silicon", "NVIDIA H100-class · 80 GB · native FP8"],
+            ["Substrate", "Your cloud — Azure, AWS, Google Cloud, Northflank, or bare metal — one tenancy per customer"],
             ["Context", "TurboQuant turbo4 KV — 1M tokens on a single card (roadmap)"],
             ["Agent runtime", "OpenClaw — RBAC at every tool call · per-agent memory built in"],
             ["Frontend", "Next.js 16 + React 19 + TypeScript + SQLite"],
@@ -244,12 +268,12 @@ export default function HomePage() {
         id="cta"
         eyebrow="Get started"
         title="Pull it. Audit it. Run it."
-        lede="Apache 2.0 — explicit patent grant. OSI-approved. Bring your own infra."
+        lede="Apache 2.0 — explicit patent grant. OSI-approved. Bring your own cloud, or your own hardware."
         variant="dark"
       >
         <div className="flex flex-wrap gap-3">
           <a
-            href="https://github.com/skytruax/FlatClaw"
+            href={GITHUB_URL}
             target="_blank"
             rel="noreferrer"
             className="inline-flex items-center rounded-md bg-[hsl(var(--brand-accent))] text-[hsl(var(--brand-accent-fg))] px-5 py-2.5 font-semibold hover:brightness-110 transition"
@@ -257,7 +281,7 @@ export default function HomePage() {
             github.com/skytruax/FlatClaw
           </a>
           <a
-            href="https://github.com/skytruax/FlatClaw/pkgs/container/flatclaw-inference"
+            href={GHCR_INFERENCE_URL}
             target="_blank"
             rel="noreferrer"
             className="inline-flex items-center rounded-md ring-1 ring-[hsl(var(--brand-accent-fg))/0.3] px-5 py-2.5 font-medium hover:bg-[hsl(var(--brand-accent-fg))/0.08] transition"

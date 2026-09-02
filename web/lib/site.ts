@@ -1,8 +1,11 @@
 // Site-wide constants. Single source of truth for version, external links, and
 // the demo-booking URL so the nav button, hero CTA, and pages stay in sync.
 
-export const SITE_VERSION = "v0.2.0";
+export const SITE_VERSION = "v0.3.0";
 export const SITE_LICENSE = "Apache 2.0";
+
+// Partnership inquiries — cloud providers, GPU platforms, implementation firms.
+export const PARTNERS_EMAIL = "partners@flatclaw.org";
 
 export const GITHUB_URL = "https://github.com/skytruax/FlatClaw";
 export const GHCR_INFERENCE_URL =

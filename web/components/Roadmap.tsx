@@ -13,7 +13,7 @@ const milestones = [
     version: "v0.4",
     status: "Next",
     points: [
-      "One-command tenant provisioning — provision-tenant.sh / destroy-tenant.sh (full Northflank tenant lifecycle)",
+      "One-command tenant provisioning — provision-tenant.sh / destroy-tenant.sh: full tenant lifecycle on the target cloud (Northflank lane first; Azure, AWS and Google Cloud lanes follow)",
       "RAGFlow — cited document retrieval behind a stable interface",
       "Semantic memory + embeddings via bge-m3 — on its own GPU card",
       "Scrapling web fetch; additional CRM/ERP connectors as add-on services",

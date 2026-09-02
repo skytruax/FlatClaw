@@ -18,7 +18,8 @@ export function SiteFooter() {
             />
             <p className="mt-4 text-sm leading-relaxed text-[hsl(var(--brand-accent-fg))/0.8] max-w-xs">
               The open-source private-cloud AI coworker. Single-tenant,
-              auditable, with mechanically verifiable data locality.
+              auditable, with mechanically verifiable data locality — on
+              Azure, AWS, Google Cloud, Northflank, or your own hardware.
             </p>
             <a
               href={SCHEDULE_DEMO_URL}
@@ -32,6 +33,7 @@ export function SiteFooter() {
 
           <FooterCol title="Product">
             <FooterLink href="/#what">What it is</FooterLink>
+            <FooterLink href="/use-cases">Use case spotlights</FooterLink>
             <FooterLink href="/#architecture">Architecture</FooterLink>
             <FooterLink href="/#privacy">Data locality</FooterLink>
             <FooterLink href="/tokenomics">Tokenomics</FooterLink>
@@ -40,7 +42,7 @@ export function SiteFooter() {
 
           <FooterCol title="Company">
             <FooterLink href="/about">About</FooterLink>
-            <FooterLink href="/partners">Partners</FooterLink>
+            <FooterLink href="/partners">Cloud partners</FooterLink>
             <FooterLink href="/contributors">Contributors</FooterLink>
           </FooterCol>
 

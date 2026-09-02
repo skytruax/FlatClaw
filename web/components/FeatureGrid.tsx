@@ -23,7 +23,7 @@ const features = [
   {
     Icon: Cpu,
     title: "Inference",
-    body: "Patched SGLang + Gemma 4 31B Dense on a single NVIDIA H100 (80 GB, native FP8) on Northflank's managed GPU fleet, served at the model's native 256K context.",
+    body: "Patched SGLang + Gemma 4 31B Dense on a single NVIDIA H100-class GPU (80 GB, native FP8) inside the customer's own tenancy, served at the model's native 256K context.",
   },
   {
     Icon: Database,
@@ -43,7 +43,7 @@ const features = [
   {
     Icon: Container,
     title: "Single-tenant by design",
-    body: "Each customer gets their own Northflank project. Strict isolation, dedicated H100, no shared state across tenants.",
+    body: "Each customer gets their own tenancy — an Azure resource group, an AWS account, a Google Cloud project, a Northflank project, or an on-prem cluster. Strict isolation, dedicated GPU, no shared state across tenants.",
   },
   {
     Icon: KeyRound,
@@ -60,7 +60,7 @@ export function FeatureGrid() {
           key={title}
           className="bg-[hsl(var(--fc-bg-surface))] rounded-xl ring-1 ring-[hsl(var(--fc-bg-tertiary))] p-5 hover:ring-[hsl(var(--brand-accent))/0.5] transition shadow-sm"
         >
-          <div className="w-9 h-9 rounded-md bg-[hsl(var(--brand-accent))/0.15] text-[hsl(var(--brand-primary))] flex items-center justify-center mb-3">
+          <div className="w-9 h-9 rounded-md bg-[hsl(var(--brand-accent))/0.12] text-[hsl(var(--brand-accent-deep))] flex items-center justify-center mb-3">
             <Icon className="w-5 h-5" />
           </div>
           <div className="font-semibold text-[hsl(var(--fc-fg-primary))]">

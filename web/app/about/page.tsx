@@ -66,9 +66,9 @@ export default function AboutPage() {
                 claims are blockers.
               </li>
               <li>
-                Boring substrate, sharp surface — Northflank + established
-                open-source for the spine, attention spent on the product the
-                user actually touches.
+                Boring substrate, sharp surface — the customer&apos;s own cloud
+                plus established open-source for the spine, attention spent on
+                the product the user actually touches.
               </li>
               <li>
                 Auditable by default — single image, public license, mechanical

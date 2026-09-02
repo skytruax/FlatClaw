@@ -1,14 +1,14 @@
 /**
  * The README's ASCII architecture diagram, rendered as a real diagram.
  * Tenant boundary on the outer rounded rectangle; data flow top-down.
- * Everything — control plane and GPU — lives inside the tenant's
- * Northflank project.
+ * Everything — control plane and GPU — lives inside the tenant's own
+ * cloud tenancy (Azure, AWS, Google Cloud, Northflank, or on-prem).
  */
 export function ArchitectureDiagram() {
   return (
     <div className="rounded-2xl bg-[hsl(var(--fc-bg-surface))] ring-1 ring-[hsl(var(--fc-bg-tertiary))] p-4 sm:p-6 md:p-10 shadow-sm">
       <div className="text-[11px] font-semibold uppercase tracking-widest text-[hsl(var(--brand-primary))] mb-4 break-words">
-        Customer&apos;s Northflank project · one per tenant
+        Customer&apos;s cloud tenancy · one per tenant · Azure / AWS / Google Cloud / Northflank / on-prem
       </div>
 
       <div className="border-2 border-dashed border-[hsl(var(--brand-primary))/0.35] rounded-xl p-3 sm:p-5 md:p-7 space-y-4 sm:space-y-5">
@@ -73,11 +73,11 @@ export function ArchitectureDiagram() {
           RAGFlow cited-document retrieval land in v0.3.
         </div>
 
-        <Arrow label="internal Northflank network · TLS · bearer-authenticated" />
+        <Arrow label="internal tenancy network · TLS · bearer-authenticated" />
 
         <div className="bg-[hsl(var(--brand-primary))/0.08] rounded-lg p-4 ring-1 ring-[hsl(var(--brand-primary))/0.20]">
           <div className="text-[11px] font-semibold uppercase tracking-widest text-[hsl(var(--brand-primary))] mb-2">
-            Inference (GPU) · same Northflank project
+            Inference (GPU) · same tenancy
           </div>
           <Tier
             label="Inference service"
@@ -88,7 +88,7 @@ export function ArchitectureDiagram() {
             <code className="font-mono text-[hsl(var(--fc-fg-secondary))]">
               weights-server
             </code>{" "}
-            pod over a Northflank-managed volume — staged once via Kaggle, never moved at boot.
+            pod over a tenancy-local volume — staged once, never moved at boot.
           </div>
         </div>
       </div>
@@ -100,7 +100,7 @@ export function ArchitectureDiagram() {
         />
         <Footnote
           title="Customer holds the account"
-          body="Customer's own Northflank account, billed directly to them. We never touch the bill or the data. No second cloud, no BYOC plumbing."
+          body="Customer's own cloud account — Azure, AWS, Google Cloud, Northflank, or their own hardware — billed directly to them. We never touch the bill or the data."
         />
         <Footnote
           title="One image, every tenant"
