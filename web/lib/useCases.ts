@@ -106,8 +106,8 @@ export const SPOTLIGHTS: Spotlight[] = [
       "A voicemail lane leaves a message specific to each account, in a consented agent voice, at a volume no floor can match, and shares one attempt ledger with the dialer so contact limits stay enforced in one place.",
     detail:
       "Open-weight speech synthesis runs on the organization's own hardware. Messages follow the limited-content format the rules define, every attempt feeds the dialer's daily file, and a return call reaches the team that left the message.",
-    useCases: ["Voice Agents", "Operations Automation", "Compliance & Approvals"],
-    industries: ["Collections", "Financial Services"],
+    useCases: ["Voice Agents", "Operations Automation"],
+    industries: ["Financial Services"],
     hue: 230,
   },
   {
