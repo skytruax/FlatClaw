@@ -75,9 +75,7 @@ function CloudTile({ c, compact }: { c: CloudPartner; compact: boolean }) {
     <div
       className={
         "bg-[hsl(var(--fc-bg-surface))] rounded-xl ring-1 p-5 shadow-sm transition flex flex-col " +
-        (c.scripted
-          ? "ring-[hsl(var(--brand-accent))] "
-          : "ring-[hsl(var(--fc-bg-tertiary))] hover:ring-[hsl(var(--brand-accent))/0.6] ")
+        "ring-[hsl(var(--fc-bg-tertiary))] hover:ring-[hsl(var(--brand-accent))/0.6] "
       }
     >
       <CloudLogo c={c} compact={compact} />

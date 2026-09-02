@@ -50,7 +50,7 @@ export function SiteFooter() {
 
           <FooterCol title="Company">
             <FooterLink href="/about">About</FooterLink>
-            <FooterLink href="/partners">Cloud partners</FooterLink>
+            <FooterLink href="/partners">Partners</FooterLink>
             <FooterLink href="/contributors">Contributors</FooterLink>
           </FooterCol>
 

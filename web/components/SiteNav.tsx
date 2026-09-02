@@ -9,7 +9,7 @@ import { GITHUB_URL, SCHEDULE_DEMO_URL } from "@/lib/site";
 const links = [
   { href: "/#what", label: "What it is" },
   { href: "/use-cases", label: "Use cases" },
-  { href: "/partners", label: "Cloud partners" },
+  { href: "/partners", label: "Partners" },
   { href: "/#architecture", label: "Architecture" },
   { href: "/tokenomics", label: "Tokenomics" },
   { href: "/#roadmap", label: "Roadmap" },
