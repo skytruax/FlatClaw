@@ -38,7 +38,7 @@ export function Hero() {
         </div>
         <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold tracking-tight leading-[1.1] md:leading-[1.05] max-w-4xl">
           The open-source{" "}
-          <span className="text-[hsl(var(--brand-accent))]">private AI platform</span>.
+          <span className="text-[hsl(var(--brand-accent))]">Private AI Platform</span>.
         </h1>
         <p className="mt-5 md:mt-6 text-base md:text-xl max-w-3xl leading-relaxed text-[hsl(var(--brand-accent-fg))/0.9]">
           Agents, chat, tools, memory and scheduled work on infrastructure

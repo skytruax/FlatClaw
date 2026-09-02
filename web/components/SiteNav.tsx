@@ -41,7 +41,7 @@ export function SiteNav() {
         >
           <Image
             src="/branding/wordmark-tagline-white.svg"
-            alt="FlatClaw, private AI platform"
+            alt="FlatClaw, Private AI Platform"
             width={134}
             height={40}
             priority

@@ -66,7 +66,7 @@ export default function HomePage() {
       <Section
         id="what"
         eyebrow="What's in the box"
-        title="A complete private AI platform — not a framework."
+        title="A complete Private AI Platform — not a framework."
         lede="Eight pre-integrated components. Pull, deploy, use. Each one is replaceable and auditable on its own."
       >
         <FeatureGrid />

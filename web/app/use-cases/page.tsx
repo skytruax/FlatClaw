@@ -6,7 +6,7 @@ import { SCHEDULE_DEMO_URL } from "@/lib/site";
 export const metadata: Metadata = {
   title: "Use case spotlights",
   description:
-    "What a private AI platform actually does: anonymized spotlights of FlatClaw workflows across industries, filterable by use case and industry.",
+    "What a Private AI Platform actually does: anonymized spotlights of FlatClaw workflows across industries, filterable by use case and industry.",
 };
 
 export default function UseCasesPage() {

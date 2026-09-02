@@ -205,7 +205,7 @@ export default function PartnersPage() {
       <Section
         eyebrow="Meet with FlatClaw"
         title="Let us help you deliver your next AI project on infrastructure you own."
-        lede="Thirty minutes: your workflow, your cloud, and whether a private AI platform is the right fit for it."
+        lede="Thirty minutes: your workflow, your cloud, and whether a Private AI Platform is the right fit for it."
         variant="dark"
       >
         <a

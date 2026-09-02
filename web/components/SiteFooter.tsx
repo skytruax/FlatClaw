@@ -25,7 +25,7 @@ export function SiteFooter() {
               A Kirk Open Source Community Project
             </a>
             <p className="mt-4 text-sm leading-relaxed text-[hsl(var(--brand-accent-fg))/0.8] max-w-xs">
-              The open-source private AI platform. Single-tenant,
+              The open-source Private AI Platform. Single-tenant,
               auditable, with mechanically verifiable data locality — on
               Azure, AWS, Google Cloud, Northflank, or your own hardware.
             </p>
