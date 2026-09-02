@@ -24,6 +24,10 @@ export interface CloudPartner {
   logoHeight?: number;
   /** True when the asset is a logomark only, so the name is set beside it. */
   logoIsMark?: boolean;
+  /** Monochrome white variant for dark grounds (hero strip). */
+  logoWhite?: string;
+  /** Rendered height of the white variant in px. */
+  logoWhiteHeight?: number;
 }
 
 export const CLOUD_PARTNERS: CloudPartner[] = [
@@ -37,7 +41,10 @@ export const CLOUD_PARTNERS: CloudPartner[] = [
     fit: ["Entra ID sign-in", "NC H100 v5 GPU nodes", "Fabric / Power BI hand-off"],
     scripted: false,
     logo: "/partners/clouds/azure.svg",
-    logoHeight: 44,
+    logoHeight: 40,
+    logoIsMark: true,
+    logoWhite: "/partners/clouds/azure-white.svg",
+    logoWhiteHeight: 24,
   },
   {
     id: "aws",
@@ -50,6 +57,8 @@ export const CLOUD_PARTNERS: CloudPartner[] = [
     scripted: false,
     logo: "/partners/clouds/aws.svg",
     logoHeight: 40,
+    logoWhite: "/partners/clouds/aws-white.svg",
+    logoWhiteHeight: 28,
   },
   {
     id: "gcp",
@@ -62,6 +71,8 @@ export const CLOUD_PARTNERS: CloudPartner[] = [
     scripted: false,
     logo: "/partners/clouds/gcp.svg",
     logoHeight: 26,
+    logoWhite: "/partners/clouds/gcp-white.svg",
+    logoWhiteHeight: 22,
   },
   {
     id: "northflank",
@@ -75,6 +86,8 @@ export const CLOUD_PARTNERS: CloudPartner[] = [
     logo: "/partners/clouds/northflank.svg",
     logoHeight: 34,
     logoIsMark: true,
+    logoWhite: "/partners/clouds/northflank-white.svg",
+    logoWhiteHeight: 30,
   },
   {
     id: "onprem",

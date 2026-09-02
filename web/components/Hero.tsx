@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Server } from "lucide-react";
 import Image from "next/image";
 import {
   SITE_VERSION,
@@ -9,6 +10,7 @@ import {
   SCHEDULE_DEMO_URL,
 } from "@/lib/site";
 import { CLOUD_PARTNERS } from "@/lib/clouds";
+import { DemoVideo } from "@/components/DemoVideo";
 
 export function Hero() {
   return (
@@ -73,14 +75,7 @@ export function Hero() {
 
         {/* Demo video — poster cover, plays on click; no autoplay. */}
         <div className="mt-10 md:mt-12 rounded-2xl overflow-hidden ring-1 ring-[hsl(var(--brand-accent))/0.35] shadow-2xl bg-black/40 max-w-4xl">
-          <video
-            src={DEMO_VIDEO_URL}
-            poster={DEMO_POSTER_URL}
-            controls
-            playsInline
-            preload="none"
-            className="w-full h-auto block aspect-video"
-          />
+          <DemoVideo src={DEMO_VIDEO_URL} poster={DEMO_POSTER_URL} />
         </div>
 
         <dl className="mt-10 md:mt-12 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5 sm:gap-4 max-w-3xl">
@@ -89,18 +84,31 @@ export function Hero() {
           <Stat label="Vendor egress" value="0 bytes" sub="provable with tcpdump" />
         </dl>
 
-        {/* Cloud strip */}
-        <div className="mt-10 md:mt-12 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
-          <span className="text-[10.5px] font-semibold uppercase tracking-widest text-[hsl(var(--brand-accent))] mr-1">
+        {/* Cloud strip — white logos on the navy ground */}
+        <div className="mt-10 md:mt-12 flex flex-wrap items-center gap-x-8 gap-y-4">
+          <span className="text-[10.5px] font-semibold uppercase tracking-widest text-[hsl(var(--brand-accent))]">
             Deploys on
           </span>
           {CLOUD_PARTNERS.map((c) => (
             <Link
               key={c.id}
               href="/partners#clouds"
-              className="rounded-full px-3 py-1 ring-1 ring-[hsl(var(--brand-accent-fg))/0.25] text-[hsl(var(--brand-accent-fg))/0.9] hover:bg-[hsl(var(--brand-accent-fg))/0.08] transition"
+              title={c.name}
+              className="flex items-center gap-2 text-[15px] font-semibold text-[hsl(var(--brand-accent-fg))] opacity-90 hover:opacity-100 transition"
             >
-              {c.name}
+              {c.logoWhite ? (
+                <Image
+                  src={c.logoWhite}
+                  alt={c.name}
+                  width={Math.round((c.logoWhiteHeight ?? 24) * 4)}
+                  height={c.logoWhiteHeight ?? 24}
+                  style={{ height: c.logoWhiteHeight ?? 24, width: "auto" }}
+                  unoptimized
+                />
+              ) : (
+                <Server className="w-[22px] h-[22px]" strokeWidth={2} />
+              )}
+              {(c.logoIsMark || !c.logoWhite) && <span>{c.name}</span>}
             </Link>
           ))}
         </div>
