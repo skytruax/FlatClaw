@@ -71,20 +71,6 @@ export const SPOTLIGHTS: Spotlight[] = [
     scale: "5 brands · 4 ERPs · 1 CRM",
   },
   {
-    id: "voice-booking",
-    title: "Franchise beauty and wellness group",
-    useCase: "Inbound booking voice agent",
-    results:
-      "A private two-way voice agent answers the booking line, matches each caller to one to three professionals and texts them booking links. Text and web chat reuse the same matching service. The day-one tenancy handles twenty-plus simultaneous calls.",
-    detail:
-      "The phone platform streams each call into a FlatClaw voice service running open speech and language models on two GPUs in the customer's cloud. A structured conversation graph keeps the agent on script; every call lands as a transcript, a reasoning trace and a lead record with attribution, so the franchisor can prove which leads became bookings.",
-    useCases: ["Voice Agents", "Customer Engagement"],
-    industries: ["Beauty & Wellness", "Franchise & Retail"],
-    hue: 204,
-    revenue: "≈ $300M+ system-wide sales (salon brand)",
-    scale: "700+ locations · two franchise brands",
-  },
-  {
     id: "intake",
     title: "Healthcare receivables agency",
     useCase: "Placement-file intake automation",
@@ -298,7 +284,21 @@ export const SPOTLIGHTS: Spotlight[] = [
     industries: ["Software / Technology", "Professional Services"],
     hue: 216,
   },
+  {
+    id: "voice-booking",
+    title: "Franchise beauty and wellness group",
+    useCase: "Inbound booking voice agent",
+    results:
+      "A private two-way voice agent answers the booking line, matches each caller to one to three professionals and texts them booking links. Text and web chat reuse the same matching service. The day-one tenancy handles twenty-plus simultaneous calls.",
+    detail:
+      "The phone platform streams each call into a FlatClaw voice service running open speech and language models on two GPUs in the customer's cloud. A structured conversation graph keeps the agent on script; every call lands as a transcript, a reasoning trace and a lead record with attribution, so the franchisor can prove which leads became bookings.",
+    useCases: ["Voice Agents", "Customer Engagement"],
+    industries: ["Beauty & Wellness", "Franchise & Retail"],
+    hue: 204,
+    revenue: "≈ $300M+ system-wide sales (salon brand)",
+    scale: "700+ locations · two franchise brands",
+  },
 ];
 
 /** Spotlights featured on the home page, in order. */
-export const FEATURED_SPOTLIGHT_IDS = ["drawing-takeoff", "erp-consolidation", "voice-booking"];
+export const FEATURED_SPOTLIGHT_IDS = ["drawing-takeoff", "erp-consolidation", "intake"];

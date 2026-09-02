@@ -30,8 +30,8 @@ export const CAPABILITIES: Capability[] = [
   {
     id: "voice",
     title: "Voice agents on your own lines",
-    body: "Two-way phone agents that answer the booking line, work a voicemail queue, or take an intake call, with the speech, the reasoning and the recordings all inside your tenancy.",
-    spotlights: ["voice-booking", "voicemail-lane"],
+    body: "Two-way phone agents that work a voicemail queue, take an intake call, or answer a front-line number, with the speech, the reasoning and the recordings all inside your tenancy.",
+    spotlights: ["voicemail-lane"],
   },
   {
     id: "intake",
