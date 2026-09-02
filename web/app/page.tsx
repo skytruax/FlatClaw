@@ -4,7 +4,6 @@ import { FeatureGrid } from "@/components/FeatureGrid";
 import { ArchitectureDiagram } from "@/components/ArchitectureDiagram";
 import { Roadmap } from "@/components/Roadmap";
 import { CloudGrid } from "@/components/CloudGrid";
-import { FeaturedSpotlights } from "@/components/FeaturedSpotlights";
 import { PlatformCapabilities } from "@/components/PlatformCapabilities";
 import { EstimatingDeepDive } from "@/components/EstimatingDeepDive";
 import { GITHUB_URL, GHCR_INFERENCE_URL, SCHEDULE_DEMO_URL } from "@/lib/site";
@@ -93,16 +92,6 @@ export default function HomePage() {
         lede="Eight components, one image, one tenancy. Every use case above runs on the same eight. Each one is replaceable and auditable on its own."
       >
         <FeatureGrid />
-      </Section>
-
-      <Section
-        id="use-cases"
-        eyebrow="Use case spotlights"
-        title="Real deployments, anonymized."
-        lede="How organizations run the platform inside their own tenancies, from the proposals and demos behind it. Filter the full set by use case and industry."
-        variant="soft"
-      >
-        <FeaturedSpotlights />
       </Section>
 
       <Section
