@@ -16,9 +16,14 @@ export function SiteFooter() {
               height={24}
               style={{ height: "auto" }}
             />
-            <p className="mt-2 text-[11px] uppercase tracking-widest text-[hsl(var(--brand-accent-fg))/0.6]">
-              A Kirk Tech Solutions product
-            </p>
+            <a
+              href={GITHUB_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-2 inline-block text-[11px] uppercase tracking-widest text-[hsl(var(--brand-accent-fg))/0.6] hover:text-[hsl(var(--brand-accent))] transition"
+            >
+              A Kirk Open Source Community Project
+            </a>
             <p className="mt-4 text-sm leading-relaxed text-[hsl(var(--brand-accent-fg))/0.8] max-w-xs">
               The open-source private-cloud AI coworker. Single-tenant,
               auditable, with mechanically verifiable data locality — on

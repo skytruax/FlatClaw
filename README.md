@@ -258,7 +258,7 @@ It is the SGLang base plus a single `entrypoint.sh` layer, built registry-to-reg
 | [`web/`](web/) | flatclaw.org informational site — Next.js static export. |
 | [`infra/inference/`](infra/inference/) | Inference service — Dockerfile (SGLang base), entrypoint, the reference-lane (Northflank) service manifest, and the stager-job recipe for one-time per-tenant weight staging onto the weights volume. |
 | [`infra/scripts/`](infra/scripts/) | Inference + tenant lifecycle — the working `{dev,prod}-up.sh` / `{dev,prod}-down.sh` inference lane scripts and `install-openclaw.sh`; `provision-tenant.sh` / `destroy-tenant.sh` are v0.3 stubs (full net-new tenant orchestration). |
-| [`branding/`](branding/) | FlatClaw wordmark (`wordmark.svg`, `wordmark-white.svg`) + attribution (`NOTICE.md`). |
+| [`branding/`](branding/) | FlatClaw brand kit: `BRAND.md` (child-brand guide), `flatclaw-brand.css` (tokens + classes), the wordmark (`wordmark.svg`, `wordmark-white.svg`), the Kirk \| FlatClaw lockup (`kirk-flatclaw-lockup.svg`, `-white.svg`), the demo poster, and attribution (`NOTICE.md`). |
 | [`.github/workflows/publish-inference.yml`](.github/workflows/publish-inference.yml) | GitHub Actions pipeline that republishes `ghcr.io/skytruax/flatclaw-inference:latest` on changes to `Dockerfile` or `entrypoint.sh`. |
 | [`SECURITY.md`](SECURITY.md) | Vulnerability reporting policy. |
 

@@ -29,6 +29,12 @@ export const metadata: Metadata = {
     siteName: "FlatClaw",
     type: "website",
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "FlatClaw — the open-source private-cloud AI coworker",
+    description:
+      "Same product shape as the frontier-lab coworkers. None of the data egress. Apache 2.0.",
+  },
 };
 
 export default function RootLayout({
