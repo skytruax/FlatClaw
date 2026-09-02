@@ -6,6 +6,7 @@ import { Roadmap } from "@/components/Roadmap";
 import { CloudGrid } from "@/components/CloudGrid";
 import { FeaturedSpotlights } from "@/components/FeaturedSpotlights";
 import { PlatformCapabilities } from "@/components/PlatformCapabilities";
+import { EstimatingDeepDive } from "@/components/EstimatingDeepDive";
 import { GITHUB_URL, GHCR_INFERENCE_URL, SCHEDULE_DEMO_URL } from "@/lib/site";
 
 export default function HomePage() {
@@ -23,6 +24,16 @@ export default function HomePage() {
       </Section>
 
       <Section
+        id="estimating"
+        eyebrow="Estimating, in depth"
+        title="Estimating is where the platform earns its keep."
+        lede="Bids are the most expensive documents a company produces and the most data-starved. FlatClaw reads the drawings, the specifications and the job history, counts what is actually on the page, prices it on your own rules, and shows every source, inside your tenancy, because a bid is the last thing that should leave the building."
+        variant="soft"
+      >
+        <EstimatingDeepDive />
+      </Section>
+
+      <Section
         id="why"
         eyebrow="Why it exists"
         title="A platform you deploy, not a service you rent."
@@ -37,7 +48,6 @@ export default function HomePage() {
             request.
           </>
         }
-        variant="soft"
       >
         <div className="grid md:grid-cols-2 gap-6">
           <div className="bg-[hsl(var(--fc-bg-surface))] rounded-xl p-6 ring-1 ring-[hsl(var(--fc-bg-tertiary))]">

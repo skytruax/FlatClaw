@@ -26,7 +26,9 @@ export default function UseCasesPage() {
             risky send, and read the drawings — with the model, the data and
             the audit trail inside infrastructure they own. Each spotlight
             below is one of those workflows: the situation, what was built,
-            and what changed. Organizations are described, not named.
+            and what changed. Organizations are described, not named, and
+            the revenue and headcount figures are public-source estimates,
+            rounded so they stay that way.
           </p>
         </div>
       </div>

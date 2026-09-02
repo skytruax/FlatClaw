@@ -75,6 +75,11 @@ export default async function SpotlightPage({
           <h1 className="mt-5 text-3xl md:text-5xl font-bold tracking-tight max-w-4xl">
             {s.title}
           </h1>
+          {(s.revenue || s.scale) && (
+            <p className="mt-3 text-sm md:text-base font-medium text-white/80">
+              {[s.revenue, s.scale].filter(Boolean).join(" · ")}
+            </p>
+          )}
           <p className="mt-3 text-lg md:text-2xl font-medium text-[hsl(var(--brand-accent))] max-w-3xl">
             {s.useCase}
           </p>

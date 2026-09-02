@@ -49,20 +49,26 @@ export interface Spotlight {
   industries: IndustryFilter[];
   /** Hue for the card ground; stays inside the navy/blue family. */
   hue: number;
+  /** Approximate, rounded revenue or system-wide sales, so the organization stays unnamed. */
+  revenue?: string;
+  /** Scale line: locations, employees, systems. */
+  scale?: string;
 }
 
 export const SPOTLIGHTS: Spotlight[] = [
   {
     id: "erp-consolidation",
     title: "Multi-brand industrial manufacturer",
-    useCase: "Financial consolidation across four ERPs",
+    useCase: "Consolidation, forecast and pricing intelligence across four ERPs",
     results:
-      "One governed lakehouse behind an AI agent: consolidated financials that trace to source transactions, business-unit scorecards, and plain-English inquiry over all of it, inside the company's own Azure tenant.",
+      "One governed lakehouse behind an AI agent: audit-grade consolidated financials that trace to the source transaction, forecast and pipeline by business unit, large-job margin watch, and plain-English inquiry over all of it, inside the company's own Azure tenant.",
     detail:
-      "Four ERPs and a CRM feed a lakehouse in the customer's tenant. FlatClaw sits on top through MCP connectors: finance asks why a number moved and gets a grounded, cited answer; sales gets a 360-degree view of strategic accounts with the CRM written back. Acquisitions onboard as a repeatable pattern rather than a project each time.",
+      "Five brands, four ERPs and a CRM feed a lakehouse in the customer's tenant, with entity matching across brands and lineage back to every transaction. FlatClaw sits on top through MCP connectors: finance asks why a margin moved and gets a cited answer; sales asks about a strategic account and gets revenue, margin, pipeline and whitespace across every brand, with the CRM written back. Pricing intelligence and aftermarket analytics follow on the same store, and each acquisition onboards as a templated pattern priced in weeks, not a project each time.",
     useCases: ["Data Consolidation", "Analytics & Reporting", "Knowledge Search"],
     industries: ["Manufacturing"],
     hue: 218,
+    revenue: "≈ $200M revenue across five brands (approx.)",
+    scale: "5 brands · 4 ERPs · 1 CRM",
   },
   {
     id: "voice-booking",
@@ -75,6 +81,8 @@ export const SPOTLIGHTS: Spotlight[] = [
     useCases: ["Voice Agents", "Customer Engagement"],
     industries: ["Beauty & Wellness", "Franchise & Retail"],
     hue: 204,
+    revenue: "≈ $300M+ system-wide sales (salon brand)",
+    scale: "700+ locations · two franchise brands",
   },
   {
     id: "intake",
@@ -87,6 +95,8 @@ export const SPOTLIGHTS: Spotlight[] = [
     useCases: ["Intake Automation", "Compliance & Approvals"],
     industries: ["Collections", "Healthcare"],
     hue: 212,
+    revenue: "≈ $10M revenue (approx.)",
+    scale: "~60 employees · national client base",
   },
   {
     id: "phi-gate",
@@ -99,6 +109,8 @@ export const SPOTLIGHTS: Spotlight[] = [
     useCases: ["Compliance & Approvals"],
     industries: ["Collections", "Healthcare"],
     hue: 222,
+    revenue: "≈ $10M revenue (approx.)",
+    scale: "~60 employees · regulated healthcare receivables",
   },
   {
     id: "voicemail-lane",
@@ -111,6 +123,8 @@ export const SPOTLIGHTS: Spotlight[] = [
     useCases: ["Voice Agents", "Operations Automation"],
     industries: ["Collections"],
     hue: 230,
+    revenue: "≈ $10M revenue (approx.)",
+    scale: "~60 employees · one collections floor",
   },
   {
     id: "contact-refresh",
@@ -123,6 +137,8 @@ export const SPOTLIGHTS: Spotlight[] = [
     useCases: ["Data Quality", "Sales & Marketing"],
     industries: ["Software / Technology"],
     hue: 208,
+    revenue: "≈ $10–15M revenue (approx.)",
+    scale: "~150 employees · ~100,000 CRM contacts",
   },
   {
     id: "logistics-tower",
@@ -135,6 +151,8 @@ export const SPOTLIGHTS: Spotlight[] = [
     useCases: ["Estimating & Quoting", "Analytics & Reporting"],
     industries: ["Logistics"],
     hue: 200,
+    revenue: "≈ $2B revenue",
+    scale: "6,000+ employees · 50+ countries",
   },
   {
     id: "clinical-reports",
@@ -147,6 +165,7 @@ export const SPOTLIGHTS: Spotlight[] = [
     useCases: ["Analytics & Reporting", "Knowledge Search"],
     industries: ["Healthcare"],
     hue: 196,
+    scale: "Clinical reporting app used by sleep clinics",
   },
   {
     id: "matter-wall",
@@ -159,6 +178,8 @@ export const SPOTLIGHTS: Spotlight[] = [
     useCases: ["Knowledge Search", "Compliance & Approvals"],
     industries: ["Legal", "Professional Services"],
     hue: 226,
+    revenue: "≈ $3B+ revenue",
+    scale: "Thousands of lawyers · dozens of offices",
   },
   {
     id: "core-banking",
@@ -171,6 +192,7 @@ export const SPOTLIGHTS: Spotlight[] = [
     useCases: ["Knowledge Search", "Compliance & Approvals"],
     industries: ["Financial Services"],
     hue: 214,
+    scale: "Community institution in the $1–3B asset class",
   },
   {
     id: "franchise-coach",
@@ -183,6 +205,8 @@ export const SPOTLIGHTS: Spotlight[] = [
     useCases: ["Analytics & Reporting", "Customer Engagement"],
     industries: ["Franchise & Retail"],
     hue: 210,
+    revenue: "≈ $300M+ system-wide sales (salon brand)",
+    scale: "700+ studios · a handful of business coaches",
   },
   {
     id: "back-office",
@@ -207,6 +231,7 @@ export const SPOTLIGHTS: Spotlight[] = [
     useCases: ["Operations Automation", "Sales & Marketing"],
     industries: ["Software / Technology", "Professional Services"],
     hue: 206,
+    scale: "Boutique consultancy",
   },
   {
     id: "hosting-ops",
@@ -223,14 +248,29 @@ export const SPOTLIGHTS: Spotlight[] = [
   {
     id: "drawing-takeoff",
     title: "Data-center construction group",
-    useCase: "Quantity takeoff from engineering drawings",
+    useCase: "Drawing takeoff and ROM estimating for hyperscale data-center bids",
     results:
-      "Agents read hundreds of pages of electrical drawings and produce a quantity census that reconciles with the estimator's own count, turning a weeks-long quoting cycle into a day of review.",
+      "From four issue-for-construction drawing sets, 190 sheets, agents itemized 1,045 units across 36 equipment families, matched the estimators' own counts on the big-ticket lines (88 chillers, 216 computer-room air handlers, 36 pumps), and surfaced a 161-versus-280 fan-wall-unit spread between drawings and proposal for adjudication. Hours, not the weeks a manual count takes.",
     detail:
-      "Drawing-native markups are read directly rather than through a vision model; the census is cross-checked page by page and delivered as a rough-order-of-magnitude estimate in the customer's own format.",
+      "The drawings' own embedded markup data is read natively rather than guessed at through a vision model, every count cites the sheets it came from, and duplicate sightings across sheets and sets collapse to one physical unit. The rough-order-of-magnitude estimate renders in the team's own schedule-of-pricing format. Estimators steer it in plain language, with guardrails on how far labor and spares can move without a manager, and the final estimate waits for human approval.",
     useCases: ["Estimating & Quoting"],
     industries: ["Construction", "Manufacturing"],
     hue: 202,
+    revenue: "Division of a multinational electrical group · parent revenue in the tens of billions",
+    scale: "Hundreds of bids a month · a ten-person estimating team",
+  },
+  {
+    id: "estimation-benchmarks",
+    title: "Flooring and concrete contractor",
+    useCase: "Estimation benchmarks from twelve years of costing sheets",
+    results:
+      "Twelve years of costing sheets and work orders become a governed knowledge base; every new estimate is benchmarked by technology and size band against what past jobs actually cost, QA'd before approval, and driven from inside the CRM the sales team already lives in.",
+    detail:
+      "Epoxy, urethane cement, polished concrete and self-leveling systems each get their own benchmarks: price per square foot, labor hours, material, transport, equipment, per diem. A new estimate is calculated on the company's own cost logic, then compared with the closest historical jobs and their estimated-versus-actual outcomes, so a number that is too low, too high or missing a cost line is caught before it goes out. Completed jobs feed the benchmarks back.",
+    useCases: ["Estimating & Quoting", "Data Consolidation", "Analytics & Reporting"],
+    industries: ["Construction"],
+    hue: 208,
+    scale: "12 years of job history · Zoho CRM · Azure tenant",
   },
   {
     id: "erp-reporting",
@@ -243,6 +283,8 @@ export const SPOTLIGHTS: Spotlight[] = [
     useCases: ["Analytics & Reporting", "Data Consolidation"],
     industries: ["Manufacturing"],
     hue: 224,
+    revenue: "≈ $400M revenue (approx.)",
+    scale: "A dozen brands · plants in three countries",
   },
   {
     id: "sales-ops",
@@ -259,4 +301,4 @@ export const SPOTLIGHTS: Spotlight[] = [
 ];
 
 /** Spotlights featured on the home page, in order. */
-export const FEATURED_SPOTLIGHT_IDS = ["voice-booking", "erp-consolidation", "intake"];
+export const FEATURED_SPOTLIGHT_IDS = ["drawing-takeoff", "erp-consolidation", "voice-booking"];

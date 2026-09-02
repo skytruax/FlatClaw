@@ -29,6 +29,11 @@ export function SpotlightCard({ s }: { s: Spotlight }) {
         <h3 className="text-xl md:text-2xl font-semibold leading-snug tracking-tight">
           {s.title}
         </h3>
+        {(s.revenue || s.scale) && (
+          <p className="mt-2 text-[13px] leading-snug text-white/75">
+            {[s.revenue, s.scale].filter(Boolean).join(" · ")}
+          </p>
+        )}
 
         <dl className="mt-5 space-y-4 text-[15px] leading-relaxed">
           <div>

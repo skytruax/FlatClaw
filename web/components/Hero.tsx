@@ -41,9 +41,10 @@ export function Hero() {
           <span className="text-[hsl(var(--brand-accent))]">Private AI Platform</span>.
         </h1>
         <p className="mt-5 md:mt-6 text-base md:text-xl max-w-3xl leading-relaxed text-[hsl(var(--brand-accent-fg))/0.9]">
-          Voice agents on your phone lines. Intake that reads every file.
-          Reporting across five ERPs. Search walled by matter and role.
-          Actions that wait for approval. One platform runs all of it, with
+          Takeoffs counted from 190 sheets of drawings. Pricing and forecast
+          across four ERPs. Voice agents on your phone lines. Intake that reads
+          every file. Search walled by matter and role. Actions that wait for
+          approval. One platform runs all of it, with
           inference on your own GPU, inside a tenancy you own on Azure, AWS,
           Google Cloud, Northflank or your own hardware. Every line auditable.
           Data locality mechanically verifiable, not marketed.

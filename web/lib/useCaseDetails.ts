@@ -22,29 +22,57 @@ export interface SpotlightDetail {
 export const SPOTLIGHT_DETAILS: Record<string, SpotlightDetail> = {
   "erp-consolidation": {
     facts: [
-      ["Organization", "Multi-brand industrial manufacturer, several acquired business units"],
-      ["Systems", "Four ERPs, one CRM, spreadsheet-driven consolidation"],
-      ["Runs on", "Microsoft Azure, in the customer's own tenant"],
-      ["Scope", "Governed lakehouse plus an AI agent over it"],
+      ["Organization", "Privately held industrial manufacturer, five brands built through acquisition"],
+      ["Systems", "Four ERPs across the brands, one CRM, spreadsheet-driven consolidation"],
+      ["Runs on", "Microsoft Azure, in the customer's own tenant, on Microsoft Fabric"],
+      ["Scope", "Governed lakehouse, financial core, forecast and pipeline, pricing intelligence, AI inquiry"],
     ],
     situation:
-      "Each acquired brand kept its own ERP, and the group's consolidated view lived in spreadsheets stitched together every month by hand. Leadership could not ask a simple question across brands, could not trust a number without knowing which spreadsheet it came from, and every new acquisition restarted the whole exercise. The group runs on Microsoft, so a second data cloud was never on the table.",
+      "Each acquired brand kept its own ERP, four different systems from four eras, and the group's consolidated view lived in spreadsheets stitched together every month by hand. Leadership could not ask a simple question across brands, the controller wanted a ledger tape back to the source transaction before trusting a consolidated number, forecast accuracy by business unit was never tracked, and every new acquisition restarted the whole exercise. The group runs on Microsoft, so a second data cloud was never on the table.",
     solution: [
-      "A governed lakehouse in the customer's Azure tenant, fed from all four ERPs and the CRM on a schedule, with entity mapping and consolidation logic that keeps an audit trail back to the source transaction.",
-      "FlatClaw on top, connected through MCP tools: finance asks why a margin moved and gets a cited answer; sales gets a 360-degree view of a strategic account across every brand it touches, with updates written back to the CRM.",
-      "Board-grade consolidated financials and business-unit scorecards produced from the same governed data the agent answers from, so the report and the conversation never disagree.",
-      "An onboarding pattern for the next acquisition: map the new ERP once, and the agent, the scorecards and the consolidation inherit it.",
+      "A governed lakehouse on Microsoft Fabric in the customer's own Azure subscription, fed from all four ERPs and the CRM over the company's WAN, with entity matching across brands and lineage back to every source transaction.",
+      "The financial core on that store: consolidated financials, business-unit scorecards, forecast and pipeline, large-job margin watch, an AR and collections cockpit, and data-quality dashboards, all reading the same governed numbers.",
+      "FlatClaw on top, through MCP connectors: finance asks why a margin moved and gets a cited answer; sales asks about a strategic account and gets revenue, margin, pipeline and whitespace across every brand it touches, with updates written back to the CRM.",
+      "Pricing intelligence and aftermarket analytics as the next phase on the same foundation, because the estimate and the actual finally live in one place.",
+      "An onboarding pattern for the next acquisition: map the new ERP once, in weeks, and the agent, the scorecards and the consolidation inherit it.",
     ],
     outcomes: [
       "One set of numbers, traceable to source, instead of a monthly reconciliation exercise.",
+      "Forecast versus actual tracked over time by business unit, so forecast accuracy becomes a measured thing.",
       "Plain-English inquiry across brands for people who never opened an ERP.",
-      "Acquisitions land as a repeatable integration instead of a project each time.",
-      "Nothing about the data or the model leaves the company's Azure tenant.",
+      "Acquisitions land as a repeatable, separately priced integration instead of a project each time.",
+      "Nothing about the data or the model leaves the company's Azure tenant; other brands' staff join as guests with their home-tenant sign-in.",
     ],
-    stack: ["FlatClaw Portal", "Agent harness (Pi core)", "ERP and CRM MCP connectors", "Lakehouse on Microsoft Fabric", "Private inference on a dedicated GPU", "Entra ID sign-in"],
+    stack: ["FlatClaw Portal", "Agent harness (Pi core)", "ERP and CRM MCP connectors", "Lakehouse on Microsoft Fabric", "Power BI hand-off", "Private inference on a dedicated GPU", "Entra ID sign-in"],
     runsOn: "Microsoft Azure",
     whyPrivate:
-      "Consolidated financials for a private group are exactly the data that cannot be sent to a third-party model on every question. The agent answers from the lakehouse inside the tenant, and the audit trail makes every answer defensible.",
+      "Consolidated financials, margins and pricing for a private group are exactly the data that cannot be sent to a third-party model on every question. The agent answers from the lakehouse inside the tenant, and the audit trail makes every answer defensible.",
+  },
+  "estimation-benchmarks": {
+    facts: [
+      ["Organization", "Specialty flooring and concrete contractor"],
+      ["History", "About twelve years of costing sheets, work orders and job outcomes in spreadsheets"],
+      ["Runs on", "The contractor's own Azure tenant, driven from Zoho CRM"],
+      ["Scope", "Historical benchmarks, estimate calculation, QA/QC before approval, learning loop"],
+    ],
+    situation:
+      "The company had years of project history and no way to use it. Costing sheets, work orders and estimating files lived in individual spreadsheets, so nobody could quickly say what an epoxy job really costs per square foot, which technologies are most profitable, how estimates compared with actuals, or whether a new number was too low, too high or missing a cost line. The brief was explicit: not another calculator, an estimation support system that combines the company's costing logic with its own performance history.",
+    solution: [
+      "Historical costing sheets and work orders are normalized into a governed knowledge base: technology, square footage, price per square foot, labor hours, material, transport, equipment, consumables, per diem, estimated versus actual value, profitability, crew size, duration, change orders.",
+      "Benchmarks by technology and project-size band: epoxy coatings, urethane cement, polished concrete, self-leveling systems, sealers, with the realistic ranges for every cost category.",
+      "A new estimate is calculated on the company's own cost logic, then compared with the closest historical jobs and their outcomes, and the gaps are flagged before an estimation manager approves it.",
+      "The whole loop runs from inside the CRM the sales team already uses, and completed jobs feed their actuals back into the benchmarks.",
+    ],
+    outcomes: [
+      "Estimates grounded in what the company's own jobs actually cost, by technology.",
+      "Too-low, too-high and missing-cost estimates caught before they leave the building.",
+      "Profitability visible by technology and market segment for the first time.",
+      "Spreadsheet dependence replaced with a knowledge base that improves with every job.",
+    ],
+    stack: ["Spreadsheet and work-order ingestion", "Benchmark and estimate agents", "CRM MCP connector", "FlatClaw Portal", "Private inference on a dedicated GPU"],
+    runsOn: "Microsoft Azure",
+    whyPrivate:
+      "A contractor's cost structure and margins by technology are the business. Benchmarking against them on private inference keeps that history inside the company's own tenant.",
   },
   "voice-booking": {
     facts: [
@@ -386,29 +414,32 @@ export const SPOTLIGHT_DETAILS: Record<string, SpotlightDetail> = {
   },
   "drawing-takeoff": {
     facts: [
-      ["Organization", "Data-center construction group"],
-      ["Inputs", "Hundreds of pages of electrical drawings per bid"],
-      ["Runs on", "Private inference in the estimating team's environment"],
-      ["Scope", "Quantity takeoff and a rough-order-of-magnitude estimate"],
+      ["Organization", "Pre-construction estimating group inside a multinational electrical and building-systems company"],
+      ["Bid set", "4 drawing sets, 190 sheets, 3 project-manual volumes, the estimator's own markups"],
+      ["Runs on", "Two dedicated GPUs: one for reasoning, one for visual takeoff"],
+      ["Scope", "Takeoff, reconciliation, ROM estimate, proposal in the house format"],
     ],
     situation:
-      "Quoting a data center means counting every panel, feeder and device across hundreds of drawing pages, and it takes an estimating team weeks. The drawings carry the estimator's own markups, and the count has to reconcile with those markups or nobody trusts it.",
+      "Estimating is pre-construction's biggest bottleneck. The group quotes hundreds of bids a month with a ten-person estimating team, a single hyperscale data-center estimate can take one estimator two months, and what is visually on the printed page is what the subcontractor is on the hook for. The delta that hurts is schedules versus floor plans: a schedule says 420, the plans show 450, and the sub owns the difference. Every bid arrives as marked-up drawing sets and manual volumes with inconsistent or missing metadata, and nothing more is coming from the customer.",
     solution: [
-      "Agents read the drawing markups natively, rather than through a vision model guessing at pictures, and build a quantity census page by page.",
-      "Cross-checks between pages catch the double counts and the misses before a human sees them.",
-      "The census is delivered in the estimating team's own format, with page references, as a rough-order-of-magnitude estimate.",
-      "The estimator reviews and corrects; the corrections improve the next run.",
+      "Agents read the drawings' own embedded data natively, page by page, and build a census in which a unit is its family, zone and number: a tag drawn on ten sheets is one unit, a range tag is twenty, and duplicate sightings across the clean and marked-up sets collapse to one.",
+      "On this bid: 1,045 units across 36 equipment families, every count citing the sheets it was read from, cross-checked against the drawings' own schedule tables as a second, independent confirmation.",
+      "The counts reconciled with the estimators' proposal on the lines that drive price: 88 air-cooled chillers, 216 computer-room air handlers across four GPU halls and the in-building hall, 36 secondary chilled-water pumps. Where drawings and proposal disagreed, 161 fan-wall units on the sheets against 280 in the proposal, the spread was surfaced for adjudication instead of averaged away.",
+      "The rough-order-of-magnitude estimate renders in the team's own schedule-of-pricing format, with the same line items, alternates and totals their proposals already use.",
+      "Estimators steer it in plain language: increase all labor by five percent, union state, twenty percent spares. Role-based guardrails cap how far an estimator can move labor or spares without an estimation manager, and finalizing an estimate waits for human approval.",
+      "Specifications and manuals answer questions in the same conversation: what a division requires, which risks the estimator highlighted, what the RFI clarifications say.",
     ],
     outcomes: [
-      "A weeks-long counting cycle becomes a day of review.",
-      "A census that reconciles with the team's own count, with page references to check.",
-      "Estimators spend their time on judgment rather than tallying.",
-      "The same pipeline applies to the next bid without re-engineering.",
+      "A first-draft takeoff in hours against a manual count measured in weeks.",
+      "Counts that reconcile with the team's own numbers, with sheet references anyone can open to check.",
+      "Risk surfaced automatically: the 161-versus-280 spread is exactly the miss a subcontractor otherwise eats.",
+      "Estimators spend their time on judgment, pricing and finesse instead of tallying.",
+      "The same pipeline applies to the next bid set without re-engineering, and every correction trains the next run.",
     ],
-    stack: ["Drawing-native markup readers", "Census and cross-check agents", "Estimate renderer in the team's format", "FlatClaw Portal", "Private inference on dedicated GPUs"],
-    runsOn: "Private inference in the customer's environment",
+    stack: ["Drawing-native markup ingestion", "Census and cross-check agents", "Estimating MCP server with estimator and manager roles", "ROM renderer in the house schedule of pricing", "Specification and manual search", "FlatClaw Portal", "Private inference on two dedicated GPUs"],
+    runsOn: "Kirk-hosted to start, moving into the customer's Azure tenant without a rebuild",
     whyPrivate:
-      "Bid drawings and pricing are competitively sensitive. Processing them on private inference keeps a bid inside the team that owns it.",
+      "Bid drawings, the estimator's markups and the pricing behind a hyperscale data-center proposal are among the most competitively sensitive documents a company holds. Processing them on private inference keeps a bid inside the team that owns it.",
   },
   "erp-reporting": {
     facts: [

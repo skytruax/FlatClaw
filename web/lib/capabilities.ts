@@ -8,9 +8,25 @@ export interface Capability {
   body: string;
   /** Spotlight ids that prove it. Order matters; the first two are shown. */
   spotlights: string[];
+  /** Featured family: full-width tile, four spotlights, a stats row. */
+  featured?: boolean;
+  stats?: [string, string][];
 }
 
 export const CAPABILITIES: Capability[] = [
+  {
+    id: "estimating",
+    title: "Estimating and quoting from drawings, specs and history",
+    body: "Takeoffs counted from the drawings' own data, reconciled against the team's proposal, priced on the company's rules, and benchmarked against what past jobs actually cost. Estimators steer in plain language; the final number waits for a human.",
+    spotlights: ["drawing-takeoff", "erp-consolidation", "estimation-benchmarks", "logistics-tower"],
+    featured: true,
+    stats: [
+      ["190", "drawing sheets read on one bid"],
+      ["1,045", "units itemized, 36 equipment families"],
+      ["88 · 216", "chillers and CRAHs, matching the estimators' count"],
+      ["161 vs 280", "the spread surfaced for adjudication"],
+    ],
+  },
   {
     id: "voice",
     title: "Voice agents on your own lines",
@@ -26,7 +42,7 @@ export const CAPABILITIES: Capability[] = [
   {
     id: "reporting",
     title: "Reporting across every system you run",
-    body: "Consolidated financials across five ERPs, a quoting control tower over forwarding systems, clinical reports over device data: governed connectors, one lakehouse, questions in plain English.",
+    body: "Consolidated financials across four ERPs, a quoting control tower over forwarding systems, clinical reports over device data: governed connectors, one lakehouse, questions in plain English.",
     spotlights: ["erp-consolidation", "logistics-tower", "erp-reporting", "clinical-reports"],
   },
   {
