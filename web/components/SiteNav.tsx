@@ -42,20 +42,20 @@ export function SiteNav() {
           <Image
             src="/branding/wordmark-tagline-white.svg"
             alt="FlatClaw, Private AI Platform"
-            width={134}
-            height={40}
+            width={187}
+            height={56}
             priority
-            style={{ height: "auto" }}
+            className="h-12 lg:h-14 w-auto"
           />
         </Link>
 
         {/* Desktop nav — hidden on mobile, shown lg+ */}
-        <nav className="hidden lg:flex items-center gap-1 ml-auto text-sm">
+        <nav className="hidden lg:flex items-center gap-1 ml-auto text-[15.5px]">
           {links.map((l) => (
             <Link
               key={l.href}
               href={l.href}
-              className="px-3 py-1.5 rounded hover:bg-[hsl(var(--brand-accent))/0.18] transition"
+              className="px-3.5 py-2 rounded hover:bg-[hsl(var(--brand-accent))/0.18] transition"
             >
               {l.label}
             </Link>
