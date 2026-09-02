@@ -10,12 +10,15 @@ export function SiteFooter() {
           {/* Brand + CTA */}
           <div>
             <Image
-              src="/branding/wordmark-white.svg"
-              alt="FlatClaw"
-              width={150}
-              height={30}
+              src="/branding/kirk-flatclaw-lockup-white.svg"
+              alt="Kirk Tech Solutions and FlatClaw"
+              width={258}
+              height={24}
               style={{ height: "auto" }}
             />
+            <p className="mt-2 text-[11px] uppercase tracking-widest text-[hsl(var(--brand-accent-fg))/0.6]">
+              A Kirk Tech Solutions product
+            </p>
             <p className="mt-4 text-sm leading-relaxed text-[hsl(var(--brand-accent-fg))/0.8] max-w-xs">
               The open-source private-cloud AI coworker. Single-tenant,
               auditable, with mechanically verifiable data locality — on

@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { Cloud, Server, Sparkles, ArrowRight, Check } from "lucide-react";
-import { CLOUD_PARTNERS, type CloudPartner } from "@/lib/clouds";
+import Image from "next/image";
+import { Server, ArrowRight, Check } from "lucide-react";
+import { CLOUD_PARTNERS, LOGO_NOTICE, type CloudPartner } from "@/lib/clouds";
 
 /**
- * Cloud partner tiles. `compact` is the home-page strip (name, tagline,
+ * Cloud partner tiles. `compact` is the home-page strip (logo, tagline,
  * status); the full variant on /partners adds the blurb and fit chips.
  */
 export function CloudGrid({ compact = false }: { compact?: boolean }) {
@@ -20,23 +21,56 @@ export function CloudGrid({ compact = false }: { compact?: boolean }) {
           <CloudTile key={c.id} c={c} compact={compact} />
         ))}
       </div>
-      {compact && (
-        <div className="mt-6">
+      <div className="mt-6 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
+        {compact && (
           <Link
             href="/partners"
-            className="inline-flex items-center gap-2 text-sm font-semibold text-[hsl(var(--brand-accent-deep))] hover:text-[hsl(var(--brand-accent))] transition"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-[hsl(var(--brand-accent-deep))] hover:text-[hsl(var(--brand-accent))] transition shrink-0"
           >
             How each lane works
             <ArrowRight className="w-4 h-4" />
           </Link>
-        </div>
+        )}
+        <p className="text-[11px] leading-relaxed text-[hsl(var(--fc-fg-muted))]">
+          {LOGO_NOTICE}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function CloudLogo({ c, compact }: { c: CloudPartner; compact: boolean }) {
+  const h = compact ? Math.round((c.logoHeight ?? 32) * 0.8) : (c.logoHeight ?? 32);
+  if (!c.logo) {
+    return (
+      <div className="flex items-center gap-2.5 text-[hsl(var(--fc-fg-primary))]">
+        <span className="w-9 h-9 rounded-md bg-[hsl(var(--brand-accent))/0.12] text-[hsl(var(--brand-accent-deep))] flex items-center justify-center">
+          <Server className="w-5 h-5" />
+        </span>
+        <span className="font-semibold text-base leading-tight">{c.name}</span>
+      </div>
+    );
+  }
+  return (
+    <div className="flex items-center gap-2.5" style={{ height: compact ? 40 : 48 }}>
+      <Image
+        src={c.logo}
+        alt={c.name}
+        width={Math.round(h * 4)}
+        height={h}
+        style={{ height: h, width: "auto", maxWidth: "100%" }}
+        unoptimized
+      />
+      {c.logoIsMark && (
+        <span className="font-semibold text-[hsl(var(--fc-fg-primary))] leading-tight">
+          {c.name}
+        </span>
       )}
     </div>
   );
 }
 
 function CloudTile({ c, compact }: { c: CloudPartner; compact: boolean }) {
-  const Icon = c.id === "onprem" ? Server : c.scripted ? Sparkles : Cloud;
   return (
     <div
       className={
@@ -46,20 +80,11 @@ function CloudTile({ c, compact }: { c: CloudPartner; compact: boolean }) {
           : "ring-[hsl(var(--fc-bg-tertiary))] hover:ring-[hsl(var(--brand-accent))/0.6] ")
       }
     >
-      <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-md bg-[hsl(var(--brand-accent))/0.12] text-[hsl(var(--brand-accent-deep))] flex items-center justify-center shrink-0">
-          <Icon className="w-5 h-5" />
-        </div>
-        <div className="min-w-0">
-          <div className="font-semibold text-[hsl(var(--fc-fg-primary))] leading-tight">
-            {c.name}
-          </div>
-          <div className="text-[10.5px] font-semibold uppercase tracking-widest text-[hsl(var(--brand-accent-deep))] mt-0.5">
-            {c.lane}
-          </div>
-        </div>
+      <CloudLogo c={c} compact={compact} />
+      <div className="mt-3 text-[10.5px] font-semibold uppercase tracking-widest text-[hsl(var(--brand-accent-deep))]">
+        {c.lane}
       </div>
-      <p className="mt-3 text-sm text-[hsl(var(--fc-fg-secondary))] leading-relaxed">
+      <p className="mt-2 text-sm text-[hsl(var(--fc-fg-secondary))] leading-relaxed">
         {c.tagline}
       </p>
       {!compact && (

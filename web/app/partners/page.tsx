@@ -56,7 +56,7 @@ export default function PartnersPage() {
 
       <Section
         id="clouds"
-        eyebrow="Cloud partners"
+        eyebrow="Technology alliances"
         title="One tenancy per customer, on any of these."
         lede="The same public inference image, the same control plane, the same privacy proof. What changes per cloud is the account it lives in and who provisions it."
       >
@@ -176,6 +176,22 @@ export default function PartnersPage() {
           className="inline-flex items-center gap-2 rounded-md ring-1 ring-[hsl(var(--brand-primary))/0.4] text-[hsl(var(--brand-primary))] px-5 py-2.5 font-medium hover:bg-[hsl(var(--brand-primary))/0.06] transition"
         >
           {PARTNERS_EMAIL}
+        </a>
+      </Section>
+
+      <Section
+        eyebrow="Meet with FlatClaw"
+        title="Let us help you deliver your next AI project on infrastructure you own."
+        lede="Thirty minutes: your workflow, your cloud, and whether a private coworker is the right shape for it."
+        variant="dark"
+      >
+        <a
+          href={SCHEDULE_DEMO_URL}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center rounded-md bg-[hsl(var(--brand-accent))] text-[hsl(var(--brand-accent-fg))] px-5 py-2.5 font-semibold hover:brightness-110 transition"
+        >
+          Schedule a meeting
         </a>
       </Section>
     </>

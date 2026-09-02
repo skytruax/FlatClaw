@@ -18,14 +18,15 @@ export default function UseCasesPage() {
             Use case spotlights
           </div>
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight max-w-4xl">
-            What a private coworker actually does.
+            Real work, inside your own tenancy.
           </h1>
           <p className="mt-5 text-lg max-w-3xl leading-relaxed text-[hsl(var(--brand-accent-fg))/0.9]">
-            Every spotlight below is a workflow FlatClaw runs inside a
-            customer&apos;s own tenancy: chat, agents, approvals, voice, and the
-            connectors that reach the systems the work lives in. Filter by
-            what you are trying to do, or by the industry you are in. No
-            company names: the pattern is the point.
+            Manufacturers, franchisors, law firms, agencies and lenders use
+            FlatClaw to answer the phone, consolidate the books, gate the
+            risky send, and read the drawings — with the model, the data and
+            the audit trail inside infrastructure they own. Each spotlight
+            below is one of those workflows: the situation, what was built,
+            and what changed. Organizations are described, not named.
           </p>
         </div>
       </div>

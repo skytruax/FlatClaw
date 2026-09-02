@@ -88,7 +88,7 @@ export default function HomePage() {
         title="Single-tenant. Customer-owned. End-to-end."
         lede={
           <>
-            Everything — Portal, OpenClaw Gateway, Inference (GPU), and the
+            Everything — Portal, the agent harness, Inference (GPU), and the
             weights-server — lives in one tenancy on the cloud the customer
             already runs: an Azure resource group, an AWS account, a Google
             Cloud project, a Northflank project, or a rack in their building.
@@ -115,7 +115,7 @@ export default function HomePage() {
                 {[
                   ["Inference (H100 80GB, held warm)", "~$1,800"],
                   ["Portal — small compute (4 vCPU / 8 GB)", "~$50"],
-                  ["OpenClaw Gateway — small compute", "~$50"],
+                  ["Agent harness — small compute", "~$50"],
                   ["RAGFlow + corpus volume", "~$30"],
                   ["weights-server + 200 GB nvme", "~$30"],
                   ["Egress · TLS · observability", "included"],
@@ -230,10 +230,10 @@ export default function HomePage() {
             ["Silicon", "NVIDIA H100-class · 80 GB · native FP8"],
             ["Substrate", "Your cloud — Azure, AWS, Google Cloud, Northflank, or bare metal — one tenancy per customer"],
             ["Context", "TurboQuant turbo4 KV — 1M tokens on a single card (roadmap)"],
-            ["Agent runtime", "OpenClaw — RBAC at every tool call · per-agent memory built in"],
+            ["Agent harness", "Built on the minimal open Pi agent core — RBAC at every tool call · per-agent memory built in · gateway layer swappable behind the session API"],
             ["Frontend", "Next.js 16 + React 19 + TypeScript + SQLite"],
             ["Auth", "better-auth (v1) · WorkOS SSO (v2)"],
-            ["Memory", "OpenClaw built-in per-agent SQLite — keyword search, seeded per agent"],
+            ["Memory", "Harness-native per-agent SQLite — keyword search, seeded per agent"],
             ["Retrieval", "RAGFlow — cited document answers (v0.4)"],
             ["Embeddings (v0.4)", "bge-m3 — semantic memory + RAG, on its own GPU card"],
             ["Voice (v0.4)", "VoxCPM2 — open-weight cloning + TTS"],

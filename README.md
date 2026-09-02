@@ -179,8 +179,8 @@ This is a **flat per-tenant rate, not per-token metering**, and it scales with t
 
 The economic case is structural, and it gets *stronger* at scale. Running Gemma 4 31B-IT on a dedicated H100 collapses the per-token API cost stack — GPU + multi-tenant spare capacity + orchestration + margin — down to GPU lease alone:
 
-- **~$1.35 per 1M output tokens** self-hosted at a realistic 70% utilization, against **~$15** for Claude Sonnet 4.6 at list — about **11× cheaper per output token**, and 18–22× against Opus 4.7 / GPT-5.5.
-- **Comparable output to Sonnet 4.6 at our configuration.** At 256K context, FP8 on a dedicated H100, with complexity-based routing, Gemma 4 31B-IT clears the bar for the majority of a tenant's workload at that ~1/11th cost. The frontier tier (Opus 4.7, GPT-5.5) is reserved for the hardest fraction, routed up explicitly.
+- **~$1.35 per 1M output tokens** self-hosted at a realistic 70% utilization, against **~$15** for Claude Sonnet 4.6 at list — about **11× cheaper per output token**, about 7× against Sonnet 5 at $10, and 18–37× against the frontier tier (Claude Opus 5 at $25, GPT-5.5 at $30, Claude Fable 5.1 at $50; September 2026 list prices).
+- **Comparable output to Sonnet 4.6 at our configuration.** At 256K context, FP8 on a dedicated H100, with complexity-based routing, Gemma 4 31B-IT clears the bar for the majority of a tenant's workload at that ~1/11th cost. The frontier tier (Claude Opus 5, Fable 5.1, GPT-5.5) is reserved for the hardest fraction, routed up explicitly.
 - **Breakeven is far behind, not ahead.** One H100 at ~$1,800–2,000/month at 60% utilization produces ~2B output tokens/month; the same volume at Sonnet list runs ~$30,000/month. Breakeven against Sonnet lands near 130M output tokens/month — a threshold a busy tenant clears in days, not months.
 - **Utilization, not headcount, is the variable.** What the GPU serves is peak concurrent sessions, not total users. The per-tenant rate doesn't move as a tenant adds people; it moves when sustained concurrency outgrows one card — at which point the answer is a higher-tier or multi-GPU plan on the same cloud, same tenancy, same architecture.
 

@@ -35,8 +35,8 @@ export function ArchitectureDiagram() {
         <Arrow label="server-owned WebSocket · ws://:18789" />
 
         <Tier
-          label="OpenClaw Gateway"
-          subtitle="Agent runtime · sessions · tool dispatch · RBAC enforced at every tool call"
+          label="Agent harness"
+          subtitle="Built on the minimal open Pi agent core · sessions · tool dispatch · RBAC enforced at every tool call"
         />
         <Arrow label="MCP (per-agent, deny-glob scoped) · per-user Tool Access (native tools.deny)" />
 
@@ -53,7 +53,7 @@ export function ArchitectureDiagram() {
         <div className="text-[11px] text-[hsl(var(--fc-fg-muted))] italic px-1">
           MCP services are first-party servers the agent calls over Model Context
           Protocol; per-user credentials scoped per (tenant, user, service). RBAC
-          is OpenClaw&apos;s native per-agent{" "}
+          is the harness&apos;s native per-agent{" "}
           <code className="font-mono text-[hsl(var(--fc-fg-secondary))]">
             tools.deny
           </code>{" "}
@@ -64,13 +64,13 @@ export function ArchitectureDiagram() {
         </div>
 
         <div className="text-[11px] text-[hsl(var(--fc-fg-muted))] italic px-1">
-          Per-agent memory uses OpenClaw&apos;s built-in per-agent SQLite engine —
+          Per-agent memory uses the harness&apos;s built-in per-agent SQLite engine —
           keyword (BM25) search over each agent&apos;s{" "}
           <code className="font-mono text-[hsl(var(--fc-fg-secondary))]">
             MEMORY.md
           </code>{" "}
           + memory/ files. Semantic recall via bge-m3 (on its own GPU card) and
-          RAGFlow cited-document retrieval land in v0.3.
+          RAGFlow cited-document retrieval land in v0.4.
         </div>
 
         <Arrow label="internal tenancy network · TLS · bearer-authenticated" />

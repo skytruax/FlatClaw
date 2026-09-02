@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { SPOTLIGHTS } from "@/lib/useCases";
 
 /**
  * Sitemap for flatclaw.org. Emitted to `out/sitemap.xml` at build time
@@ -28,10 +29,17 @@ export const dynamic = "force-static";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const lastModified = new Date();
-  return ROUTES.map(({ path, changeFrequency, priority }) => ({
+  const pages = ROUTES.map(({ path, changeFrequency, priority }) => ({
     url: path ? `${BASE}/${path}/` : `${BASE}/`,
     lastModified,
     changeFrequency,
     priority,
   }));
+  const spotlights: MetadataRoute.Sitemap = SPOTLIGHTS.map((s) => ({
+    url: `${BASE}/use-cases/${s.id}/`,
+    lastModified,
+    changeFrequency: "monthly",
+    priority: 0.7,
+  }));
+  return [...pages, ...spotlights];
 }

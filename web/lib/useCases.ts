@@ -233,6 +233,18 @@ export const SPOTLIGHTS: Spotlight[] = [
     hue: 202,
   },
   {
+    id: "erp-reporting",
+    title: "Building-products manufacturer",
+    useCase: "The report that writes itself, across three ERPs",
+    results:
+      "Monthly operating reports assembled by agents from three ERPs that never agreed with each other, with every figure traceable to its source system, so leadership reads one report instead of reconciling three.",
+    detail:
+      "Each plant runs its own ERP and the corporate month-end was a manual merge. The coworker pulls the same figures from each system through governed connectors, normalizes units and entities, flags the mismatches instead of hiding them, and drafts the narrative around the numbers for a human to edit.",
+    useCases: ["Analytics & Reporting", "Data Consolidation"],
+    industries: ["Manufacturing"],
+    hue: 224,
+  },
+  {
     id: "sales-ops",
     title: "Sales team",
     useCase: "CRM-connected coworker",

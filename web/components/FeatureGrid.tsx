@@ -17,8 +17,8 @@ const features = [
   },
   {
     Icon: Workflow,
-    title: "OpenClaw runtime",
-    body: "Self-hosted agent loop. Sessions, multi-step planning, sandboxed tool execution, RBAC enforced at every tool call. Owns per-agent memory.",
+    title: "Agent harness",
+    body: "Built on the minimal open Pi agent core. Sessions, multi-step planning, sandboxed tool execution, RBAC enforced at every tool call, scheduling and approvals above it. Owns per-agent memory.",
   },
   {
     Icon: Cpu,
@@ -28,7 +28,7 @@ const features = [
   {
     Icon: Database,
     title: "Per-agent memory",
-    body: "OpenClaw's built-in per-agent SQLite memory — keyword (BM25) search over each agent's MEMORY.md and memory/ files, seeded automatically for every agent. The agent maintains it across sessions. Semantic recall via bge-m3 lands in v0.3.",
+    body: "The harness's built-in per-agent SQLite memory — keyword (BM25) search over each agent's MEMORY.md and memory/ files, seeded automatically for every agent. The agent maintains it across sessions. Semantic recall via bge-m3 lands in v0.4.",
   },
   {
     Icon: Boxes,
@@ -38,7 +38,7 @@ const features = [
   {
     Icon: ShieldCheck,
     title: "RBAC + per-user creds",
-    body: "Multiple users per tenant. Per-user Tool Access (allow/deny over built-in + MCP tools) on OpenClaw's native tools.deny, plus always-on cross-user isolation. Per-user credentials scoped (tenant, user, service).",
+    body: "Multiple users per tenant. Per-user Tool Access (allow/deny over built-in + MCP tools) on the harness's native tool policy, plus always-on cross-user isolation. Per-user credentials scoped (tenant, user, service).",
   },
   {
     Icon: Container,

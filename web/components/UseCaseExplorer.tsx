@@ -14,8 +14,9 @@ const ALL = "All";
 
 /**
  * The spotlight selector: two rows of pill filters (use case, industry) and
- * the grid of matching tiles. Pure client state; nothing to fetch, so it
- * works as-is on the static export.
+ * the grid of matching tiles. A chip only appears if choosing it would show at
+ * least one spotlight given the other active filter, so there are never empty
+ * results to click into. Pure client state; nothing to fetch.
  */
 export function UseCaseExplorer() {
   const [useCase, setUseCase] = useState<UseCaseFilter | typeof ALL>(ALL);
@@ -31,25 +32,45 @@ export function UseCaseExplorer() {
     [useCase, industry],
   );
 
+  // Chips that would yield at least one spotlight given the *other* filter.
+  const useCaseOptions = useMemo(
+    () =>
+      USE_CASE_FILTERS.filter((u) =>
+        SPOTLIGHTS.some(
+          (s) => s.useCases.includes(u) && (industry === ALL || s.industries.includes(industry)),
+        ),
+      ),
+    [industry],
+  );
+  const industryOptions = useMemo(
+    () =>
+      INDUSTRY_FILTERS.filter((i) =>
+        SPOTLIGHTS.some(
+          (s) => s.industries.includes(i) && (useCase === ALL || s.useCases.includes(useCase)),
+        ),
+      ),
+    [useCase],
+  );
+
   return (
     <div>
       <FilterGroup
-        title="Search by use case"
-        allLabel="See all cases"
-        options={USE_CASE_FILTERS}
+        title="Search By Use Case"
+        allLabel="See All Cases"
+        options={useCaseOptions}
         value={useCase}
         onChange={(v) => setUseCase(v as UseCaseFilter | typeof ALL)}
       />
       <FilterGroup
-        title="Search by industry"
-        allLabel="See all industries"
-        options={INDUSTRY_FILTERS}
+        title="Search By Industry"
+        allLabel="See All Industries"
+        options={industryOptions}
         value={industry}
         onChange={(v) => setIndustry(v as IndustryFilter | typeof ALL)}
-        className="mt-10"
+        className="mt-12"
       />
 
-      <div className="mt-10 flex items-center justify-between gap-4 text-sm text-[hsl(var(--fc-fg-muted))]">
+      <div className="mt-12 flex items-center justify-between gap-4 text-sm text-[hsl(var(--fc-fg-muted))]">
         <span>
           Showing <strong className="text-[hsl(var(--fc-fg-primary))]">{visible.length}</strong> of{" "}
           {SPOTLIGHTS.length} spotlights
@@ -68,21 +89,11 @@ export function UseCaseExplorer() {
         )}
       </div>
 
-      {visible.length === 0 ? (
-        <div className="mt-6 rounded-xl bg-[hsl(var(--fc-bg-surface))] ring-1 ring-[hsl(var(--fc-bg-tertiary))] p-8 text-center text-sm text-[hsl(var(--fc-fg-secondary))]">
-          No spotlight matches that combination yet. Clear a filter, or{" "}
-          <a href="mailto:hi@flatclaw.org" className="text-[hsl(var(--brand-accent-deep))] font-medium hover:underline">
-            tell us about yours
-          </a>
-          .
-        </div>
-      ) : (
-        <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {visible.map((s) => (
-            <SpotlightCard key={s.id} s={s} />
-          ))}
-        </div>
-      )}
+      <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {visible.map((s) => (
+          <SpotlightCard key={s.id} s={s} />
+        ))}
+      </div>
     </div>
   );
 }
@@ -111,7 +122,7 @@ function FilterGroup({
       <div
         role="group"
         aria-label={title}
-        className="mt-5 flex flex-wrap justify-center gap-2.5"
+        className="mt-6 flex flex-wrap justify-center gap-2.5"
       >
         {chips.map((c) => {
           const selected = c === value;
@@ -122,7 +133,7 @@ function FilterGroup({
               aria-pressed={selected}
               onClick={() => onChange(c)}
               className={
-                "rounded-full px-4 py-2 text-sm font-medium transition ring-1 " +
+                "rounded-full px-5 py-2.5 text-sm font-medium transition ring-1 " +
                 (selected
                   ? "bg-[hsl(var(--brand-primary))] text-white ring-[hsl(var(--brand-primary))] shadow-sm"
                   : "bg-[hsl(var(--fc-bg-surface))] text-[hsl(var(--brand-accent-deep))] ring-[hsl(var(--fc-bg-tertiary))] hover:ring-[hsl(var(--brand-accent))] hover:text-[hsl(var(--brand-primary))]")

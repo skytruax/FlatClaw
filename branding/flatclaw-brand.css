@@ -1,0 +1,96 @@
+/* ==========================================================================
+   FlatClaw — brand stylesheet (child of the Kirk Tech Solutions brand system)
+   Inter typeface, Kirk's navy/deep/slate structural palette, FlatClaw's blue
+   accent. Self-contained: use on any surface that is not the Next.js site
+   (which carries the same tokens in web/styles/globals.css) and is not a
+   Kirk-rendered document (which uses kirk-brand-flatclaw.css in the
+   kirk-branding skill). See BRAND.md.
+   ========================================================================== */
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap");
+
+:root {
+  /* Structural palette — inherited from Kirk */
+  --fc-navy:        #22314A;
+  --fc-deep:        #27436C;
+  --fc-slate:       #415A80;
+  --fc-slate-light: #556D91;
+  --fc-ink:         #18191F;
+  --fc-mute:        #7F91A8;
+  --fc-paper:       #FFFFFF;
+  --fc-wash:        #F4F4F4;
+  --fc-wash-2:      #F6F6F6;
+  --fc-line:        #D8DEE7;
+
+  /* FlatClaw accent — the one thing that differs from Kirk */
+  --fc-blue:        #0099FF;   /* CTAs, headline highlights, rules, markers */
+  --fc-blue-deep:   #006BB2;   /* hover, links and eyebrows on light, white-text buttons */
+  --fc-sky:         #51C5FF;   /* small colored text on the navy ground */
+
+  --fc-font: "Inter", -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --fc-track-display: -0.02em;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: var(--fc-font);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--fc-navy);
+  background: var(--fc-paper);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 { font-family: var(--fc-font); margin: 0 0 .35em; }
+h1 { font-size: 2.5rem; line-height: 1.1; font-weight: 800; color: var(--fc-deep); letter-spacing: var(--fc-track-display); }
+h2 { font-size: 1.75rem; line-height: 1.2; font-weight: 700; color: var(--fc-deep); letter-spacing: var(--fc-track-display);
+     margin-top: 1.6em; padding-bottom: .3em; border-bottom: 2px solid var(--fc-blue); }
+h3 { font-size: 1.125rem; font-weight: 600; color: var(--fc-slate); margin-top: 1.4em; }
+h4 { font-size: 1rem; font-weight: 700; color: var(--fc-blue-deep); margin-top: 1.2em; }
+
+.kicker {
+  font-size: .6875rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--fc-slate-light); margin: 0 0 .5em;
+}
+.dark .kicker, .kicker.on-dark { color: var(--fc-sky); }
+
+p { margin: 0 0 .75em; }
+a { color: var(--fc-blue-deep); text-decoration: none; border-bottom: 1px solid rgba(0, 107, 178, .35); }
+a:hover { color: var(--fc-blue); }
+strong, b { font-weight: 700; color: var(--fc-deep); }
+small, .meta { font-size: .875rem; color: var(--fc-mute); }
+ul, ol { margin: 0 0 .75em; padding-left: 1.25em; }
+li::marker { color: var(--fc-blue); }
+
+/* Dark ground — navy, with the contrast rules baked in */
+.dark { background: var(--fc-navy); color: #C7D4E3; }
+.dark h1, .dark h2, .dark h3 { color: #FFFFFF; }
+.dark h2 { border-bottom-color: var(--fc-blue); }
+.dark a { color: var(--fc-sky); border-bottom-color: rgba(81, 197, 255, .35); }
+.dark .accent { color: var(--fc-blue); }
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; gap: .5em;
+  padding: .625em 1.25em; border-radius: .375rem; font-weight: 600; border: 0; cursor: pointer;
+}
+.btn-primary { background: var(--fc-blue); color: #FFFFFF; }
+.btn-primary:hover { filter: brightness(1.1); }
+.btn-deep { background: var(--fc-blue-deep); color: #FFFFFF; }
+.btn-deep:hover { background: var(--fc-blue); }
+.btn-outline { background: transparent; color: var(--fc-navy); box-shadow: inset 0 0 0 1px var(--fc-line); }
+.dark .btn-outline { color: #FFFFFF; box-shadow: inset 0 0 0 1px rgba(255,255,255,.3); }
+
+/* Callouts and tables */
+.callout { background: var(--fc-wash); border-left: 3px solid var(--fc-blue); padding: .8em 1em; margin: 1.2em 0; }
+.callout-title { font-weight: 700; color: var(--fc-deep); margin: 0 0 .3em; }
+table { width: 100%; border-collapse: collapse; margin: 1em 0 1.3em; font-size: .9375rem; }
+th { background: var(--fc-deep); color: #FFFFFF; font-weight: 600; text-align: left; text-transform: uppercase;
+     font-size: .75rem; letter-spacing: .05em; padding: .5em .7em; }
+td { padding: .5em .7em; border-bottom: 1px solid var(--fc-line); vertical-align: top; }
+tbody tr:nth-child(even) td { background: var(--fc-wash-2); }
+
+:focus-visible { outline: 2px solid var(--fc-blue); outline-offset: 2px; }
+::selection { background: rgba(0, 153, 255, .25); color: var(--fc-ink); }

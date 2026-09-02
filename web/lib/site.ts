@@ -13,6 +13,8 @@ export const GHCR_INFERENCE_URL =
 
 // Demo video — lives in web/public/branding/, copied to /branding/ on export.
 export const DEMO_VIDEO_URL = "/branding/RawDemoFlatClaw.mp4";
+// Poster shown before the demo plays — a frame from the demo itself.
+export const DEMO_POSTER_URL = "/branding/demo-poster.jpg";
 
 // "Schedule Demo" link. Interim Google Calendar event-template link: opens a
 // pre-filled "FlatClaw Demo" event with skyler@kirktechsolutions.com invited,

@@ -5,6 +5,7 @@ import {
   SITE_LICENSE,
   GITHUB_URL,
   DEMO_VIDEO_URL,
+  DEMO_POSTER_URL,
   SCHEDULE_DEMO_URL,
 } from "@/lib/site";
 import { CLOUD_PARTNERS } from "@/lib/clouds";
@@ -70,17 +71,15 @@ export function Hero() {
           </Link>
         </div>
 
-        {/* Demo video — autoplays muted, loops; controls for full playback. */}
+        {/* Demo video — poster cover, plays on click; no autoplay. */}
         <div className="mt-10 md:mt-12 rounded-2xl overflow-hidden ring-1 ring-[hsl(var(--brand-accent))/0.35] shadow-2xl bg-black/40 max-w-4xl">
           <video
             src={DEMO_VIDEO_URL}
+            poster={DEMO_POSTER_URL}
             controls
-            autoPlay
-            loop
-            muted
             playsInline
-            preload="metadata"
-            className="w-full h-auto block"
+            preload="none"
+            className="w-full h-auto block aspect-video"
           />
         </div>
 

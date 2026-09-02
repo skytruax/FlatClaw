@@ -9,10 +9,13 @@ export const metadata: Metadata = {
 
 const apiRates: [string, string][] = [
   ["Claude Haiku 4.5", "$5"],
-  ["OpenAI GPT-5.3 Codex", "$14"],
+  ["Claude Sonnet 5", "$10"],
+  ["OpenAI GPT-5.6 Terra", "$12"],
   ["Claude Sonnet 4.6", "$15"],
-  ["Claude Opus 4.7", "$25"],
+  ["OpenAI GPT-5.6 Sol", "$20"],
+  ["Claude Opus 5", "$25"],
   ["OpenAI GPT-5.5", "$30"],
+  ["Claude Fable 5.1", "$50"],
 ];
 
 const selfHosted: [string, string][] = [
@@ -43,7 +46,7 @@ const costStack: [string, string][] = [
 const tradeoffs: [string, string][] = [
   [
     "At our configuration, Gemma 4 31B is comparable to Claude Sonnet 4.6.",
-    "Arena Elo 1452 (#3 among open models), Codeforces 2150, 89.2% on AIME 2026, 85.2% on MMLU Pro. Run at our configuration — 256K context, FP8 on a dedicated H100, with complexity-based routing — Gemma 4 31B is comparable to Claude Sonnet 4.6 across the workloads tenants actually run, at roughly 1/11th the per-token cost. The frontier tier — Opus 4.7 and GPT-5.5 — still leads on the hardest reasoning, long-horizon agentic work, and the upper end of coding. The case is not “Gemma replaces every model,” it's “Gemma matches the Sonnet tier for the majority of the workload, and you route the hardest fraction up.”",
+    "Arena Elo 1452 (#3 among open models), Codeforces 2150, 89.2% on AIME 2026, 85.2% on MMLU Pro. Run at our configuration — 256K context, FP8 on a dedicated H100, with complexity-based routing — Gemma 4 31B is comparable to Claude Sonnet 4.6 across the workloads tenants actually run, at roughly 1/11th the per-token cost. The frontier tier — Claude Opus 5, Fable 5.1 and GPT-5.5 — still leads on the hardest reasoning, long-horizon agentic work, and the upper end of coding. The case is not “Gemma replaces every model,” it's “Gemma matches the Sonnet tier for the majority of the workload, and you route the hardest fraction up.”",
   ],
   [
     "Routing by complexity is the decision that saves money.",
@@ -98,7 +101,7 @@ export default function TokenomicsPage() {
       <Section
         eyebrow="01 · Thesis"
         title="The per-token premium is structural, not promotional."
-        lede="At a tenant's steady-state volume, paying per-token API rates costs roughly 11× the underlying hardware cost of the same inference versus the comparable Sonnet 4.6 tier — and up to ~18–22× against the frontier models."
+        lede="At a tenant's steady-state volume, paying per-token API rates costs roughly 11× the underlying hardware cost of the same inference versus the comparable Sonnet 4.6 tier, about 7× against Sonnet 5 at its lower list price — and 18–37× against the frontier models."
       >
         <div className="grid md:grid-cols-2 gap-6">
           <div className="bg-[hsl(var(--fc-bg-surface))] rounded-xl p-6 ring-1 ring-[hsl(var(--fc-bg-tertiary))]">
@@ -125,7 +128,7 @@ export default function TokenomicsPage() {
       <Section
         eyebrow="02 · The numbers"
         title="API rate card vs dedicated H100."
-        lede="List output-token pricing across the major hosted APIs (May 2026), against Gemma 4 31B-IT on a single H100 with SGLang (FP8, RadixAttention, 256K context) at a $2.50/hr long-term lease."
+        lede="List output-token pricing across the major hosted APIs (September 2026), against Gemma 4 31B-IT on a single H100 with SGLang (FP8, RadixAttention, 256K context) at a $2.50/hr committed lease. H100 rentals ran roughly $1.50–$7 per hour across providers this month; $2.50 is a realistic committed rate on any of the clouds FlatClaw deploys to."
         variant="soft"
       >
         <div className="grid lg:grid-cols-2 gap-8">
@@ -188,9 +191,10 @@ export default function TokenomicsPage() {
             <p className="text-sm leading-relaxed text-[hsl(var(--fc-fg-secondary))]">
               At our configuration Gemma 4 31B is comparable to Sonnet 4.6 — at
               $1.35 against $15.00 per 1M output tokens, that&apos;s the same
-              tier of output for about 1/11th the cost. Against Opus 4.7 or
-              GPT-5.5: 18–22× cheaper, with the frontier tier reserved for the
-              hardest fraction.
+              tier of output for about 1/11th the cost; against Sonnet 5 at
+              $10, about 1/7th. Against Opus 5, GPT-5.5 or Fable 5.1: 18–37×
+              cheaper, with the frontier tier reserved for the hardest
+              fraction.
             </p>
           </div>
           <div className="bg-[hsl(var(--brand-primary))/0.07] rounded-xl p-6 ring-1 ring-[hsl(var(--brand-primary))/0.25]">
@@ -283,7 +287,7 @@ export default function TokenomicsPage() {
           weights catch up, as serving stacks improve, as API providers
           reprice, and as GPU lease rates change. We re-run the math quarterly
           and ship whichever shape is cheapest per resolved task. The math is
-          what it is.
+          what it is. Rate card last refreshed September 2026.
         </p>
       </Section>
 

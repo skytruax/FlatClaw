@@ -5,7 +5,7 @@ const milestones = [
     points: [
       "Human approval engine — consequential MCP actions (outbound mail, destructive/exposing calls) are composed, pause for human sign-off in the Portal, and replay with the user's own credentials on approve",
       "Public/private MCP split — the repo ships mcp/public (Google, Jira); private add-on connectors self-register through the same plugin registry",
-      "OpenClaw 2026.7.1 — runtime pin bumped and re-verified against the RBAC contract",
+      "Harness runtime pin bumped and re-verified against the RBAC contract (tool-name flattening, deny-glob pipeline)",
       "Portal approvals queue + per-service admin visibility controls",
     ],
   },
