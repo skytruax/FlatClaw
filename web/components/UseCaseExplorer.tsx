@@ -133,7 +133,7 @@ function FilterGroup({
               aria-pressed={selected}
               onClick={() => onChange(c)}
               className={
-                "rounded-full px-5 py-2.5 text-sm font-medium transition ring-1 " +
+                "rounded-md px-5 py-2.5 text-sm font-medium transition ring-1 " +
                 (selected
                   ? "bg-[hsl(var(--brand-primary))] text-white ring-[hsl(var(--brand-primary))] shadow-sm"
                   : "bg-[hsl(var(--fc-bg-surface))] text-[hsl(var(--brand-accent-deep))] ring-[hsl(var(--fc-bg-tertiary))] hover:ring-[hsl(var(--brand-accent))] hover:text-[hsl(var(--brand-primary))]")
