@@ -6,7 +6,7 @@ import { GITHUB_URL, KIRK_SITE_URL } from "@/lib/site";
 export const metadata: Metadata = {
   title: "Contributors",
   description:
-    "The people and open-source projects behind FlatClaw — maintainers, partners, and the upstream software the platform is built on.",
+    "The people and open-source projects behind FlatClaw — maintainers, the delivery team, and the upstream software the platform is built on.",
 };
 
 interface Person {
@@ -25,7 +25,7 @@ const people: Person[] = [
   },
   {
     name: "Kirk Tech Solutions",
-    role: "Delivery partner — implementation, custom skills, and MCP integrations for FlatClaw deployments.",
+    role: "Builder and sole services provider — deployment, custom skills, and MCP integrations for FlatClaw.",
     links: [
       { kind: "site", href: KIRK_SITE_URL, label: "kirktechsolutions.com" },
     ],
@@ -81,7 +81,7 @@ export default function ContributorsPage() {
         </div>
       </div>
 
-      <Section eyebrow="People & partners" title="Who's behind it">
+      <Section eyebrow="People & projects" title="Who's behind it">
         <div className="grid md:grid-cols-3 gap-5">
           {people.map((p) => (
             <div

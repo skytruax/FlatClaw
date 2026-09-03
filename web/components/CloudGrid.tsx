@@ -5,7 +5,7 @@ import { CLOUD_PARTNERS, LOGO_NOTICE, type CloudPartner } from "@/lib/clouds";
 
 /**
  * Cloud partner tiles. `compact` is the home-page strip (logo, tagline,
- * status); the full variant on /partners adds the blurb and fit chips.
+ * status); the full variant on /services adds the blurb and fit chips.
  */
 export function CloudGrid({ compact = false }: { compact?: boolean }) {
   return (
@@ -24,10 +24,10 @@ export function CloudGrid({ compact = false }: { compact?: boolean }) {
       <div className="mt-6 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
         {compact && (
           <Link
-            href="/partners"
+            href="/services#clouds"
             className="inline-flex items-center gap-2 text-sm font-semibold text-[hsl(var(--brand-accent-deep))] hover:text-[hsl(var(--brand-accent))] transition shrink-0"
           >
-            How each lane works
+            How Kirk delivers on each cloud
             <ArrowRight className="w-4 h-4" />
           </Link>
         )}

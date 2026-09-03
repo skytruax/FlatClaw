@@ -20,7 +20,7 @@ const ROUTES: Array<{
   { path: "use-cases", changeFrequency: "weekly", priority: 0.9 },
   { path: "about", changeFrequency: "monthly", priority: 0.8 },
   { path: "tokenomics", changeFrequency: "monthly", priority: 0.8 },
-  { path: "partners", changeFrequency: "monthly", priority: 0.8 },
+  { path: "services", changeFrequency: "monthly", priority: 0.8 },
   { path: "contributors", changeFrequency: "monthly", priority: 0.6 },
 ];
 

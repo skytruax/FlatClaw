@@ -93,7 +93,7 @@ export function Hero() {
           {CLOUD_PARTNERS.map((c) => (
             <Link
               key={c.id}
-              href="/partners#clouds"
+              href="/services#clouds"
               title={c.name}
               className="flex items-center gap-2 text-[15px] font-semibold text-[hsl(var(--brand-accent-fg))] opacity-90 hover:opacity-100 transition"
             >

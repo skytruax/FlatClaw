@@ -34,7 +34,7 @@ export const CLOUD_PARTNERS: CloudPartner[] = [
   {
     id: "azure",
     name: "Microsoft Azure",
-    lane: "Delivered with an implementation partner",
+    lane: "Delivered by Kirk Tech Solutions",
     tagline: "The lane for Microsoft-first organizations.",
     blurb:
       "A resource group inside the customer's own subscription: AKS or a single GPU virtual machine (NC H100 v5 class), Entra ID for sign-in, private endpoints for everything, and outputs into Fabric and Power BI when the customer wants them.",
@@ -49,7 +49,7 @@ export const CLOUD_PARTNERS: CloudPartner[] = [
   {
     id: "aws",
     name: "Amazon Web Services",
-    lane: "Delivered with an implementation partner",
+    lane: "Delivered by Kirk Tech Solutions",
     tagline: "Your account, your VPC, no public inference endpoint.",
     blurb:
       "An account and VPC the customer owns: EKS or a single GPU instance (p5 or g6e class), IAM roles for access, KMS for secrets, and egress limited to the services users explicitly connect.",
@@ -63,7 +63,7 @@ export const CLOUD_PARTNERS: CloudPartner[] = [
   {
     id: "gcp",
     name: "Google Cloud",
-    lane: "Delivered with an implementation partner",
+    lane: "Delivered by Kirk Tech Solutions",
     tagline: "A project the customer owns, fenced with VPC Service Controls.",
     blurb:
       "GKE with A3 (H100) nodes or a single GPU VM inside the customer's project, Workload Identity for the services, and VPC Service Controls around the tenancy so nothing crosses the boundary unnoticed.",
