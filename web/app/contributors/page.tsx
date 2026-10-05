@@ -44,10 +44,10 @@ const people: Person[] = [
 ];
 
 const builtOn: [string, string, string][] = [
-  ["Pi agent core", "The minimal open agent harness FlatClaw's runtime is built on — sessions, tool use, per-agent memory.", "Open source"],
-  ["OpenClaw", "Gateway layer over the Pi core — channels, sessions, model routing. Swappable behind FlatClaw's session API.", "Apache 2.0"],
+  ["Pi agent core", "The minimal open agent harness that OpenClaw's agent runtime grew out of — sessions, tool use, per-agent memory.", "MIT"],
+  ["OpenClaw", "Gateway and agent runtime, grown out of the Pi core — channels, sessions, model routing. Swappable behind FlatClaw's session API.", "MIT"],
   ["SGLang", "Production inference runtime — FP8, RadixAttention prefix caching.", "Apache 2.0"],
-  ["Gemma 4 (Google)", "Open-weight LLM — 31B-IT dense, 256K context.", "Gemma Terms"],
+  ["Gemma 4 (Google)", "Open-weight LLM — 31B-IT dense, 256K context.", "Apache 2.0"],
   ["RAGFlow", "Document ingest & retrieval with cited answers.", "Apache 2.0"],
   ["bge-m3 (BAAI)", "Multilingual long-context embeddings, co-resident on the GPU.", "MIT"],
   ["Next.js + React", "Portal and marketing site.", "MIT"],

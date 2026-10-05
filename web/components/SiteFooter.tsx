@@ -70,8 +70,8 @@ export function SiteFooter() {
           <FooterCol title="Open source">
             <FooterLink href={GITHUB_URL}>GitHub</FooterLink>
             <FooterLink href={GHCR_INFERENCE_URL}>Inference image</FooterLink>
-            <FooterLink href="https://ai.google.dev/gemma/terms">
-              Gemma terms
+            <FooterLink href="https://ai.google.dev/gemma/apache_2">
+              Gemma 4 license
             </FooterLink>
           </FooterCol>
         </div>
