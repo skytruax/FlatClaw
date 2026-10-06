@@ -13,6 +13,7 @@ const milestones = [
     version: "v0.4",
     status: "Next",
     points: [
+      "OpenClaw 2026.9 and one gateway per user — each user's agent runs under its own operating-system account, created and supervised by the Portal",
       "One-command tenant provisioning — provision-tenant.sh / destroy-tenant.sh: full tenant lifecycle on the target cloud (Northflank lane first; Azure, AWS and Google Cloud lanes follow)",
       "RAGFlow — cited document retrieval behind a stable interface",
       "Semantic memory + embeddings via bge-m3 — on its own GPU card",

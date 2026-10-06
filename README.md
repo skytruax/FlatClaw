@@ -150,7 +150,7 @@ A complete coworker stack, not a framework. Every component is included and pre-
 **Four services per tenant**, all in the customer's cloud tenancy:
 
 1. **Portal** — 4 vCPU / 8 GB (`nf-compute-400` on the reference lane). FlatClaw-branded Next.js 16 + React 19 UI with Docs, Memory, and Admin panels.
-2. **OpenClaw Gateway** — 4 vCPU / 8 GB. The agent runtime; enforces RBAC at every tool call. Owns per-agent memory under each agent's workspace.
+2. **OpenClaw Gateway** — 4 vCPU / 8 GB. The agent runtime; enforces RBAC at every tool call. Owns per-agent memory under each agent's workspace. v0.3.0 runs one shared gateway with every user's agent on it; v0.4 adds a mode with one gateway per user, each under its own operating-system account (see [Roadmap](#roadmap)).
 3. **Inference service** — one GPU node: a managed H100 plan on the reference lane, NC H100 v5 / p5 / A3 class on Azure / AWS / Google Cloud, or bare metal on-prem. 1× NVIDIA H100-class GPU (80 GB, sm_90, native FP8). Held warm 24/7 in prod. Fetches weights at boot from `weights-server`.
 4. **RAGFlow** — 2 vCPU / 8 GB + persistent volume. Tenant document corpus.
 
@@ -233,6 +233,8 @@ FlatClaw leans entirely on OpenClaw's **built-in tool policy** — there's no cu
 
 Underneath both, per-user **capability tokens** scoped `(tenant, user, service)` remain the data-access boundary — a user's MCP server can only reach that user's data regardless of which tools are exposed.
 
+**What v0.3.0 does not isolate.** All agents share one gateway process and one operating-system account, so the boundaries above are OpenClaw's policy layer, not the kernel: an agent that runs an arbitrary shell command can reach files that belong to other users' agents on the same host. Use v0.3.0 for a team that already shares a workspace. v0.4 adds one gateway per user, each under its own system account in a private state directory, so another user's workspace, agent state and gateway token are denied by the operating system rather than hidden.
+
 On top of tool visibility sits the **human approval engine**: approval-gated tools (outbound mail, destructive or exposing actions; operator-configurable per service) run their handler against a compose-mode API client — reads pass through, and the first mutating REST call is captured instead of sent. The captured request (method + URL + body, never credentials) surfaces as a pending card in the Portal approvals queue; on approve, the portal replays it with the requesting user's own vaulted credentials, guarded to that user's own workspace/API hosts. On deny, nothing executes. Both outcomes are recorded in the audit log with the approver's identity.
 
 Nothing custom to install or enable: it's the gateway's own enforcement, configured from the portal.
@@ -301,6 +303,7 @@ Every release ships with end-to-end tests for the features in scope. Tests grow 
 ### v0.4 (next)
 
 - **OpenClaw 2026.9 and Node 24** — the port is done and verified on the development line (2026-10-05, against OpenClaw 2026.9.8). The Portal connects to the gateway as a backend client with its own device identity, replacing the retired token-only Control UI handshake. Gateway config goes through one read-modify-write path on the new keyed agent roster. A tenant baseline pins the gateway settings that multi-user isolation depends on, decides every built-in tool by name, and loads only an allowlisted set of plugins, so a new upstream default, tool or plugin cannot reach agents unreviewed. Chat text from Portal users is no longer interpreted as gateway owner commands, and the browser event stream is filtered per agent. A live gateway contract probe (a stand-in model records what each agent is actually offered; no GPU needed) now gates every pin bump alongside the unit tests. Upgrading an existing install migrates OpenClaw's state one way (`openclaw doctor --fix`), so back up `~/.openclaw` first.
+- **One gateway per user** — an opt-in mode in which the Portal runs one OpenClaw gateway per user, each under its own system account, state directory, port and token: created when the admin adds the user, supervised by the Portal (started, restarted with backoff, stopped cleanly, removed), and wired to the inference endpoint from one setting in the Portal instead of a platform secret and a redeploy. Built and verified on the development line (2026-10-06) against real OpenClaw 2026.9.8 gateways, with a migration that carries a shared-gateway install over and back. Costs 1 to 1.2 GB of RAM per user.
 - **One-command tenant provisioning** — `provision-tenant.sh` / `destroy-tenant.sh`: full net-new tenant lifecycle on the target cloud — Northflank lane first, Azure / AWS / Google Cloud lanes following (currently honest stubs; the `{dev,prod}-up.sh` lane scripts cover bring-up today).
 - **RAGFlow service** — service manifest + per-tenant namespace template + ingest watcher daemon + `destroy-hook.sh`. Wrapped behind a stable retrieval interface.
 - **Scrapling web fetch**, as an MCP service under `mcp/public/`; additional CRM/ERP connectors continue to ship as add-on services through the plugin registry.

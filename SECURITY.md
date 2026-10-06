@@ -26,9 +26,56 @@ We aim to:
 - Gemma 4 model weights, distributed by Google under [Gemma Terms of Use](https://ai.google.dev/gemma/terms)
 - Northflank or Kaggle — please use their respective vulnerability-reporting channels.
 
+## Security model, in brief
+
+What the design promises, so reports can be judged against it. The README's
+"RBAC / tool access" and "Data locality" sections go into more depth.
+
+**Boundaries.** Only the Portal is reachable from outside a tenant. The
+OpenClaw gateway RPC, the per-user MCP servers, the capability-token bridge
+and the inference service bind to loopback or the tenant's internal network.
+Inference never leaves the tenancy. Outbound access from agents (web fetch,
+package installs) is open by design and governed by tool policy and the
+approval engine, not by the network.
+
+**Users and their agents.** Each Portal user has one OpenClaw agent. The
+Portal scopes its API routes to the caller's own agent (an admin may act for
+another user, and that is audited). Each user's MCP servers are hidden from
+every other agent's roster by OpenClaw's own tool policy, and reach that
+user's data only through capability tokens scoped to (tenant, user, service).
+
+**What v0.3.0 does not isolate.** All agents run inside one gateway process
+under one operating-system account, so the separation between users is
+OpenClaw's policy layer, not the kernel. A user who can make their agent run
+an arbitrary shell command can reach files that belong to other users' agents
+on the same host. Treat v0.3.0 as suitable for a single team that already
+shares a workspace, not for mutually untrusting users.
+
+**What v0.4 changes** (built on the development line, not yet in a release
+tag). One gateway per user, each under its own system account, state
+directory and token, so another user's workspace, agent state and gateway
+token are denied by the operating system. A pinned tenant baseline for the
+gateway settings that isolation depends on, with every built-in tool decided
+by name and an allowlisted plugin set. Portal chat text is no longer
+interpreted as gateway owner commands, and the browser event stream is
+filtered per agent. A live contract probe checks all of it against the pinned
+OpenClaw version.
+
+Until v0.4 is released, a report that shows one user reaching another user's
+data through the shared account is the documented limit above. It is in scope
+whenever it crosses OpenClaw's policy layer instead (for example a hidden
+tool that an agent can still call), and after v0.4 any cross-user reach in
+per-user mode is a vulnerability in the strict sense.
+
+**Secrets.** Per-user service credentials are AES-256-GCM sealed in the Portal
+database with a key the Portal alone holds; MCP servers reach a user's data
+only through capability tokens scoped to (tenant, user, service).
+Consequential tool actions are composed, shown for human approval, and only
+then replayed with that user's own credentials.
+
 ## Supported versions
 
-FlatClaw is at v0.1.0. Only the latest released tag is supported with security fixes. As the project moves through subsequent releases, only the most recent minor version will receive backports.
+FlatClaw is pre-1.0. Only the latest released tag is supported with security fixes. As the project moves through subsequent releases, only the most recent minor version will receive backports.
 
 ## Disclosure expectations
 
