@@ -4,123 +4,89 @@
  * Why pin: our RBAC (`agent-tool-policy.ts`) and capability-token bridge
  * depend on openclaw's *runtime* behavior — specifically `applyToolPolicyPipeline`
  * filtering tool names by glob patterns, and the `<safeServerName>__<tool>`
- * MCP tool naming convention. Both are public schema today, but if openclaw
- * ever changes the tool-name separator or the policy pipeline order, our deny
- * patterns silently misfire and Phase 1 RBAC stops enforcing.
+ * MCP tool naming convention (server part cut to 30 characters). Both are
+ * public schema today, but if openclaw ever changes the tool-name separator
+ * or the policy pipeline order, our deny patterns silently misfire and
+ * Phase 1 RBAC stops enforcing.
+ *
+ * It also pins a set of *defaults*. openclaw is built for one operator, and
+ * its defaults drift toward convenience for that operator — 2026.8/2026.9
+ * turned on cross-agent session access, agent-to-agent messaging and a larger
+ * built-in tool set. `tenant-baseline.ts` holds the values FlatClaw fixes, and
+ * a new pin has to be checked against it.
  *
  * Bumping the pin:
- *   1. Read openclaw's CHANGELOG between the current pin and the new one.
- *   2. Re-run `npx tsx --test lib/openclaw/agent-tool-policy.test.ts` against
- *      the new openclaw locally.
- *   3. Re-run the Keith-blocked e2e probe against the new openclaw.
- *   4. Update the constant below + this file's `verifiedAt` to today.
- *   5. Update Dockerfiles / install scripts to match.
+ *   1. Read openclaw's release notes between the current pin and the new one
+ *      (openclaw/CHANGELOG/<version>.md; wire and schema history is in
+ *      openclaw/packages/gateway-protocol/CHANGELOG.md). The gateway protocol
+ *      number is NOT a signal — it has stayed 4 across breaking changes.
+ *   2. Stage it: on a COPY of ~/.openclaw, install the candidate, run
+ *      `openclaw doctor --fix --non-interactive`, start the gateway.
+ *   3. From portal/, against that gateway:
+ *        npm run typecheck && npm test        (what we compute)
+ *        npm run test:gateway                 (what the gateway does with it)
+ *      The second one is scripts/gateway-contract-probe.ts. It must pass —
+ *      in particular `tools.builtin-roster` (no new upstream tool reaches
+ *      agents undecided) and the `isolation.*` checks.
+ *   4. Update the constants below, and the Node requirement if it moved
+ *      (infra/kirk/Dockerfile.control NODE_VERSION, portal/.nvmrc).
+ *   5. Record what changed in the operator notes and update the version in
+ *      README.md.
  *
  * Mismatch policy:
- *   - We don't refuse to start if the installed openclaw differs from the pin
- *     — that would block local dev whenever upstream releases a patch. Instead
- *     `assertOpenclawVersionCompatible()` logs a structured warning when a
- *     drift is detected. The portal and the gateway run; the audit log shows
- *     which version was actually in use when an RBAC decision was made.
+ *   - We don't refuse to run if the gateway differs from the pin — that would
+ *     block local dev whenever upstream releases a patch. The adapter logs a
+ *     warning when the gateway it connected to reports another version
+ *     (`describeGatewayVersionDrift`), and the admin gateway-status endpoint
+ *     reports both.
  */
-
-import fs from "node:fs";
-import path from "node:path";
-import { execSync } from "node:child_process";
 
 /**
  * The openclaw version every Phase 1 / 2 / 3 design decision in this
  * repo has been tested against. Bump only after the procedure above.
  */
-export const OPENCLAW_VERIFIED_VERSION = "2026.7.1";
+export const OPENCLAW_VERIFIED_VERSION = "2026.9.8";
 
 /**
- * Date the verification ran (UTC ISO date). Surfaced in admin/audit so an
+ * Date the verification ran (UTC ISO date). Surfaced to admins so an
  * operator inspecting an RBAC decision knows how stale the pin is relative
  * to upstream.
  */
-export const OPENCLAW_VERIFIED_AT = "2026-07-15";
+export const OPENCLAW_VERIFIED_AT = "2026-10-05";
 
 /**
- * Resolves the openclaw install path — symlink chain from `which openclaw`
- * → package dir. Returns null if openclaw isn't installed in PATH.
+ * Node versions the pinned openclaw runs on (its package.json `engines`).
+ * 2026.9.3 dropped Node 22: its node:sqlite decoder truncates TEXT at embedded
+ * NULs, and openclaw now keeps sessions in SQLite.
  */
-export function findInstalledOpenclawPackageDir(): string | null {
-  try {
-    const bin = execSync("readlink -f $(which openclaw)", {
-      encoding: "utf-8",
-      stdio: ["ignore", "pipe", "ignore"],
-    }).trim();
-    if (!bin) return null;
-    return path.dirname(bin);
-  } catch {
-    return null;
-  }
-}
+export const OPENCLAW_NODE_REQUIREMENT = ">=24.16.0 <25 || >=26.1.0";
 
-/**
- * Read the version of the actually-installed openclaw from its
- * package.json. Returns null if not found.
- */
-export function readInstalledOpenclawVersion(): string | null {
-  const dir = findInstalledOpenclawPackageDir();
-  if (!dir) return null;
-  const pkgPath = path.join(dir, "package.json");
-  if (!fs.existsSync(pkgPath)) return null;
-  try {
-    const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8")) as {
-      version?: string;
-    };
-    return typeof pkg.version === "string" ? pkg.version : null;
-  } catch {
-    return null;
-  }
-}
-
-export interface OpenclawVersionCheckResult {
-  /** Version string in `package.json`, or null if openclaw isn't installed. */
-  installed: string | null;
+export interface OpenclawVersionStatus {
+  /** Version the connected gateway reported in its hello, if it did. */
+  gateway: string | null;
   /** The pinned version this codebase was verified against. */
-  expected: string;
+  verified: string;
   /** When the pin was last verified (ISO date). */
   verifiedAt: string;
-  /** Match shape — exact, drift detected, or openclaw missing. */
-  status: "match" | "drift" | "missing";
+  status: "match" | "drift" | "unknown";
 }
 
-export function checkOpenclawVersion(): OpenclawVersionCheckResult {
-  const installed = readInstalledOpenclawVersion();
-  if (installed === null) {
-    return {
-      installed: null,
-      expected: OPENCLAW_VERIFIED_VERSION,
-      verifiedAt: OPENCLAW_VERIFIED_AT,
-      status: "missing",
-    };
-  }
+export function openclawVersionStatus(gatewayVersion: string | null): OpenclawVersionStatus {
   return {
-    installed,
-    expected: OPENCLAW_VERIFIED_VERSION,
+    gateway: gatewayVersion,
+    verified: OPENCLAW_VERIFIED_VERSION,
     verifiedAt: OPENCLAW_VERIFIED_AT,
-    status: installed === OPENCLAW_VERIFIED_VERSION ? "match" : "drift",
+    status:
+      gatewayVersion === null
+        ? "unknown"
+        : gatewayVersion === OPENCLAW_VERIFIED_VERSION
+          ? "match"
+          : "drift",
   };
 }
 
-/**
- * One-shot sanity check used at portal boot. Logs a warning on drift so
- * operators see it in startup logs; doesn't throw, because local dev
- * routinely runs whatever's installed and we don't want to wedge boot.
- */
-export function assertOpenclawVersionCompatible(): OpenclawVersionCheckResult {
-  const r = checkOpenclawVersion();
-  if (r.status === "drift") {
-    console.warn(
-      `[openclaw-pin] installed openclaw is ${r.installed}; FlatClaw was last verified against ${r.expected} (${r.verifiedAt}). RBAC/MCP behavior may differ. To pin: 'npm i -g openclaw@${r.expected}'.`,
-    );
-  } else if (r.status === "missing") {
-    console.warn(
-      `[openclaw-pin] openclaw not found on PATH. Expected ${r.expected}. Install: 'npm i -g openclaw@${r.expected}'.`,
-    );
-  }
-  return r;
+/** A one-line warning when the running gateway is not the verified version, else null. */
+export function describeGatewayVersionDrift(gatewayVersion: string | null): string | null {
+  if (gatewayVersion === null || gatewayVersion === OPENCLAW_VERIFIED_VERSION) return null;
+  return `[openclaw-pin] the gateway is openclaw ${gatewayVersion}; FlatClaw was last verified against ${OPENCLAW_VERIFIED_VERSION} (${OPENCLAW_VERIFIED_AT}). RBAC, tool naming and defaults may differ — run \`npm run test:gateway\` from portal/ before trusting it.`;
 }

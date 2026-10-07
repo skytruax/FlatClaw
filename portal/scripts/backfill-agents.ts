@@ -3,7 +3,7 @@
  * Backfill script: bring existing agents up to the current portal contract.
  *
  *   1. Re-run syncSkillsForUser for every user that has an agent. This
- *      rewrites AGENTS.md / TOOLS.md with the latest templates, refreshes
+ *      rewrites SOUL.md / AGENTS.md with the latest templates, refreshes
  *      skills.entries.<id>.env with the current keyring password, and
  *      writes plugin/browser flags into openclaw.json.
  *   2. For every user with an OAuth token in the DB, ensure that token is

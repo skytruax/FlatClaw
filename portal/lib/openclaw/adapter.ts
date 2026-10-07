@@ -2,6 +2,8 @@ import WebSocket from "ws";
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
+import { loadOrCreateDeviceIdentity, signConnectChallenge } from "./device-identity";
+import { describeGatewayVersionDrift } from "./version-pin";
 
 /**
  * Minimal OpenClaw gateway client. One WS connection, request/response with
@@ -11,10 +13,29 @@ import { homedir } from "node:os";
 
 const DEFAULT_URL = "ws://127.0.0.1:18789";
 // Gateway WS protocol version. Bumped 3 → 4 for openclaw 2026.5.19
-// (MIN_CLIENT_PROTOCOL_VERSION = 4; the connect frame schema is unchanged —
-// only the negotiated version drifted). Keep in lockstep with the pinned
-// openclaw in version-pin.ts.
+// (MIN_CLIENT_PROTOCOL_VERSION = 4). Still 4 on 2026.9.8 — but upstream now
+// ships removals and semantic changes without bumping it ("the negotiated
+// version ... does not identify a fixed schema vintage"), so the number alone
+// proves nothing: re-run scripts/gateway-contract-probe.ts on every pin bump.
+// Keep in lockstep with the pinned openclaw in version-pin.ts.
 const DEFAULT_PROTOCOL_VERSION = 4;
+
+// How the portal identifies itself. It is a backend service, so it says so:
+// since openclaw 2026.8 anything claiming to be the Control UI must carry a
+// device identity AND the gateway's own UI build id. `tool-events` gates live
+// tool streaming; `approvals` keeps approval events flowing to a client that
+// is not the Control UI.
+const CLIENT_ID = "gateway-client";
+const CLIENT_MODE = "backend";
+const CLIENT_ROLE = "operator";
+const CLIENT_SCOPES = [
+  "operator.admin",
+  "operator.read",
+  "operator.write",
+  "operator.approvals",
+  "operator.pairing",
+] as const;
+const CLIENT_CAPS = ["tool-events", "approvals"] as const;
 // HMR canary — bumping this string forces module reload in dev mode.
 const _BUILD_ID = "2026-04-30-1748";
 void _BUILD_ID;
@@ -32,12 +53,74 @@ function readGatewayTokenFromConfig(): string | undefined {
   }
 }
 
+interface GatewayError {
+  code: string;
+  message: string;
+  details?: unknown;
+}
+
 export type GatewayFrame =
   | { type: "event"; event: string; payload?: unknown; seq?: number }
-  | { type: "res"; id: string; ok: boolean; payload?: unknown; error?: { code: string; message: string } }
+  | { type: "res"; id: string; ok: boolean; payload?: unknown; error?: GatewayError }
   | { type: "req"; id: string; method: string; params?: unknown };
 
+function readServerInfo(hello: unknown): GatewayServerInfo {
+  const h = (hello ?? {}) as {
+    server?: { version?: unknown };
+    features?: { methods?: unknown; events?: unknown };
+    auth?: { scopes?: unknown };
+  };
+  const strings = (v: unknown): string[] =>
+    Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
+  return {
+    version: typeof h.server?.version === "string" ? h.server.version : null,
+    methods: strings(h.features?.methods),
+    events: strings(h.features?.events),
+    scopes: strings(h.auth?.scopes),
+  };
+}
+
+/** Versions already warned about, so a reconnect loop does not flood the log. */
+const driftWarned = new Set<string>();
+function warnOnVersionDrift(gatewayVersion: string | null): void {
+  const warning = describeGatewayVersionDrift(gatewayVersion);
+  if (!warning || gatewayVersion === null || driftWarned.has(gatewayVersion)) return;
+  driftWarned.add(gatewayVersion);
+  console.warn(warning);
+}
+
+/**
+ * Turn a rejected `connect` into an error an operator can act on. The code is
+ * kept in the message because waitUntilReady() recognises a gateway that is
+ * still starting by it ("UNAVAILABLE: gateway starting; retry shortly").
+ */
+function describeConnectRejection(error: GatewayError | undefined): string {
+  const code = error?.code ?? "ERR";
+  const message = error?.message ?? "connect rejected by gateway";
+  const details = error?.details as
+    | { code?: unknown; requestId?: unknown }
+    | undefined;
+  const detailCode = typeof details?.code === "string" ? details.code : undefined;
+  if (detailCode === "PAIRING_REQUIRED") {
+    const requestId =
+      typeof details?.requestId === "string"
+        ? details.requestId
+        : "<requestId from `openclaw devices list`>";
+    return `${code}: ${message} — the gateway has not approved this portal's device yet (it only auto-approves loopback connections). On the gateway host run: openclaw devices approve ${requestId}`;
+  }
+  return detailCode ? `${code}: ${message} [${detailCode}]` : `${code}: ${message}`;
+}
+
 export type GatewayEventListener = (event: string, payload: unknown) => void;
+
+/** What the gateway reported about itself in its hello-ok. */
+export interface GatewayServerInfo {
+  version: string | null;
+  /** RPC method names the gateway advertises. Not exhaustive upstream. */
+  methods: string[];
+  events: string[];
+  scopes: string[];
+}
 
 interface PendingRequest {
   resolve: (payload: unknown) => void;
@@ -81,6 +164,26 @@ function isGatewayStartupError(err: unknown): boolean {
   );
 }
 
+/**
+ * True when the gateway answered a request only to say it is starting or
+ * restarting ("UNAVAILABLE: gateway starting; retry shortly", "UNAVAILABLE:
+ * tools.catalog unavailable during gateway restart"). The request was not
+ * run, so sending it again is safe whatever the method.
+ *
+ * This matters more since openclaw 2026.8: some config changes (anything under
+ * `memory.search`, for one) no longer hot-reload but restart the gateway, and
+ * the restart begins a moment after `config.set` has already answered.
+ */
+export function isGatewayRestartingError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  return (
+    /^UNAVAILABLE\b/.test(err.message) &&
+    /gateway (is )?(starting|restarting)|gateway restart|retry shortly|still starting/i.test(
+      err.message,
+    )
+  );
+}
+
 export class OpenClawClient {
   private ws: WebSocket | null = null;
   private connected = false;
@@ -89,6 +192,7 @@ export class OpenClawClient {
   private listeners = new Set<GatewayEventListener>();
   private heartbeat: NodeJS.Timeout | null = null;
   private pongTimer: NodeJS.Timeout | null = null;
+  private serverInfo: GatewayServerInfo | null = null;
 
   constructor(
     private readonly url: string = process.env.PORTAL_GATEWAY_URL ?? DEFAULT_URL,
@@ -100,25 +204,19 @@ export class OpenClawClient {
     return this.connected;
   }
 
+  /** The gateway's self-description from the last successful connect. */
+  getServerInfo(): GatewayServerInfo | null {
+    return this.serverInfo;
+  }
+
   async connect(timeoutMs = 8000): Promise<void> {
     if (this.connected) return;
     if (this.connectingPromise) return this.connectingPromise;
 
     this.connectingPromise = new Promise<void>((resolve, reject) => {
-      // Spoof the Origin header to match the gateway host. legacy-control-ui
-      // profile rejects connects from foreign origins with "origin not allowed"
-      // unless explicitly listed in gateway.controlUi.allowedOrigins.
-      const origin = (() => {
-        try {
-          const u = new URL(this.url);
-          const proto = u.protocol === "wss:" ? "https:" : "http:";
-          const host = u.hostname === "0.0.0.0" ? "localhost" : u.hostname;
-          return `${proto}//${host}${u.port ? `:${u.port}` : ""}`;
-        } catch {
-          return "http://localhost:18789";
-        }
-      })();
-      const ws = new WebSocket(this.url, { headers: { Origin: origin } });
+      // No Origin header: the gateway treats any client that sends one as a
+      // browser and applies its origin allowlist; a backend client has none.
+      const ws = new WebSocket(this.url);
       this.ws = ws;
       let challengeReceived = false;
       const timeout = setTimeout(() => {
@@ -147,7 +245,8 @@ export class OpenClawClient {
         }
         if (frame.type === "event" && frame.event === "connect.challenge") {
           challengeReceived = true;
-          this.handshake(ws).then(
+          const nonce = (frame.payload as { nonce?: unknown } | undefined)?.nonce;
+          this.handshake(ws, typeof nonce === "string" ? nonce : "").then(
             () => {
               clearTimeout(timeout);
               this.connected = true;
@@ -227,31 +326,44 @@ export class OpenClawClient {
     return this.connectingPromise;
   }
 
-  private async handshake(ws: WebSocket): Promise<void> {
+  private async handshake(ws: WebSocket, nonce: string): Promise<void> {
     const id = randomUUID();
-    // Legacy-control-ui profile: works when gateway has
-    //   gateway.controlUi.dangerouslyDisableDeviceAuth = true
-    // Backend-local profile is rejected with "device identity required"
-    // unless we pair the portal as a device, which we'll add later.
+    if (!nonce) {
+      throw new Error(
+        "gateway sent connect.challenge without a nonce — cannot prove device identity",
+      );
+    }
+    // Backend client + signed device identity (see device-identity.ts for why
+    // the old token-only Control UI frame no longer works). The signature
+    // covers the nonce, the client id/mode, role, scopes and the shared token,
+    // so every field below has to match what was signed.
+    const token = this.token ?? "";
+    const platform = process.platform;
     const params: Record<string, unknown> = {
       minProtocol: DEFAULT_PROTOCOL_VERSION,
       maxProtocol: DEFAULT_PROTOCOL_VERSION,
       client: {
-        id: "openclaw-control-ui",
-        version: "dev",
-        platform: "web",
-        mode: "webchat",
+        id: CLIENT_ID,
+        displayName: "FlatClaw Portal",
+        // Constant on purpose: device metadata is pinned at pairing time, so a
+        // per-release value would re-open pairing on every portal deploy.
+        version: "flatclaw-portal",
+        platform,
+        mode: CLIENT_MODE,
       },
-      role: "operator",
-      scopes: [
-        "operator.admin",
-        "operator.read",
-        "operator.write",
-        "operator.approvals",
-        "operator.pairing",
-      ],
-      caps: ["tool-events"],
-      auth: { token: this.token ?? "" },
+      role: CLIENT_ROLE,
+      scopes: CLIENT_SCOPES,
+      caps: CLIENT_CAPS,
+      auth: { token },
+      device: signConnectChallenge(loadOrCreateDeviceIdentity(), {
+        clientId: CLIENT_ID,
+        clientMode: CLIENT_MODE,
+        role: CLIENT_ROLE,
+        scopes: CLIENT_SCOPES,
+        token,
+        nonce,
+        platform,
+      }),
     };
     return new Promise<void>((resolve, reject) => {
       const timeout = setTimeout(() => {
@@ -268,13 +380,11 @@ export class OpenClawClient {
         if (frame.type === "res" && frame.id === id) {
           clearTimeout(timeout);
           ws.off("message", onMessage);
-          if (frame.ok) resolve();
-          else
-            reject(
-              new Error(
-                frame.error?.message ?? "connect rejected by gateway",
-              ),
-            );
+          if (frame.ok) {
+            this.serverInfo = readServerInfo(frame.payload);
+            warnOnVersionDrift(this.serverInfo.version);
+            resolve();
+          } else reject(new Error(describeConnectRejection(frame.error)));
         }
       };
 
@@ -318,7 +428,9 @@ export class OpenClawClient {
     // config.set on openclaw can rotate the gateway process, which routinely
     // takes 5–8s to come back up under load. Real gateway-returned errors
     // (validation, schema rejections) are NOT retried — those come through
-    // callOnce's promise as rejections from a *response* frame.
+    // callOnce's promise as rejections from a *response* frame. The one
+    // gateway-returned error that is retried is "I am restarting": the request
+    // was refused unrun, so it waits for the gateway and goes again.
     const backoffMs = [0, 1500, 4000, 8000];
     let lastErr: unknown = null;
     for (let i = 0; i < backoffMs.length; i++) {
@@ -329,6 +441,10 @@ export class OpenClawClient {
         return await this.callOnce<T>(method, params, timeoutMs);
       } catch (err) {
         lastErr = err;
+        if (isGatewayRestartingError(err)) {
+          await this.waitUntilReady();
+          continue;
+        }
         if (!isTransientWsError(err)) throw err;
         this.invalidate();
       }

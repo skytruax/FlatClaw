@@ -177,7 +177,7 @@ export default function HomePage() {
               },
               {
                 k: "Headroom for bursts, then a cascade.",
-                v: "Gemma 4 31B FP8 (~33 GB) + KV cache + bge-m3 fits in 80 GB with ~25 GB free. The v0.4 cascade lands a co-resident smaller Gemma in that headroom for fast-turn / planning traffic — same hardware, ~2× concurrent capacity.",
+                v: "Gemma 4 31B FP8 (~33 GB) + KV cache + bge-m3 fits in 80 GB with ~25 GB free. The v0.5 cascade lands a co-resident smaller Gemma in that headroom for fast-turn / planning traffic — same hardware, ~2× concurrent capacity.",
               },
               {
                 k: "Tenants scale the GPU plan, not the architecture.",
@@ -246,10 +246,10 @@ export default function HomePage() {
             ["Frontend", "Next.js 16 + React 19 + TypeScript + SQLite"],
             ["Auth", "better-auth (v1) · WorkOS SSO (v2)"],
             ["Memory", "Harness-native per-agent SQLite — keyword search, seeded per agent"],
-            ["Retrieval", "RAGFlow — cited document answers (v0.4)"],
-            ["Embeddings (v0.4)", "bge-m3 — semantic memory + RAG, on its own GPU card"],
-            ["Voice (v0.4)", "VoxCPM2 — open-weight cloning + TTS"],
-            ["Image (v0.4)", "ComfyUI + SDXL"],
+            ["Retrieval", "RAGFlow — cited document answers (v0.5)"],
+            ["Embeddings (v0.5)", "bge-m3 — semantic memory + RAG, on its own GPU card"],
+            ["Voice (v0.5)", "VoxCPM2 — open-weight cloning + TTS"],
+            ["Image (v0.5)", "ComfyUI + SDXL"],
           ].map(([k, v]) => (
             <div
               key={k}

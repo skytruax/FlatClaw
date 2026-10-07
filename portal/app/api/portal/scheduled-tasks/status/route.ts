@@ -6,7 +6,7 @@
  */
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth/config";
-import { getGatewayClient } from "@/lib/openclaw/adapter";
+import { listGatewayHandles } from "@/lib/gateways/registry";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -19,9 +19,11 @@ export async function GET() {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
   try {
-    const client = getGatewayClient();
-    const status = await client.call("cron.status", {});
-    return NextResponse.json({ status });
+    // One gateway in shared mode; one per user otherwise (all reported).
+    const gateways = await Promise.all(
+      (await listGatewayHandles()).map(async (h) => ({ agentId: h.agentId, status: await h.client.call("cron.status", {}) })),
+    );
+    return NextResponse.json({ status: gateways[0]?.status ?? null, gateways });
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : String(err) },

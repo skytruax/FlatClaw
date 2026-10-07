@@ -13,7 +13,6 @@ interface PortalSession {
   messageCount: number;
   totalTokens?: number | null;
   contextTokens?: number | null;
-  compactionCheckpointCount?: number;
 }
 
 interface SessionListProps {
@@ -273,7 +272,7 @@ export function SessionList({
                     </div>
                   )}
                   {/* Meta line — smart timestamp (today=time, older=date)
-                      + message count + compaction badges. */}
+                      + message count. */}
                   <div className="mt-1 flex items-center gap-2 text-[10px] text-[hsl(var(--fc-fg-muted))]">
                     {s.lastMessageAt !== null && (
                       <span>{formatTime(s.lastMessageAt)}</span>
@@ -281,15 +280,6 @@ export function SessionList({
                     {s.messageCount > 0 && (
                       <span>
                         {s.messageCount} msg{s.messageCount === 1 ? "" : "s"}
-                      </span>
-                    )}
-                    {(s.compactionCheckpointCount ?? 0) > 0 && (
-                      <span
-                        className="inline-flex items-center gap-0.5 text-[hsl(var(--fc-fg-secondary))]"
-                        title={`Session compacted ${s.compactionCheckpointCount} time(s) — heavy context use`}
-                      >
-                        <Layers className="w-2.5 h-2.5" />
-                        {s.compactionCheckpointCount}
                       </span>
                     )}
                     {s.totalTokens != null && s.contextTokens && (

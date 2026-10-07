@@ -85,7 +85,7 @@ export default function ScheduledTaskComposer({
     >
       <form
         onSubmit={handleSubmit}
-        className="mt-8 w-full max-w-xl rounded-lg bg-[hsl(var(--fc-bg-surface))] ring-1 ring-[hsl(var(--fc-bg-tertiary))] shadow-xl"
+        className="mt-8 w-full max-w-xl fc-card shadow-xl"
       >
         <div className="flex items-center justify-between border-b border-[hsl(var(--fc-bg-tertiary))] px-5 py-3">
           <h3 className="text-sm font-semibold">
@@ -195,7 +195,7 @@ export default function ScheduledTaskComposer({
           <button
             type="submit"
             disabled={!canSubmit}
-            className="rounded bg-[hsl(var(--brand-accent))] px-4 py-1.5 text-sm font-semibold text-[hsl(var(--brand-accent-fg))] hover:bg-[hsl(var(--brand-primary))] disabled:opacity-50"
+            className="fc-btn fc-btn-primary disabled:opacity-50"
           >
             {submitting ? "Saving…" : editing ? "Save changes" : "Schedule task"}
           </button>

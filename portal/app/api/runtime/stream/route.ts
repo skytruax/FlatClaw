@@ -1,14 +1,21 @@
 import { auth } from "@/lib/auth/config";
 import { db, schema } from "@/lib/db/client";
 import { eq } from "drizzle-orm";
-import { getGatewayClient } from "@/lib/openclaw/adapter";
+import type { OpenClawClient } from "@/lib/openclaw/adapter";
+import { gatewayClientFor } from "@/lib/gateways/registry";
+import { isRelayedToAgent } from "@/lib/openclaw/stream-events";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 /**
- * Server-sent events stream of gateway events filtered to the acting user's
- * agent. Admin can override the filter via ?agent=<agentId>.
+ * Server-sent events stream of gateway events for the acting user's agent.
+ * Admin can pick another agent via ?agent=<agentId>.
+ *
+ * The gateway connection behind this is shared by every viewer and carries
+ * every agent's events, so only the events in RELAYED_GATEWAY_EVENTS are
+ * forwarded, and only when they belong to one of this agent's sessions
+ * (lib/openclaw/stream-events.ts).
  */
 export async function GET(req: Request) {
   const session = await auth();
@@ -28,7 +35,14 @@ export async function GET(req: Request) {
   if (!wantAgentId)
     return new Response("user has no agent", { status: 400 });
 
-  const sessionKeyPrefix = `agent:${wantAgentId}:`;
+  // This agent's gateway (the shared one in shared mode). In per-user mode the
+  // connection behind it carries only this user's events.
+  let client: OpenClawClient;
+  try {
+    client = await gatewayClientFor(wantAgentId);
+  } catch (err) {
+    return new Response(err instanceof Error ? err.message : String(err), { status: 503 });
+  }
 
   const stream = new ReadableStream<Uint8Array>({
     start(controller) {
@@ -45,16 +59,8 @@ export async function GET(req: Request) {
 
       send("ready", { agentId: wantAgentId });
 
-      const client = getGatewayClient();
       const unsubscribe = client.on((eventName, payload) => {
-        // Debug: log every gateway event so we can see what we're getting.
-        console.log(
-          `[stream] event=${eventName} sessionKey=${(payload as { sessionKey?: string } | null)?.sessionKey ?? "<none>"}`,
-        );
-        // Forward EVERYTHING for now; client decides what to render.
-        // Per-agent scoping can be re-added once we confirm payload shapes.
-        const sk = (payload as { sessionKey?: string } | null)?.sessionKey;
-        if (sk && !sk.startsWith(sessionKeyPrefix)) return;
+        if (!isRelayedToAgent(eventName, payload, wantAgentId)) return;
         send(eventName, payload);
       });
 

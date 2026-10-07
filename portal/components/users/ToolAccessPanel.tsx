@@ -101,7 +101,7 @@ export default function ToolAccessPanel({ userId }: { userId: string }) {
   return (
     <details
       onToggle={onToggle}
-      className="group/panel rounded-lg bg-[hsl(var(--fc-bg-surface))] ring-1 ring-[hsl(var(--fc-bg-tertiary))]"
+      className="group/panel fc-card"
     >
       <summary className="flex items-center gap-2 px-4 py-3 cursor-pointer list-none">
         <span className="text-[hsl(var(--fc-fg-muted))] text-xs w-3 transition-transform group-open/panel:rotate-90">
@@ -143,7 +143,7 @@ export default function ToolAccessPanel({ userId }: { userId: string }) {
                 type="button"
                 disabled={!dirty || pending}
                 onClick={save}
-                className="text-[11px] px-2.5 py-1 rounded bg-[hsl(var(--brand-accent))] text-[hsl(var(--brand-accent-fg))] disabled:opacity-40"
+                className="fc-btn fc-btn-sm fc-btn-primary disabled:opacity-40"
               >
                 {pending ? "Saving…" : "Save"}
               </button>

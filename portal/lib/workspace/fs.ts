@@ -1,7 +1,7 @@
 import { readdir, stat, readFile, rm } from "node:fs/promises";
 import { existsSync } from "node:fs";
-import { homedir } from "node:os";
 import { resolve, join, relative, sep } from "node:path";
+import { workspacePathFor } from "@/lib/gateways/paths";
 
 export interface FileEntry {
   name: string;
@@ -19,8 +19,13 @@ const SKIP_NAMES = new Set([
   ".openclaw", // workspace-state dir maintained by openclaw
   // Agent system files seeded by openclaw / portal at provisioning time.
   // These are managed by the gateway/portal and shouldn't be edited by users
-  // through the file explorer.
+  // through the file explorer. HEARTBEAT.md and TOOLS.md are no longer
+  // written (openclaw 2026.8 retired both) but stay hidden: workspaces
+  // created before the upgrade can still hold them.
   "AGENTS.md",
+  // Skill bundles seeded by managed services (rule books, helper scripts):
+  // the agent reads them; they are noise in a person's Files view.
+  "skills",
   "BOOTSTRAP.md",
   "HEARTBEAT.md",
   "IDENTITY.md",
@@ -31,7 +36,7 @@ const SKIP_NAMES = new Set([
 const MAX_FILE_BYTES = 2 * 1024 * 1024;
 
 function workspaceRoot(agentId: string): string {
-  return resolve(homedir(), ".openclaw", `workspace-${agentId}`);
+  return resolve(workspacePathFor(agentId));
 }
 
 /**

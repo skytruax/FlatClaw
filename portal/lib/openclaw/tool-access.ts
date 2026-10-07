@@ -1,17 +1,19 @@
-import { getGatewayClient } from "./adapter";
+import { gatewayClientFor } from "@/lib/gateways/registry";
+import { ensureAgentEntry, findAgentEntry, type ConfigBlob } from "./agent-roster";
 import {
   applyManagedToolPolicies,
+  gatewayToolName,
   isManagedDenyPattern,
-  safeAgentId,
-  type ConfigBlob,
+  managedServerName,
 } from "./agent-tool-policy";
+import { readGatewayConfig, writeGatewayConfig } from "./gateway-config";
 import { listManagedMcpServices } from "./managed-mcp";
 
 /**
  * Per-user (per-agent) tool access, surfaced in the admin portal.
  *
  * Leans entirely on OpenClaw's BUILT-IN tool policy: an agent's
- * `agents.list[].tools.deny` is applied by the gateway before the model ever
+ * `agents.entries.<id>.tools.deny` is applied by the gateway before the model ever
  * sees its tool roster (deny wins; denied tools are filtered out, not
  * runtime-blocked). No custom policy plugin, endpoint, or table.
  *
@@ -28,18 +30,6 @@ import { listManagedMcpServices } from "./managed-mcp";
  *   - OPERATOR denies — individual tool ids an admin disabled for this user.
  *     Editable here. We only ever rewrite the operator set.
  */
-
-interface ConfigGetResult {
-  config: ConfigBlob | string;
-  hash?: string;
-  baseHash?: string;
-  raw?: string;
-}
-
-function readBlob(value: unknown): ConfigBlob {
-  if (typeof value === "string") return JSON.parse(value) as ConfigBlob;
-  return (value as ConfigBlob) ?? {};
-}
 
 interface CatalogTool {
   id: string;
@@ -79,13 +69,9 @@ export interface AgentToolAccess {
   sections: ToolSection[];
 }
 
-function findAgentEntry(blob: ConfigBlob, agentId: string) {
-  return (blob.agents?.list ?? []).find((e) => e.id === agentId);
-}
-
 /** Built-in + plugin tool groups, straight from the live gateway catalog. */
 async function builtinSections(agentId: string): Promise<ToolSection[]> {
-  const client = getGatewayClient();
+  const client = await gatewayClientFor(agentId);
   let cat: CatalogResult;
   try {
     cat = (await client.call("tools.catalog", { agentId })) as CatalogResult;
@@ -112,18 +98,17 @@ async function builtinSections(agentId: string): Promise<ToolSection[]> {
 
 /** MCP tool inventory for the user's connected managed servers. */
 function mcpSections(blob: ConfigBlob, agentId: string): ToolSection[] {
-  const safe = safeAgentId(agentId);
   const servers = blob.mcp?.servers ?? {};
   const managed = listManagedMcpServices();
   const out: ToolSection[] = [];
   for (const serverName of Object.keys(servers)) {
-    const svc = managed.find((s) => serverName === `${s.prefix}${safe}`);
+    const svc = managed.find((s) => serverName === managedServerName(s.prefix, agentId));
     if (!svc?.toolGroups?.length) continue;
     // One collapsible section per service tool-group (keeps large services like
     // Google rolled up into Gmail / Calendar / Drive / … rather than one huge list).
     for (const g of svc.toolGroups) {
       const tools = g.tools.map((t) => ({
-        id: `${serverName}__${t}`,
+        id: gatewayToolName(serverName, t),
         label: t,
         description: g.description,
       }));
@@ -135,14 +120,10 @@ function mcpSections(blob: ConfigBlob, agentId: string): ToolSection[] {
 }
 
 export async function readAgentToolAccess(agentId: string): Promise<AgentToolAccess> {
-  const client = getGatewayClient();
-  const cur = (await client.call("config.get", {})) as ConfigGetResult;
-  const blob = readBlob(cur.config ?? cur.raw);
+  const { blob } = await readGatewayConfig(await gatewayClientFor(agentId));
 
   const entry = findAgentEntry(blob, agentId);
-  const allDeny = Array.isArray(entry?.tools?.deny)
-    ? (entry!.tools!.deny as string[])
-    : [];
+  const allDeny = Array.isArray(entry?.tools?.deny) ? entry.tools.deny : [];
   const denied = allDeny.filter((d) => !isManagedDenyPattern(d));
 
   const sections = [...(await builtinSections(agentId)), ...mcpSections(blob, agentId)];
@@ -165,41 +146,27 @@ export async function setAgentToolDeny(
     .map((d) => d.trim())
     .filter((d) => d.length > 0 && !d.endsWith("__*"));
 
-  const client = getGatewayClient();
-  const cur = (await client.call("config.get", {})) as ConfigGetResult;
-  const blob = readBlob(cur.config ?? cur.raw);
-  const before = JSON.stringify(blob);
+  const client = await gatewayClientFor(agentId);
+  const snapshot = await readGatewayConfig(client);
+  const { blob } = snapshot;
 
-  blob.agents = blob.agents ?? {};
-  blob.agents.list = blob.agents.list ?? [];
-  let entry = findAgentEntry(blob, agentId);
-  if (!entry) {
-    entry = { id: agentId };
-    blob.agents.list.push(entry);
-  }
+  const entry = ensureAgentEntry(blob, agentId);
 
-  const existingDeny = Array.isArray(entry.tools?.deny)
-    ? (entry.tools!.deny as string[])
-    : [];
+  const existingDeny = Array.isArray(entry.tools?.deny) ? entry.tools.deny : [];
   const managed = existingDeny.filter((d) => isManagedDenyPattern(d));
   const nextDeny = [...managed, ...clean].sort();
 
-  const e = entry as { tools?: { deny?: string[]; [k: string]: unknown }; [k: string]: unknown };
   if (nextDeny.length === 0) {
-    if (e.tools) {
-      delete e.tools.deny;
-      if (Object.keys(e.tools).length === 0) delete e.tools;
+    if (entry.tools) {
+      delete entry.tools.deny;
+      if (Object.keys(entry.tools).length === 0) delete entry.tools;
     }
   } else {
-    e.tools = { ...(e.tools ?? {}), deny: nextDeny };
+    entry.tools = { ...(entry.tools ?? {}), deny: nextDeny };
   }
 
   // Recompute managed globs so this write never drifts the cross-user layer.
   applyManagedToolPolicies(blob);
 
-  const after = JSON.stringify(blob);
-  if (after === before) return { changed: false };
-  await client.call("config.set", { raw: after, baseHash: cur.hash ?? cur.baseHash });
-  await client.waitUntilReady();
-  return { changed: true };
+  return { changed: await writeGatewayConfig(snapshot, client) };
 }

@@ -70,7 +70,7 @@ export function ArchitectureDiagram() {
             MEMORY.md
           </code>{" "}
           + memory/ files. Semantic recall via bge-m3 (on its own GPU card) and
-          RAGFlow cited-document retrieval land in v0.4.
+          RAGFlow cited-document retrieval land in v0.5.
         </div>
 
         <Arrow label="internal tenancy network · TLS · bearer-authenticated" />

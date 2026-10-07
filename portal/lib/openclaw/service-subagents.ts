@@ -23,7 +23,8 @@
  * call to `provisionServiceSubagentsForUser` from the user provisioning
  * flow. Until then the existing flat-toolset model stays in effect.
  */
-import type { ConfigBlob } from "./agent-tool-policy";
+import { agentEntries, ensureAgentEntry, type ConfigBlob } from "./agent-roster";
+import { denyPatternForServer, managedServerName } from "./agent-tool-policy";
 
 /** Services we will eventually route through dedicated subagents. */
 export const SUBAGENT_SERVICES = ["cpanel", "caldav", "google", "jira"] as const;
@@ -45,7 +46,7 @@ export function subagentIdFor(safeAgentId: string, service: SubagentService): st
 
 /** MCP server name a given subagent's allow-list should include. */
 export function mcpServerNameFor(safeAgentId: string, service: SubagentService): string {
-  return `${service}-${safeAgentId}`;
+  return managedServerName(`${service}-`, safeAgentId);
 }
 
 /**
@@ -82,8 +83,8 @@ export function buildServiceSubagentEntries(args: {
   // Primary denies every service MCP it might otherwise reach for. Forces
   // the dispatcher pattern: the primary uses sessions_spawn, never calls
   // <svc>-<id>__* directly.
-  const primaryToolsDeny = connectedServices.map(
-    (s) => `${mcpServerNameFor(cfg.safeAgentId, s)}__*`,
+  const primaryToolsDeny = connectedServices.map((s) =>
+    denyPatternForServer(mcpServerNameFor(cfg.safeAgentId, s)),
   );
 
   const subagents = connectedServices.map((service) => {
@@ -93,7 +94,7 @@ export function buildServiceSubagentEntries(args: {
     // for ad-hoc ops. Everything else stays denied via openclaw's
     // built-in subagent baseline.
     const toolsAllow = [
-      `${ownMcp}__*`,
+      denyPatternForServer(ownMcp), // same `<server>__*` glob, used here to allow
       "read",
       "write",
       "edit",
@@ -106,8 +107,8 @@ export function buildServiceSubagentEntries(args: {
     // Deny every OTHER service MCP — even though pi-tools.policy already
     // restricts tool surface, being explicit keeps the policy pipeline's
     // intent obvious in the config snapshot.
-    const toolsDeny = SUBAGENT_SERVICES.filter((s) => s !== service).map(
-      (s) => `${mcpServerNameFor(cfg.safeAgentId, s)}__*`,
+    const toolsDeny = SUBAGENT_SERVICES.filter((s) => s !== service).map((s) =>
+      denyPatternForServer(mcpServerNameFor(cfg.safeAgentId, s)),
     );
     return {
       id: subagentIdFor(cfg.safeAgentId, service),
@@ -161,9 +162,13 @@ Reasoning style: terse, action-oriented, no preamble. Tool calls over prose.
 /**
  * Patch the openclaw config with the subagent layout for one user.
  *
- * Idempotent. Removes per-service subagent entries for services not in
- * connectedServices, adds/updates entries for services that are. Mutates
- * the cfg object in place and returns it for convenience.
+ * Idempotent. Adds/updates the policy for the primary and for each connected
+ * service's subagent. Mutates the cfg object in place.
+ *
+ * Returns the ids of this user's subagents whose service is no longer
+ * connected. They are NOT removed from the roster here: since openclaw 2026.8
+ * a `config.set` that drops an agent is rejected, so the caller retires them
+ * with the `agents.delete` RPC.
  *
  * Caller is responsible for persisting via `config.set` and recomputing
  * RBAC deny lists across other users (separate concern — see
@@ -179,60 +184,45 @@ export function applyServiceSubagentLayout(
     cfg: ServiceSubagentConfig;
     connectedServices: SubagentService[];
   },
-): ConfigBlob {
+): { staleSubagentIds: string[] } {
   const layout = buildServiceSubagentEntries(args);
-  const list = (cfg.agents?.list ?? []) as Array<Record<string, unknown>>;
-  const findOrCreate = (id: string) => {
-    const existing = list.find((a) => a.id === id);
-    if (existing) return existing;
-    const created: Record<string, unknown> = { id };
-    list.push(created);
-    return created;
-  };
 
   // Primary
-  const primary = findOrCreate(layout.primary.id);
+  const primary = ensureAgentEntry(cfg, layout.primary.id);
   primary.subagents = {
-    ...((primary.subagents as Record<string, unknown>) ?? {}),
+    ...(primary.subagents ?? {}),
     allowAgents: layout.primary.subagentsAllow,
   };
-  const primaryTools =
-    (primary.tools as Record<string, unknown>) ?? (primary.tools = {});
   const primaryDeny = new Set<string>([
-    ...(((primaryTools as Record<string, unknown>).deny as string[]) ?? []),
+    ...(primary.tools?.deny ?? []),
     ...layout.primary.toolsDeny,
   ]);
-  (primaryTools as Record<string, unknown>).deny = [...primaryDeny];
+  primary.tools = { ...(primary.tools ?? {}), deny: [...primaryDeny] };
 
   // Subagents
   for (const sub of layout.subagents) {
-    const entry = findOrCreate(sub.id);
-    const tools = (entry.tools as Record<string, unknown>) ?? (entry.tools = {});
-    (tools as Record<string, unknown>).allow = sub.toolsAllow;
-    (tools as Record<string, unknown>).deny = sub.toolsDeny;
+    const entry = ensureAgentEntry(cfg, sub.id);
+    entry.tools = { ...(entry.tools ?? {}), allow: sub.toolsAllow, deny: sub.toolsDeny };
   }
 
-  // Drop subagent entries for services that are no longer connected. We
-  // keep this conservative: only delete entries whose ID matches our
-  // naming convention AND whose service is NOT in connectedServices.
+  // Subagent entries for services that are no longer connected. Conservative:
+  // only ids that match our naming convention AND whose service is NOT in
+  // connectedServices.
   const wantedSubagentIds = new Set(
     args.connectedServices.map((s) => subagentIdFor(args.cfg.safeAgentId, s)),
   );
-  for (let i = list.length - 1; i >= 0; i--) {
-    const id = list[i]?.id as string | undefined;
-    if (!id || !id.startsWith(`${args.cfg.safeAgentId}-`)) continue;
+  const staleSubagentIds: string[] = [];
+  for (const id of Object.keys(agentEntries(cfg))) {
+    if (!id.startsWith(`${args.cfg.safeAgentId}-`)) continue;
     if (id === args.cfg.parentAgentId) continue;
     const tail = id.slice(args.cfg.safeAgentId.length + 1);
     if (
       (SUBAGENT_SERVICES as readonly string[]).includes(tail) &&
       !wantedSubagentIds.has(id)
     ) {
-      list.splice(i, 1);
+      staleSubagentIds.push(id);
     }
   }
 
-  if (cfg.agents) {
-    (cfg.agents as Record<string, unknown>).list = list;
-  }
-  return cfg;
+  return { staleSubagentIds };
 }

@@ -5,65 +5,32 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
 import { randomUUID } from "node:crypto";
-import { readFileSync } from "node:fs";
-import { homedir } from "node:os";
-import { getGatewayClient } from "@/lib/openclaw/adapter";
+import { deleteGatewayAgent } from "@/lib/openclaw/agent-lifecycle";
+import { readRegisteredModels } from "@/lib/openclaw/agent-mapper";
+import { gatewayMode } from "@/lib/gateways/paths";
+import { listGatewayHandles } from "@/lib/gateways/registry";
+import { gatewaysOverview } from "@/lib/gateways/admin-status";
+import { destroyGateway, restartGateway, startGateway, stopGateway } from "@/lib/gateways/supervisor";
+import { GatewayCell, type GatewayRow } from "@/components/admin/GatewayCell";
+import { PageHeader } from "@/components/shell/PageHeader";
 import { PendingButton } from "@/components/PendingButton";
 import { ConfirmDeleteUserForm } from "@/components/ConfirmDeleteUserForm";
 import { GatewayStatusPoller } from "@/components/GatewayStatusPoller";
 
 export const dynamic = "force-dynamic";
 
-interface OpenclawProvidersConfig {
-  models?: {
-    providers?: Record<string, { models?: { id: string; name?: string }[] }>;
-  };
-}
-
-function readRegisteredModels(): { providerId: string; id: string; name: string }[] {
-  try {
-    const path =
-      process.env.PORTAL_OPENCLAW_CONFIG ?? `${homedir()}/.openclaw/openclaw.json`;
-    const cfg = JSON.parse(readFileSync(path, "utf8")) as OpenclawProvidersConfig;
-    const entries: { providerId: string; id: string; name: string }[] = [];
-    const providers = cfg.models?.providers ?? {};
-    for (const [providerId, p] of Object.entries(providers)) {
-      for (const m of p.models ?? []) {
-        entries.push({ providerId, id: m.id, name: m.name ?? m.id });
-      }
-    }
-    return entries;
-  } catch {
-    return [];
-  }
-}
-
-interface GatewayAgent {
-  id: string;
-  name?: string;
-  identity?: { emoji?: string; avatar?: string };
-}
-
-interface AgentsListResult {
-  agents?: GatewayAgent[];
-  defaultId?: string;
-  mainKey?: string;
-}
-
 async function fetchGatewayStatus() {
   try {
-    const client = getGatewayClient();
-    const [_, agentsResult] = await Promise.all([
-      client.call("models.list", {}),
-      client.call<AgentsListResult>("agents.list", {}),
-    ]);
-    void _;
-    const registered = readRegisteredModels();
+    const overview = await gatewaysOverview();
     return {
       ok: true as const,
-      models: registered,
-      agents: agentsResult.agents ?? [],
-      defaultAgentId: agentsResult.defaultId,
+      // Shared mode: the gateway's config file. Per-user mode: the portal's
+      // inference settings, which every gateway gets.
+      models: readRegisteredModels(),
+      agents: overview.agents,
+      defaultAgentId: overview.defaultAgentId,
+      gateways: overview.gateways,
+      perUser: overview.perUser,
     };
   } catch (err) {
     console.error("[fetchGatewayStatus] failed:", err);
@@ -80,8 +47,33 @@ async function fetchGatewayStatus() {
       ok: false as const,
       starting,
       error: msg,
+      perUser: gatewayMode() === "per-user",
     };
   }
+}
+
+/** Start / stop / restart one user's gateway (per-user mode). */
+async function gatewayAction(formData: FormData) {
+  "use server";
+  const agentId = String(formData.get("agentId") ?? "");
+  const action = String(formData.get("action") ?? "");
+  let status: "ok" | "fail" = "ok";
+  let msg = "";
+  try {
+    if (!agentId) throw new Error("no agent id");
+    if (action === "start") await startGateway(agentId);
+    else if (action === "stop") await stopGateway(agentId);
+    else if (action === "restart") await restartGateway(agentId);
+    else throw new Error(`unknown gateway action ${JSON.stringify(action)}`);
+  } catch (err) {
+    console.error(`[gateway-${action}] ${agentId} failed:`, err);
+    status = "fail";
+    msg = err instanceof Error ? err.message : String(err);
+  }
+  revalidatePath("/admin/users");
+  const params = new URLSearchParams({ op: `gateway ${action}`, status });
+  if (msg) params.set("msg", msg.slice(0, 240));
+  redirect(`/admin/users?${params.toString()}`);
 }
 
 async function createUser(formData: FormData) {
@@ -140,25 +132,31 @@ async function createUser(formData: FormData) {
 async function purgeOrphanAgents() {
   "use server";
   try {
-    const client = getGatewayClient();
-    const list = (await client.call("agents.list", {})) as {
-      agents?: { id: string }[];
-      defaultId?: string;
-    };
     const portalAgentIds = new Set(
       (await db.select().from(schema.users)).map((r) => r.agentId).filter(
         (x): x is string => !!x,
       ),
     );
-    const defaultId = list.defaultId ?? "main";
-    const orphans = (list.agents ?? [])
-      .map((a) => a.id)
-      .filter((id) => id !== defaultId && !portalAgentIds.has(id));
-    for (const id of orphans) {
-      try {
-        await client.call("agents.delete", { agentId: id });
-      } catch (err) {
-        console.error(`[purge-orphans] failed to delete ${id}:`, err);
+    for (const handle of await listGatewayHandles()) {
+      const list = (await handle.client.call("agents.list", {})) as {
+        agents?: { id: string }[];
+        defaultId?: string;
+      };
+      const defaultId = list.defaultId ?? "main";
+      // On a per-user gateway the only agents that belong are the user's own
+      // and its service sub-agents (`<agent>-<service>`).
+      const belongs = (id: string) =>
+        id === defaultId ||
+        (handle.record
+          ? id === handle.record.agentId || id.startsWith(`${handle.record.agentId}-`)
+          : portalAgentIds.has(id));
+      const orphans = (list.agents ?? []).map((a) => a.id).filter((id) => !belongs(id));
+      for (const id of orphans) {
+        try {
+          await deleteGatewayAgent(id, handle.client);
+        } catch (err) {
+          console.error(`[purge-orphans] failed to delete ${id}:`, err);
+        }
       }
     }
   } catch (err) {
@@ -185,26 +183,21 @@ async function deleteUser(formData: FormData) {
   let status: "ok" | "fail" = "ok";
   let msg = "";
 
-  // 1. Delete the gateway agent. agents.delete defaults to deleteFiles=true,
-  //    which moves the workspace + agent dir to trash. If the agent already
-  //    doesn't exist (orphan or prior failed delete) we proceed — that's the
-  //    desired end state anyway.
+  // 1. Delete the gateway agent, which moves the workspace + agent dir to
+  //    trash. If the agent already doesn't exist (orphan or prior delete) we
+  //    proceed — that's the desired end state anyway. A deletion the gateway
+  //    reports as incomplete fails here, and the user row stays so the admin
+  //    can retry (see lib/openclaw/agent-lifecycle.ts).
   if (target.agentId) {
     try {
-      const client = getGatewayClient();
-      await client.call("agents.delete", {
-        agentId: target.agentId,
-        deleteFiles: true,
-      });
+      // Per-user mode: the user's whole gateway goes (process, registry row,
+      // Unix account); its state directory is kept under gateways/.trash.
+      if (gatewayMode() === "per-user") await destroyGateway(target.agentId);
+      else await deleteGatewayAgent(target.agentId);
     } catch (err) {
-      const m = err instanceof Error ? err.message : String(err);
-      if (/not found/i.test(m)) {
-        // Already gone — fine, continue with DB cleanup.
-      } else {
-        console.error("[delete-user] gateway agents.delete failed:", err);
-        status = "fail";
-        msg = m;
-      }
+      console.error("[delete-user] gateway agents.delete failed:", err);
+      status = "fail";
+      msg = err instanceof Error ? err.message : String(err);
     }
   }
 
@@ -280,9 +273,31 @@ export default async function UsersPage({
         (a) => a.id !== "main" && !portalAgentIds.has(a.id),
       )
     : [];
+  const perUser = gatewayStatus.perUser;
+  const gatewayByAgent = new Map<string, GatewayRow>(
+    (gatewayStatus.ok ? gatewayStatus.gateways : []).map((g) => [g.agentId, g]),
+  );
+  const runningGateways = gatewayStatus.ok
+    ? gatewayStatus.gateways.filter((g) => g.state === "running" && g.reachable).length
+    : 0;
 
   return (
-    <div className="mx-auto max-w-5xl p-6">
+    <>
+      <PageHeader
+        eyebrow="Admin"
+        title="Users"
+        description={
+          perUser
+            ? "Each user has an agent of their own, running on a gateway of their own under its own account."
+            : "Each user has an agent of their own on this tenant's gateway."
+        }
+        actions={
+          <span className="text-sm text-[hsl(var(--brand-accent-fg))/0.75]">
+            {rows.length} {rows.length === 1 ? "user" : "users"}
+          </span>
+        }
+      />
+      <div className="mx-auto max-w-6xl p-6">
       {op && status && (
         <div
           className={
@@ -305,13 +320,6 @@ export default async function UsersPage({
             )}
         </div>
       )}
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-semibold">Users</h1>
-        <span className="text-sm text-[hsl(var(--fc-fg-muted))]">
-          {rows.length} {rows.length === 1 ? "user" : "users"}
-        </span>
-      </div>
-
       <section
         className={
           "mb-6 rounded-lg p-4 ring-1 " +
@@ -324,10 +332,14 @@ export default async function UsersPage({
       >
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-sm font-medium">FlatClaw Gateway</h2>
+            <h2 className="text-sm font-medium">
+              {perUser ? "FlatClaw gateways (one per user)" : "FlatClaw Gateway"}
+            </h2>
             <p className="text-xs text-[hsl(var(--fc-fg-muted))]">
               {gatewayStatus.ok ? (
-                `Connected — ${gatewayStatus.models.length} model${gatewayStatus.models.length === 1 ? "" : "s"}, ${gatewayStatus.agents.length} agent${gatewayStatus.agents.length === 1 ? "" : "s"}`
+                perUser
+                  ? `${runningGateways} of ${gatewayStatus.gateways.length} gateway${gatewayStatus.gateways.length === 1 ? "" : "s"} running — ${gatewayStatus.models.length} model${gatewayStatus.models.length === 1 ? "" : "s"} (from Settings), ${gatewayStatus.agents.length} agent${gatewayStatus.agents.length === 1 ? "" : "s"}`
+                  : `Connected — ${gatewayStatus.models.length} model${gatewayStatus.models.length === 1 ? "" : "s"}, ${gatewayStatus.agents.length} agent${gatewayStatus.agents.length === 1 ? "" : "s"}`
               ) : gatewayStatus.starting ? (
                 <>
                   Gateway is starting up after a config change…
@@ -349,7 +361,9 @@ export default async function UsersPage({
             }
           >
             {gatewayStatus.ok
-              ? "online"
+              ? perUser && runningGateways < gatewayStatus.gateways.length
+                ? "degraded"
+                : "online"
               : gatewayStatus.starting
                 ? "starting"
                 : "offline"}
@@ -399,35 +413,35 @@ export default async function UsersPage({
         )}
       </section>
 
-      <section className="mb-6 rounded-lg bg-[hsl(var(--fc-bg-surface))] ring-1 ring-[hsl(var(--fc-bg-tertiary))] p-4">
-        <h2 className="text-sm font-medium mb-3">Add user</h2>
+      <section className="mb-6 fc-card p-4">
+        <h2 className="fc-card-title mb-3">Add user</h2>
         <form action={createUser} className="grid grid-cols-2 gap-3 text-sm">
           <input
             name="email"
             type="email"
             required
             placeholder="email"
-            className="rounded border border-[hsl(var(--fc-bg-tertiary))] bg-[hsl(var(--fc-bg-primary))] px-3 py-1.5"
+            className="fc-input"
           />
           <input
             name="identityName"
             type="text"
             placeholder="display name (optional)"
-            className="rounded border border-[hsl(var(--fc-bg-tertiary))] bg-[hsl(var(--fc-bg-primary))] px-3 py-1.5"
+            className="fc-input"
           />
           <input
             name="password"
             type="password"
             required
             placeholder="initial password"
-            className="rounded border border-[hsl(var(--fc-bg-tertiary))] bg-[hsl(var(--fc-bg-primary))] px-3 py-1.5"
+            className="fc-input"
           />
           <input
             name="identityEmoji"
             type="text"
             maxLength={4}
             placeholder="emoji (optional)"
-            className="rounded border border-[hsl(var(--fc-bg-tertiary))] bg-[hsl(var(--fc-bg-primary))] px-3 py-1.5"
+            className="fc-input"
           />
           <div className="col-span-2 flex items-center justify-between">
             <p className="text-xs text-[hsl(var(--fc-fg-muted))]">
@@ -440,13 +454,15 @@ export default async function UsersPage({
                 </>
               ) : (
                 <span className="text-amber-600">
-                  Gateway has no registered models — agent provisioning will be skipped.
+                  {perUser
+                    ? "No inference endpoint is set (Settings → Inference) — agent provisioning will be skipped until it is."
+                    : "Gateway has no registered models — agent provisioning will be skipped."}
                 </span>
               )}
             </p>
             <PendingButton
               pendingLabel="Provisioning…"
-              className="rounded bg-[hsl(var(--brand-accent))] px-4 py-1.5 text-sm font-semibold text-[hsl(var(--brand-accent-fg))] disabled:opacity-70"
+              className="fc-btn fc-btn-primary disabled:opacity-70"
             >
               Add user
             </PendingButton>
@@ -454,21 +470,23 @@ export default async function UsersPage({
         </form>
       </section>
 
+      <div className="fc-card overflow-hidden">
       <table className="w-full text-sm">
-        <thead className="text-left text-[hsl(var(--fc-fg-muted))]">
+        <thead className="bg-[hsl(var(--fc-bg-soft))]">
           <tr>
-            <th className="px-3 py-2 font-medium">User</th>
-            <th className="px-3 py-2 font-medium">Role</th>
-            <th className="px-3 py-2 font-medium">Agent</th>
-            <th className="px-3 py-2 font-medium">Created</th>
-            <th className="px-3 py-2"></th>
+            <th className="fc-th">User</th>
+            <th className="fc-th">Role</th>
+            <th className="fc-th">Agent</th>
+            {perUser && <th className="fc-th">Gateway</th>}
+            <th className="fc-th">Created</th>
+            <th className="fc-th"></th>
           </tr>
         </thead>
         <tbody>
           {rows.map((u) => (
             <tr
               key={u.id}
-              className="border-t border-[hsl(var(--fc-bg-tertiary))]"
+              className="border-t border-[hsl(var(--fc-bg-tertiary))] transition hover:bg-[hsl(var(--fc-bg-soft))]"
             >
               <td className="px-3 py-2.5">
                 <div className="flex items-center gap-2">
@@ -487,8 +505,8 @@ export default async function UsersPage({
                 <span
                   className={
                     u.role === "admin"
-                      ? "rounded bg-[hsl(var(--pal-highlight))/0.18] px-2 py-0.5 text-xs text-[hsl(var(--brand-accent))]"
-                      : "rounded bg-[hsl(var(--fc-bg-tertiary))] px-2 py-0.5 text-xs"
+                      ? "fc-chip fc-chip-navy"
+                      : "fc-chip fc-chip-muted"
                   }
                 >
                   {u.role}
@@ -516,6 +534,14 @@ export default async function UsersPage({
                   <span className="opacity-60">— not provisioned</span>
                 )}
               </td>
+              {perUser && (
+                <td className="px-3 py-2.5">
+                  <GatewayCell
+                    gateway={u.agentId ? (gatewayByAgent.get(u.agentId) ?? null) : null}
+                    action={gatewayAction}
+                  />
+                </td>
+              )}
               <td className="px-3 py-2.5 text-[hsl(var(--fc-fg-muted))]">
                 {u.createdAt
                   ? new Date(u.createdAt).toLocaleDateString()
@@ -524,7 +550,7 @@ export default async function UsersPage({
               <td className="px-3 py-2.5 text-right">
                 <Link
                   href={`/admin/users/${u.id}`}
-                  className="text-sm text-[hsl(var(--brand-accent))] hover:underline mr-3"
+                  className="fc-btn fc-btn-sm fc-btn-secondary mr-2"
                 >
                   Open
                 </Link>
@@ -541,6 +567,8 @@ export default async function UsersPage({
           ))}
         </tbody>
       </table>
-    </div>
+      </div>
+      </div>
+    </>
   );
 }

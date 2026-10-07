@@ -216,7 +216,7 @@ function ServiceCard({
     descriptor.status.connected && !descriptor.tenantEnabled;
 
   return (
-    <div className="rounded-lg bg-[hsl(var(--fc-bg-surface))] ring-1 ring-[hsl(var(--fc-bg-tertiary))] p-4">
+    <div className="fc-card p-4">
       <div className="flex items-start gap-3">
         <div className="w-8 h-8 rounded-full bg-[hsl(var(--fc-bg-tertiary))] flex items-center justify-center text-base shrink-0">
           {descriptor.emoji ?? "🔌"}
@@ -337,14 +337,14 @@ function ServiceCard({
               type="button"
               onClick={() => setShowForm((v) => !v)}
               disabled={pending}
-              className="rounded bg-[hsl(var(--brand-accent))] px-3 py-1 text-xs font-semibold text-[hsl(var(--brand-accent-fg))] hover:bg-[hsl(var(--brand-primary))] disabled:opacity-70"
+              className="fc-btn fc-btn-sm fc-btn-primary disabled:opacity-70"
             >
               {showForm ? "Cancel" : "Connect"}
             </button>
           ) : descriptor.auth.appConfigured ? (
             <a
               href={`/api/portal/users/${userId}/services/${descriptor.service}/oauth/start`}
-              className="rounded bg-[hsl(var(--brand-accent))] px-3 py-1 text-xs font-semibold text-[hsl(var(--brand-accent-fg))] hover:bg-[hsl(var(--brand-primary))] inline-block"
+              className="fc-btn fc-btn-sm fc-btn-primary inline-block"
             >
               Connect with {descriptor.auth.providerLabel}
             </a>
@@ -440,7 +440,7 @@ function ServiceCard({
             <button
               type="submit"
               disabled={pending}
-              className="rounded bg-[hsl(var(--brand-accent))] px-3 py-1 text-xs font-semibold text-[hsl(var(--brand-accent-fg))] hover:bg-[hsl(var(--brand-primary))] disabled:opacity-70"
+              className="fc-btn fc-btn-sm fc-btn-primary disabled:opacity-70"
             >
               {pending
                 ? "Saving…"

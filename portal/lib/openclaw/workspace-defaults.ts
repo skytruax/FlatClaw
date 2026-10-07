@@ -67,12 +67,14 @@ export function buildWorkspaceDefaults(args: IdentityFields): {
   name: string;
   content: string;
 }[] {
-  // AGENTS.md and TOOLS.md are written by syncSkillsForUser instead — they
-  // depend on which skills are enabled and need to regenerate when that
-  // changes. Keep the rest as static templates.
+  // AGENTS.md (agent context + tool guide) is written by syncSkillsForUser
+  // instead — it depends on which skills are enabled and needs to regenerate
+  // when that changes. Keep the rest as static templates.
+  //
+  // No HEARTBEAT.md: openclaw 2026.8 retired it (heartbeat instructions live
+  // in the heartbeat job's scratch now) and rejects writes to it.
   return [
     { name: "BOOTSTRAP.md", content: loadTemplate("BOOTSTRAP.md") },
-    { name: "HEARTBEAT.md", content: loadTemplate("HEARTBEAT.md") },
     { name: "IDENTITY.md", content: buildIdentityMd(args) },
     { name: "USER.md", content: buildUserMd(args) },
   ];

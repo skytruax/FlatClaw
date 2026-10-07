@@ -6,13 +6,14 @@
  */
 import { eq } from "drizzle-orm";
 import { db, schema } from "@/lib/db/client";
-import { getGatewayClient } from "@/lib/openclaw/adapter";
+import { gatewayClientFor } from "@/lib/gateways/registry";
 import {
   describeSchedule,
   frequencyFromSchedule,
   type CronScheduleDTO,
 } from "./cron-expr";
 import type { ScheduledRunDTO, ScheduledTaskDTO } from "./contract";
+import { isGatewayOwnedJob } from "./gateway-owned";
 
 export interface ActingAgent {
   /** The portal user the task surface is scoped to. */
@@ -49,6 +50,8 @@ export async function resolveActingAgent(
 interface RawCronJob {
   id: string;
   agentId?: string;
+  /** Set on jobs created from a declaration rather than by a user; see below. */
+  declarationKey?: string;
   name: string;
   description?: string;
   enabled: boolean;
@@ -76,21 +79,25 @@ interface CronListResult {
   jobs?: RawCronJob[];
 }
 
-/** Fetch every cron job on the gateway (portal filters by agent client-side). */
-export async function listCronJobs(): Promise<RawCronJob[]> {
-  const client = getGatewayClient();
+/**
+ * Fetch every user-facing cron job on the gateway (portal filters by agent
+ * client-side). Gateway-owned monitor jobs are left out, which also keeps
+ * them out of reach of the edit / run / delete routes.
+ */
+export async function listCronJobs(agentId: string): Promise<RawCronJob[]> {
+  const client = await gatewayClientFor(agentId);
   const r = (await client.call("cron.list", {
     includeDisabled: true,
     sortBy: "nextRunAtMs",
     sortDir: "asc",
     limit: 200,
   })) as CronListResult;
-  return r.jobs ?? [];
+  return (r.jobs ?? []).filter((job) => !isGatewayOwnedJob(job));
 }
 
 /** Find a job by id and confirm it belongs to `agentId`. Throws otherwise. */
 export async function getOwnedCronJob(jobId: string, agentId: string): Promise<RawCronJob> {
-  const jobs = await listCronJobs();
+  const jobs = await listCronJobs(agentId);
   const job = jobs.find((j) => j.id === jobId);
   if (!job) throw new ScheduledTaskNotFound(jobId);
   if (job.agentId !== agentId) throw new ScheduledTaskForbidden(jobId);

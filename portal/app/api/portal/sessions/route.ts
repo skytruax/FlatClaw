@@ -3,7 +3,9 @@ import { eq } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { auth } from "@/lib/auth/config";
 import { db, schema } from "@/lib/db/client";
-import { getGatewayClient } from "@/lib/openclaw/adapter";
+import { gatewayClientFor } from "@/lib/gateways/registry";
+import { readGatewayConfig } from "@/lib/openclaw/gateway-config";
+import { agentContextTokens } from "@/lib/openclaw/model-config";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -48,9 +50,6 @@ interface PortalSession {
   totalTokens: number | null;
   totalTokensFresh: boolean;
   contextTokens: number | null;
-  compactionCheckpointCount: number;
-  latestCompactionAt: number | null;
-  latestCompactionReason: string | null;
 }
 
 /**
@@ -129,11 +128,11 @@ export async function GET(req: Request) {
   let gatewaySessions: GatewaySession[] = [];
   // Fallback context window: even on a fresh pre-first-turn session the
   // gateway has no totalTokens yet, but we want the meter to show "— / 32 k"
-  // not "— / —". Pull the agent's contextTokens from agents.defaults via
-  // config.get; per-agent overrides win if set. Cached for one request.
+  // not "— / —". Read the window of the agent's model from the gateway
+  // config (see lib/openclaw/model-config.ts). Cached for one request.
   let defaultContextTokens: number | null = null;
   try {
-    const client = getGatewayClient();
+    const client = await gatewayClientFor(agentId);
     // includeDerivedTitles asks the gateway to fall back to the first user
     // message (truncated) when the session has no explicit label/displayName
     // — gives us "Drafts about Q3 customer feedback" instead of a UUID
@@ -144,18 +143,8 @@ export async function GET(req: Request) {
       includeLastMessage: true,
     })) as GatewaySessionsListResult;
     gatewaySessions = r.sessions ?? [];
-    const cfgResult = (await client.call("config.get", {})) as {
-      blob?: {
-        agents?: {
-          defaults?: { contextTokens?: number };
-          list?: Array<{ id?: string; contextTokens?: number }>;
-        };
-      };
-    };
-    const blob = cfgResult.blob ?? {};
-    const perAgent = blob.agents?.list?.find((a) => a.id === agentId)?.contextTokens;
-    defaultContextTokens =
-      perAgent ?? blob.agents?.defaults?.contextTokens ?? null;
+    const { blob } = await readGatewayConfig(client);
+    defaultContextTokens = agentContextTokens(blob, agentId);
   } catch (err) {
     console.warn("[sessions.list] gateway call failed:", err);
   }
@@ -201,9 +190,6 @@ export async function GET(req: Request) {
         typeof s.contextTokens === "number"
           ? s.contextTokens
           : defaultContextTokens,
-      compactionCheckpointCount: 0,
-      latestCompactionAt: null,
-      latestCompactionReason: null,
     });
   }
   // Always surface the agent's main session even if the gateway doesn't
@@ -219,9 +205,6 @@ export async function GET(req: Request) {
       totalTokens: null,
       totalTokensFresh: false,
       contextTokens: defaultContextTokens,
-      compactionCheckpointCount: 0,
-      latestCompactionAt: null,
-      latestCompactionReason: null,
     });
   }
   // Sort by last-message recency only — no special pinning. Sessions with
@@ -257,10 +240,11 @@ export async function POST(req: Request) {
     );
 
   try {
-    const client = getGatewayClient();
+    const client = await gatewayClientFor(agentId);
     const r = (await client.call("sessions.create", {
       agentId,
-      ...(body.title && { title: body.title }),
+      // OpenClaw 2026.9 names it `label` and rejects an unknown `title`.
+      ...(typeof body.title === "string" && body.title.trim() ? { label: body.title.trim() } : {}),
     })) as { sessionKey?: string; sessionId?: string };
     const sessionKey =
       r.sessionKey ??

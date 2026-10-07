@@ -70,3 +70,7 @@ docs/
 # public offering; kept out of the repo. (Run locally via FLATCLAW_CPANEL_MCP_ENTRY.)
 /mcp/private/
 
+# Every env file stays local; only the templates are tracked.
+.env*
+!.env.example
+!**/.env.example

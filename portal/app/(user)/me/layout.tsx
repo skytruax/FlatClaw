@@ -1,7 +1,7 @@
 import { requireUser } from "@/lib/auth/guards";
 import { signOut } from "@/lib/auth/config";
-import Link from "next/link";
-import Image from "next/image";
+import { AppHeader } from "@/components/shell/AppHeader";
+import { AppFooter } from "@/components/shell/AppFooter";
 
 export default async function MeLayout({
   children,
@@ -16,36 +16,22 @@ export default async function MeLayout({
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <header className="flex items-center justify-between bg-[hsl(var(--brand-primary))] px-6 py-3 text-white">
-        <div className="flex items-center gap-6">
-          <Link href="/me/chat" className="flex items-center" aria-label="FlatClaw">
-            <Image
-              src="/branding/wordmark-white.svg"
-              alt="FlatClaw"
-              width={130}
-              height={28}
-              priority
-            />
-          </Link>
-          <nav className="flex items-center gap-4 text-sm opacity-90">
-            <Link href="/me/chat">Chat</Link>
-            <Link href="/me/scheduled">Scheduled</Link>
-            <Link href="/me/files">Files</Link>
-            <Link href="/me/sessions">Sessions</Link>
-          </nav>
-        </div>
-        <div className="flex items-center gap-3 text-sm">
-          <span className="opacity-80">{me.email}</span>
-          <form action={logout}>
-            <button className="rounded bg-white/10 px-3 py-1 text-xs hover:bg-white/20">
-              Sign out
-            </button>
-          </form>
-        </div>
-      </header>
-      <main className="flex-1 overflow-auto bg-[hsl(var(--fc-bg-primary))] text-[hsl(var(--fc-fg-primary))]">
-        {children}
+    <div className="flex h-full flex-col">
+      <AppHeader
+        homeHref="/me/chat"
+        email={me.email}
+        logout={logout}
+        links={[
+          { href: "/me/chat", label: "Chat" },
+          { href: "/me/scheduled", label: "Scheduled" },
+          { href: "/me/files", label: "Files" },
+          ...(me.role === "admin" ? [{ href: "/admin/users", label: "Admin" }] : []),
+        ]}
+      />
+      <main className="flex flex-1 flex-col overflow-auto bg-[hsl(var(--fc-bg-primary))] text-[hsl(var(--fc-fg-primary))]">
+        {/* A plain block (not a flex column): centred pages keep their width, and the chat page can fill the height. */}
+        <div className="min-h-0 flex-1">{children}</div>
+        <AppFooter />
       </main>
     </div>
   );

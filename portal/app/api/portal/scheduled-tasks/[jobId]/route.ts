@@ -8,7 +8,7 @@ import { NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
 import { auth } from "@/lib/auth/config";
 import { db, schema } from "@/lib/db/client";
-import { getGatewayClient } from "@/lib/openclaw/adapter";
+import { gatewayClientFor } from "@/lib/gateways/registry";
 import { buildSchedule, isOneOff, ScheduleBuildError } from "@/lib/scheduler/cron-expr";
 import {
   getOwnedCronJob,
@@ -97,7 +97,7 @@ export async function PATCH(
     return NextResponse.json({ error: "nothing to update" }, { status: 400 });
 
   try {
-    const client = getGatewayClient();
+    const client = await gatewayClientFor(agentId);
     const job = await client.call("cron.update", { id: jobId, patch });
     await db.insert(schema.auditLog).values({
       id: randomUUID(),
@@ -149,7 +149,7 @@ export async function DELETE(
   }
 
   try {
-    const client = getGatewayClient();
+    const client = await gatewayClientFor(agentId);
     const result = (await client.call("cron.remove", { id: jobId })) as {
       removed?: boolean;
     };

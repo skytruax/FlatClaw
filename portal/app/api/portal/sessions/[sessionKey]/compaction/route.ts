@@ -2,23 +2,23 @@ import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { auth } from "@/lib/auth/config";
 import { db, schema } from "@/lib/db/client";
-import { getGatewayClient } from "@/lib/openclaw/adapter";
+import { gatewayClientForSessionKey } from "@/lib/gateways/registry";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 /**
- * Compaction surface — list/compact/restore/branch a session's compaction
- * history. The gateway is the source of truth; this route is a thin proxy.
- *
- *   GET   /api/portal/sessions/<sessionKey>/compaction
- *     → { checkpoints: SessionCompactionCheckpoint[] }
+ * Compaction surface — compact a session on demand. The gateway is the source
+ * of truth; this route is a thin proxy.
  *
  *   POST  /api/portal/sessions/<sessionKey>/compaction
- *     body: one of
- *       { action: "compact",  maxLines?: number }   // tail-trim if maxLines, else full Pi compaction
- *       { action: "restore",  checkpointId: string } // roll back to pre-compaction state
- *       { action: "branch",   checkpointId: string } // fork a new session at the checkpoint
+ *     body: { action: "compact", maxLines?: number }
+ *       // tail-trim to maxLines if given, else a full (model-written) compaction
+ *
+ * Checkpoints are gone: openclaw 2026.9.6 retired `sessions.compaction.list`,
+ * `.restore` and `.branch` ("Retire compaction checkpoint controls while
+ * preserving history"), so there is no longer a list to show or a state to
+ * roll back to.
  *
  * Auth: admin can act on any session; other users only on their own agent's.
  */
@@ -40,31 +40,9 @@ async function authorizeSession(
   return { ok: true };
 }
 
-export async function GET(
-  _req: Request,
-  { params }: { params: Promise<{ sessionKey: string }> },
-) {
-  const session = await auth();
-  if (!session?.user)
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-
-  const { sessionKey } = await params;
-  const decoded = decodeURIComponent(sessionKey);
-  const ok = await authorizeSession(session.user, decoded);
-  if (!ok.ok)
-    return NextResponse.json({ error: ok.error }, { status: ok.status });
-
-  const client = getGatewayClient();
-  const result = (await client.call("sessions.compaction.list", {
-    key: decoded,
-  })) as { checkpoints?: unknown[] };
-  return NextResponse.json({ checkpoints: result.checkpoints ?? [] });
-}
-
 interface CompactionAction {
-  action?: "compact" | "restore" | "branch";
+  action?: "compact";
   maxLines?: number;
-  checkpointId?: string;
 }
 
 export async function POST(
@@ -82,45 +60,22 @@ export async function POST(
     return NextResponse.json({ error: ok.error }, { status: ok.status });
 
   const body = (await req.json().catch(() => ({}))) as CompactionAction;
-  const action = body.action;
-  const client = getGatewayClient();
-
-  if (action === "compact") {
-    const params: Record<string, unknown> = { key: decoded };
-    if (typeof body.maxLines === "number" && body.maxLines > 0) {
-      params.maxLines = Math.floor(body.maxLines);
-    }
-    // Full compaction can take ~30-60s on a long session — generous timeout.
-    const result = await client.call("sessions.compact", params, 120_000);
-    return NextResponse.json({ ok: true, ...((result as object) ?? {}) });
-  }
-  if (action === "restore") {
-    if (!body.checkpointId)
-      return NextResponse.json(
-        { error: "checkpointId required" },
-        { status: 400 },
-      );
-    const result = await client.call("sessions.compaction.restore", {
-      key: decoded,
-      checkpointId: body.checkpointId,
-    });
-    return NextResponse.json({ ok: true, ...((result as object) ?? {}) });
-  }
-  if (action === "branch") {
-    if (!body.checkpointId)
-      return NextResponse.json(
-        { error: "checkpointId required" },
-        { status: 400 },
-      );
-    const result = await client.call("sessions.compaction.branch", {
-      key: decoded,
-      checkpointId: body.checkpointId,
-    });
-    return NextResponse.json({ ok: true, ...((result as object) ?? {}) });
+  if (body.action !== "compact") {
+    return NextResponse.json(
+      { error: 'action must be "compact"' },
+      { status: 400 },
+    );
   }
 
-  return NextResponse.json(
-    { error: "action must be one of: compact, restore, branch" },
-    { status: 400 },
+  const compactParams: Record<string, unknown> = { key: decoded };
+  if (typeof body.maxLines === "number" && body.maxLines > 0) {
+    compactParams.maxLines = Math.floor(body.maxLines);
+  }
+  // Full compaction can take ~30-60s on a long session — generous timeout.
+  const result = await (await gatewayClientForSessionKey(decoded)).call(
+    "sessions.compact",
+    compactParams,
+    120_000,
   );
+  return NextResponse.json({ ok: true, ...((result as object) ?? {}) });
 }

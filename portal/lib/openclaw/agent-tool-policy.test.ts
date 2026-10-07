@@ -1,8 +1,13 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
+  GATEWAY_SERVER_NAME_MAX,
+  GATEWAY_TOOL_NAME_MAX,
   applyManagedToolPolicies,
   denyPatternForServer,
+  gatewayToolName,
+  legacyManagedServerName,
+  legacyManagedServerNames,
   managedServerName,
   registerManagedPrefix,
   safeAgentId,
@@ -17,10 +22,11 @@ for (const p of ["cpanel-", "caldav-", "google-", "jira-"]) {
 }
 
 /**
- * Run with:
+ * Run with `npm test` from portal/ (all unit tests), or just this file:
  *   npx tsx --test lib/openclaw/agent-tool-policy.test.ts
  *
- * Or via the portal package script (once we wire one up).
+ * These prove FlatClaw COMPUTES the right config. Whether the gateway then
+ * honours it is checked live by scripts/gateway-contract-probe.ts.
  */
 
 function blob(
@@ -29,10 +35,18 @@ function blob(
 ): ConfigBlob {
   const servers: Record<string, { command?: string }> = {};
   for (const n of serverNames) servers[n] = { command: "node" };
+  // openclaw ≥ 2026.8 roster shape: keyed by agent id, entries carry no `id`.
+  const entries: Record<string, { tools?: { deny?: string[] } }> = {};
+  for (const { id, ...entry } of agents) entries[id] = entry;
   return {
-    agents: { list: agents },
+    agents: { ownership: "explicit", entries },
     mcp: { servers },
   };
+}
+
+/** The deny list currently on one agent's roster entry. */
+function denyOf(cfg: ConfigBlob, id: string): string[] {
+  return cfg.agents!.entries![id].tools?.deny ?? [];
 }
 
 describe("safeAgentId", () => {
@@ -73,8 +87,7 @@ describe("applyManagedToolPolicies", () => {
       "nate-flatclaw-org",
       "skyler-flatclaw-org",
     ]);
-    const get = (id: string) =>
-      cfg.agents!.list!.find((a) => a.id === id)!.tools?.deny ?? [];
+    const get = (id: string) => denyOf(cfg, id);
     // skyler keeps his own cpanel; denies keith caldav.
     assert.deepEqual(get("skyler-flatclaw-org"), [
       "caldav-keith-flatclaw-org__*",
@@ -101,7 +114,7 @@ describe("applyManagedToolPolicies", () => {
       ["cpanel-keith-flatclaw-org"],
     );
     applyManagedToolPolicies(cfg);
-    const deny = cfg.agents!.list![0].tools!.deny!;
+    const deny = denyOf(cfg, "skyler-flatclaw-org");
     assert.ok(deny.includes("custom-dangerous-tool"));
     assert.ok(deny.includes("exec"));
     assert.ok(deny.includes("cpanel-keith-flatclaw-org__*"));
@@ -124,7 +137,7 @@ describe("applyManagedToolPolicies", () => {
       [],
     );
     applyManagedToolPolicies(cfg);
-    assert.deepEqual(cfg.agents!.list![0].tools!.deny, ["operator-deny"]);
+    assert.deepEqual(denyOf(cfg, "skyler-flatclaw-org"), ["operator-deny"]);
   });
 
   it("is idempotent — second call produces no further changes", () => {
@@ -149,7 +162,7 @@ describe("applyManagedToolPolicies", () => {
       [],
     );
     applyManagedToolPolicies(cfg);
-    const entry = cfg.agents!.list![0];
+    const entry = cfg.agents!.entries!.lonely;
     assert.equal(entry.tools, undefined);
   });
 
@@ -159,9 +172,8 @@ describe("applyManagedToolPolicies", () => {
       ["thirdparty-tool", "context7", "cpanel-skyler-flatclaw-org"],
     );
     applyManagedToolPolicies(cfg);
-    const keith = cfg.agents!.list!.find((a) => a.id === "keith-flatclaw-org")!;
     // Only the managed server appears in deny.
-    assert.deepEqual(keith.tools!.deny, [
+    assert.deepEqual(denyOf(cfg, "keith-flatclaw-org"), [
       "cpanel-skyler-flatclaw-org__*",
     ]);
   });
@@ -174,13 +186,77 @@ describe("applyManagedToolPolicies", () => {
     applyManagedToolPolicies(cfg, {
       sharedServerNames: new Set(["cpanel-shared-ftp"]),
     });
-    const get = (id: string) =>
-      cfg.agents!.list!.find((x) => x.id === id)!.tools?.deny ?? [];
+    const get = (id: string) => denyOf(cfg, id);
     // cpanel-shared-ftp is NOT denied for anyone.
     for (const id of ["a", "b"]) {
       assert.ok(!get(id).includes("cpanel-shared-ftp__*"));
     }
     // caldav-a is still per-user.
     assert.deepEqual(get("b"), ["caldav-a__*"]);
+  });
+});
+
+// OpenClaw keeps only the first 30 characters of a server name when it names
+// that server's tools. A managed name longer than that used to be exposed to
+// every agent, because the deny glob built from the full name never matched.
+describe("server names within the gateway's 30-character limit", () => {
+  const longAgent = "nathaniel-kirktechsolutions-com"; // 31 chars on its own
+
+  it("leaves a name that already fits untouched", () => {
+    assert.equal(managedServerName("google-", "skyler-flatclaw-org"), "google-skyler-flatclaw-org");
+    // exactly 30 is still fine
+    assert.equal(managedServerName("estimating-", "skyler-flatclaw-org").length, 30);
+    assert.equal(managedServerName("estimating-", "skyler-flatclaw-org"), "estimating-skyler-flatclaw-org");
+  });
+
+  it("shortens an over-long name to at most 30 characters, keeping the prefix", () => {
+    for (const prefix of ["google-", "jira-", "cpanel-", "caldav-"]) {
+      const name = managedServerName(prefix, longAgent);
+      assert.ok(name.length <= GATEWAY_SERVER_NAME_MAX, `${name} is ${name.length} chars`);
+      assert.ok(name.startsWith(prefix));
+      assert.match(name, /^[a-z0-9-]+$/);
+      assert.notEqual(name, legacyManagedServerName(prefix, longAgent));
+    }
+  });
+
+  it("is stable, and distinct for agent ids that share a long head", () => {
+    const a = managedServerName("google-", "christopher-richardson-acme-corp-com");
+    const b = managedServerName("google-", "christopher-richardson-acme-corp-org");
+    assert.equal(a, managedServerName("google-", "christopher-richardson-acme-corp-com"));
+    assert.notEqual(a, b);
+  });
+
+  it("builds the deny glob from the prefix the gateway actually uses", () => {
+    const legacy = legacyManagedServerName("google-", longAgent); // 38 chars
+    assert.equal(denyPatternForServer(legacy), `${legacy.slice(0, 30)}__*`);
+    assert.equal(denyPatternForServer("cpanel-skyler-flatclaw-org"), "cpanel-skyler-flatclaw-org__*");
+  });
+
+  it("hides a long-named user's server from everyone else, under either name", () => {
+    const modern = managedServerName("google-", longAgent);
+    const legacy = legacyManagedServerName("google-", longAgent);
+    for (const serverName of [modern, legacy]) {
+      const cfg = blob([{ id: longAgent }, { id: "keith-flatclaw-org" }], [serverName]);
+      applyManagedToolPolicies(cfg);
+      assert.deepEqual(denyOf(cfg, longAgent), [], "the owner keeps its own server");
+      const deny = denyOf(cfg, "keith-flatclaw-org");
+      assert.equal(deny.length, 1);
+      // What the gateway will call the tool, e.g. <first 30 chars>__gmail_search:
+      const exposed = gatewayToolName(serverName, "gmail_search");
+      assert.ok(exposed.startsWith(deny[0].slice(0, -1)), `${deny[0]} does not cover ${exposed}`);
+    }
+  });
+
+  it("finds legacy over-long entries so they can be re-registered", () => {
+    const legacy = legacyManagedServerName("google-", longAgent);
+    const cfg = blob([{ id: longAgent }, { id: "keith-flatclaw-org" }], [legacy, "google-keith-flatclaw-org"]);
+    assert.deepEqual(legacyManagedServerNames(cfg, longAgent), [legacy]);
+    assert.deepEqual(legacyManagedServerNames(cfg, "keith-flatclaw-org"), []);
+  });
+
+  it("names tools the way the gateway does, including the 64-character cap", () => {
+    assert.equal(gatewayToolName("cpanel-skyler-flatclaw-org", "list_email_accounts"), "cpanel-skyler-flatclaw-org__list_email_accounts");
+    const long = gatewayToolName("google-skyler-flatclaw-org", "a".repeat(80));
+    assert.equal(long.length, GATEWAY_TOOL_NAME_MAX);
   });
 });

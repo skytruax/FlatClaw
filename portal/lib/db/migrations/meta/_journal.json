@@ -64,6 +64,20 @@
       "when": 1779400000000,
       "tag": "0008_service_hidden",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1791300000000,
+      "tag": "0009_agent_gateways",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1791300100000,
+      "tag": "0010_portal_settings",
+      "breakpoints": true
     }
   ]
 }

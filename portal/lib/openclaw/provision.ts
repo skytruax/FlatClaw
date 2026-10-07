@@ -1,7 +1,13 @@
 import { db, schema } from "@/lib/db/client";
 import { eq } from "drizzle-orm";
-import { homedir } from "node:os";
-import { getGatewayClient } from "./adapter";
+import { gatewayMode, workspacePathFor } from "@/lib/gateways/paths";
+import { gatewayClientFor } from "@/lib/gateways/registry";
+import { ensureGateway } from "@/lib/gateways/supervisor";
+import {
+  deleteGatewayAgent,
+  isDeletionPendingError,
+  waitForAgentLoaded,
+} from "./agent-lifecycle";
 import { buildSoul, slugifyAgentId } from "./agent-mapper";
 import { buildWorkspaceDefaults } from "./workspace-defaults";
 import { syncSkillsForUser } from "./sync-skills";
@@ -32,23 +38,26 @@ export interface ProvisionResult {
 export async function provisionAgentForUser(
   args: ProvisionArgs,
 ): Promise<ProvisionResult> {
-  const client = getGatewayClient();
   const agentId = slugifyAgentId(args.email);
-  const workspace = `${homedir()}/.openclaw/workspace-${agentId}`;
+  // Per-user mode: this user's own gateway (state directory, port, Unix
+  // account, token) has to exist and be running before anything else.
+  if (gatewayMode() === "per-user") await ensureGateway(agentId, args.userId);
+  const client = await gatewayClientFor(agentId);
+  const workspace = workspacePathFor(agentId);
   const modelId = args.modelRef.split("/").pop() ?? args.modelRef;
 
   // 0. Make sure browser/verbose/skill-env globals are in place. Idempotent;
   //    only triggers a reload the first time the portal touches a fresh
   //    openclaw config. After this, every subsequent provision pays for at
   //    most one reload (the agents.create below).
-  await ensureGlobalConfig();
+  await ensureGlobalConfig(client);
 
   // 1. agents.create — gateway creates the workspace dir and bootstraps
   //    several files automatically; we'll overwrite the ones we customize.
   //    Idempotent: if the agent already exists (re-provision), skip create.
   //
   // Deliberately NOT passing `model` here: baking the model into
-  // agents.list[i].model breaks the agent the moment that provider goes
+  // agents.entries.<id>.model breaks the agent the moment that provider goes
   // away (we just hit this when removing openai-dev). Leaving it undefined
   // lets the agent inherit `agents.defaults.model` dynamically, so flipping
   // dev↔prod doesn't strand any agents.
@@ -61,8 +70,18 @@ export async function provisionAgentForUser(
     await client.call("agents.create", createPayload);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    if (!msg.includes("already exists")) throw err;
-    console.log(`[provision] agent ${agentId} already exists — repairing files`);
+    if (isDeletionPendingError(err)) {
+      // An earlier delete of this same agent id never finished its clean-up,
+      // and the gateway refuses to reuse the id until it does. Finish it
+      // (throws if it still can't), then create.
+      console.log(`[provision] finishing a pending deletion of ${agentId} before re-creating it`);
+      await deleteGatewayAgent(agentId, client);
+      await client.call("agents.create", createPayload);
+    } else if (!msg.includes("already exists")) {
+      throw err;
+    } else {
+      console.log(`[provision] agent ${agentId} already exists — repairing files`);
+    }
   }
 
   // Persist agentId IMMEDIATELY so a downstream failure can't leave the
@@ -77,11 +96,15 @@ export async function provisionAgentForUser(
   // otherwise every following call hits the reload window and the adapter's
   // retry budget gets eaten.
   await client.waitUntilReady();
+  // Ready is not the same as loaded: until the reload that agents.create
+  // triggered has landed, the gateway answers `agent "<id>" not found` to
+  // every file write below.
+  await waitForAgentLoaded(agentId, undefined, client);
 
   // 2. Write all customized workspace files: SOUL.md (identity prompt),
   //    IDENTITY.md (filled in), USER.md (filled in), plus the standard
-  //    AGENTS / BOOTSTRAP / HEARTBEAT / TOOLS templates. Each is best-effort
-  //    so a single transient failure doesn't bork the whole provisioning.
+  //    BOOTSTRAP template. Each is best-effort so a single transient
+  //    failure doesn't bork the whole provisioning.
   const identityArgs = {
     identityName: args.identityName || args.email,
     email: args.email,
@@ -107,7 +130,7 @@ export async function provisionAgentForUser(
     }
   }
 
-  // 3. Write the per-user agent's SOUL.md / AGENTS.md / TOOLS.md from
+  // 3. Write the per-user agent's SOUL.md / AGENTS.md from
   //    current state. The skill allowlist comes from openclaw's
   //    `agents.defaults.skills` (set by the tenant_skill_settings
   //    materializer); we don't seed any per-user skill choices here.

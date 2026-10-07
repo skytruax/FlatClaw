@@ -4,7 +4,7 @@
  * Default-deny: a skill is only visible to any agent on this tenant if
  * `tenant_skill_settings.<skill>.enabled = true`. Enforced exclusively
  * via openclaw's per-agent skill allowlist
- * (`agents.defaults.skills` + per-agent `agents.list[i].skills`) — never
+ * (`agents.defaults.skills` + per-agent `agents.entries.<id>.skills`) — never
  * by writing `skills.entries.<name>.enabled = false`. Keeps openclaw's
  * `skills.entries` config minimal and lets us layer Cedar policies on top
  * without competing with explicit-disable writes.
@@ -18,7 +18,7 @@
  *   - New session for an agent  → openclaw reads agents.defaults.skills
  *                                 (or per-agent override) at session start
  *
- * Existing agents with explicit `agents.list[i].skills` overrides keep
+ * Existing agents with explicit `agents.entries.<id>.skills` overrides keep
  * their override (operator may have set it by hand). The defaults flow
  * is what matters for fresh agents and any agent that hasn't been
  * manually scoped.
@@ -26,7 +26,9 @@
 
 import { db, schema } from "@/lib/db/client";
 import { eq } from "drizzle-orm";
-import { getGatewayClient } from "./adapter";
+import type { ConfigBlob as BaseConfigBlob } from "./agent-roster";
+import { readGatewayConfig, writeGatewayConfig } from "./gateway-config";
+import { listGatewayHandles } from "@/lib/gateways/registry";
 
 interface SkillEntry {
   enabled?: boolean;
@@ -35,26 +37,8 @@ interface SkillEntry {
   [k: string]: unknown;
 }
 
-interface ConfigBlob {
-  agents?: {
-    defaults?: { skills?: string[]; [k: string]: unknown };
-    list?: Array<{ id?: string; skills?: string[]; [k: string]: unknown }>;
-    [k: string]: unknown;
-  };
+interface ConfigBlob extends BaseConfigBlob {
   skills?: { entries?: Record<string, SkillEntry>; [k: string]: unknown };
-  [k: string]: unknown;
-}
-
-interface ConfigGetResult {
-  config: ConfigBlob | string;
-  hash?: string;
-  baseHash?: string;
-  raw?: string;
-}
-
-function readBlob(value: unknown): ConfigBlob {
-  if (typeof value === "string") return JSON.parse(value) as ConfigBlob;
-  return (value as ConfigBlob) ?? {};
 }
 
 /** Returns the names of every skill the admin has tenant-enabled, sorted. */
@@ -111,7 +95,7 @@ async function writeTenantSkillEnabled(
  * operator explicitly disabled a skill at openclaw's layer, our enable
  * here unblocks it — which matches the admin's stated intent.
  *
- * Per-agent overrides (`agents.list[i].skills`) are LEFT ALONE — operators
+ * Per-agent overrides (`agents.entries.<id>.skills`) are LEFT ALONE — operators
  * may have hand-scoped specific agents, and we don't want to clobber that.
  *
  * Idempotent — skips the gateway round-trip when nothing would change.
@@ -121,9 +105,17 @@ export async function materializeTenantSkillAllowlist(): Promise<{
   allowlist: string[];
 }> {
   const allowlist = await listTenantEnabledSkills();
-  const client = getGatewayClient();
-  const cur = (await client.call("config.get", {})) as ConfigGetResult;
-  const blob = readBlob(cur.config ?? cur.raw);
+  // Tenant policy: the same allowlist goes to every gateway this portal runs.
+  let changed = false;
+  for (const handle of await listGatewayHandles()) {
+    const snapshot = await readGatewayConfig<ConfigBlob>(handle.client);
+    if (materializeInto(snapshot.blob, allowlist) && (await writeGatewayConfig(snapshot, handle.client))) changed = true;
+  }
+  return { changed, allowlist };
+}
+
+/** Write the allowlist into one config document. Returns whether it differs from before. */
+function materializeInto(blob: ConfigBlob, allowlist: string[]): boolean {
   const before = JSON.stringify(blob);
 
   blob.agents = blob.agents ?? {};
@@ -152,14 +144,7 @@ export async function materializeTenantSkillAllowlist(): Promise<{
     }
   }
 
-  const after = JSON.stringify(blob);
-  if (after === before) return { changed: false, allowlist };
-  await client.call("config.set", {
-    raw: after,
-    baseHash: cur.hash ?? cur.baseHash,
-  });
-  await client.waitUntilReady();
-  return { changed: true, allowlist };
+  return JSON.stringify(blob) !== before;
 }
 
 /**

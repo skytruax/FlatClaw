@@ -179,7 +179,7 @@ export default function ScheduledTasksPanel({
         <button
           type="button"
           onClick={() => setComposer({ open: true, editing: null })}
-          className="shrink-0 rounded bg-[hsl(var(--brand-accent))] px-3 py-1.5 text-xs font-semibold text-[hsl(var(--brand-accent-fg))] hover:bg-[hsl(var(--brand-primary))]"
+          className="shrink-0 fc-btn fc-btn-sm fc-btn-primary"
         >
           + New scheduled task
         </button>

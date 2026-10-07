@@ -30,7 +30,9 @@ export async function provisionCpanelMcpForUser(
   userId: string,
 ): Promise<CpanelMcpProvisionResult | null> {
   const r = await provisionManagedMcpForUser("cpanel", userId);
-  return r ? { serverName: r.serverName, capabilityToken: r.capabilityToken } : null;
+  // stdio services always mint a capability token; the null arm belongs to
+  // url-transport services only.
+  return r ? { serverName: r.serverName, capabilityToken: r.capabilityToken ?? "" } : null;
 }
 
 export async function deprovisionCpanelMcpForUser(userId: string): Promise<void> {

@@ -1,7 +1,11 @@
-import { getGatewayClient } from "./adapter";
+import type { OpenClawClient } from "./adapter";
+import { gatewayClientFor } from "@/lib/gateways/registry";
+import { readGatewayConfig } from "./gateway-config";
+import { toolSearchEnabled } from "./tool-call-wrapper";
 import {
   buildToolsMd,
   buildAgentsMd,
+  composeAgentsMd,
   readEffectiveSkillAllowlist,
 } from "./skills";
 import { buildSoul } from "./agent-mapper";
@@ -15,7 +19,8 @@ import { listManagedMcpServices } from "./managed-mcp";
 import "./services"; // populate the managed-MCP registry (plugin side effects)
 
 /**
- * Rewrite the per-user agent's SOUL.md / AGENTS.md / TOOLS.md so they
+ * Rewrite the per-user agent's SOUL.md and AGENTS.md (agent context + tool
+ * guide — the tool guide was TOOLS.md before openclaw 2026.8) so they
  * reflect current state:
  *
  *   - the tenant skill allowlist (read live from openclaw config — set by
@@ -25,7 +30,7 @@ import "./services"; // populate the managed-MCP registry (plugin side effects)
  *   - the user's cpanel vault status (drives whether the cpanel MCP tools
  *     are mentioned in the prompt)
  *
- * Idempotent. Doesn't write any openclaw config — only the three workspace
+ * Idempotent. Doesn't write any openclaw config — only the workspace
  * files for this agent. The skill allowlist is owned by `tenant-skills.ts`
  * and the per-user MCPs by `managed-mcp.ts`.
  */
@@ -59,16 +64,16 @@ export async function syncSkillsForUser(
   const skillIds = await readEffectiveSkillAllowlist(agentId);
 
   // Per-user cpanel MCP wiring: only mention the cpanel tool family in
-  // AGENTS.md/TOOLS.md when this user has creds in the vault.
+  // AGENTS.md when this user has creds in the vault.
   const cpStatus = await readCpanelStatus(userId);
   const cpanelMcpServerName = cpStatus.connected
     ? cpanelServerNameForAgent(agentId)
     : null;
   const cpanelUsername = cpStatus.username;
 
-  const client = getGatewayClient();
+  const client = await gatewayClientFor(agentId);
   const identityName = u.identityName ?? u.email;
-  // catalogMode steers TOOLS.md scaffolding. Currently always false —
+  // catalogMode steers the tool guide's scaffolding. Currently always false —
   // the wrapper exposes _help/_describe alongside real tools in verbose
   // mode (the default everywhere), so the model calls real tools by
   // name and the cookbook should teach that pattern, not the catalog
@@ -78,7 +83,7 @@ export async function syncSkillsForUser(
   const subagentsMode = process.env.FLATCLAW_SERVICE_SUBAGENTS === "1";
 
   // Generic per-service prompt sections: any registered managed-MCP plugin
-  // can fold AGENTS.md / TOOLS.md bullets in via its buildAgentsSection /
+  // can fold agent-context / tool-guide bullets in via its buildAgentsSection /
   // buildToolsSection hooks (when the user has it connected). Keeps this file
   // free of any specific service name — private add-ons drop in through the
   // plugin registry. Skipped in subagent mode (subagents get schemas direct).
@@ -103,10 +108,14 @@ export async function syncSkillsForUser(
     }
   }
 
+  // Tool Search changes how the guides must describe service tools.
+  const toolSearch = toolSearchEnabled((await readGatewayConfig(client)).blob);
+
   const agents = buildAgentsMd({
     identityName,
     email: u.email,
     agentId,
+    toolSearch,
     enabledSkillIds: skillIds,
     cpanelMcpServerName,
     cpanelUsername,
@@ -118,6 +127,7 @@ export async function syncSkillsForUser(
   const tools = buildToolsMd({
     identityName,
     agentId,
+    toolSearch,
     enabledSkillIds: skillIds,
     cpanelMcpServerName,
     cpanelUsername,
@@ -144,12 +154,7 @@ export async function syncSkillsForUser(
   await client.call("agents.files.set", {
     agentId,
     name: "AGENTS.md",
-    content: agents,
-  });
-  await client.call("agents.files.set", {
-    agentId,
-    name: "TOOLS.md",
-    content: tools,
+    content: composeAgentsMd(agents, tools),
   });
 
   // Seed MEMORY.md if the agent doesn't have one yet. Memory is agent-owned:
@@ -210,7 +215,7 @@ OpenClaw's built-in memory engine indexes this file (and anything under
  * Sync button, and backfill-agents.ts all guarantee a memory file exists.
  */
 async function seedMemoryFileIfAbsent(
-  client: Awaited<ReturnType<typeof getGatewayClient>>,
+  client: OpenClawClient,
   agentId: string,
   identityName: string,
 ): Promise<void> {

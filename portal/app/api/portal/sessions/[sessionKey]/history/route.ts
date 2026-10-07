@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth/config";
-import { getGatewayClient } from "@/lib/openclaw/adapter";
+import { gatewayClientForSessionKey } from "@/lib/gateways/registry";
 import { transcriptToBubbles } from "@/lib/openclaw/transcript";
 import { db, schema } from "@/lib/db/client";
 import { eq } from "drizzle-orm";
@@ -44,7 +44,7 @@ export async function GET(
   }
 
   try {
-    const client = getGatewayClient();
+    const client = await gatewayClientForSessionKey(decoded);
     const r = (await client.call("chat.history", {
       sessionKey: decoded,
     })) as ChatHistoryResult;

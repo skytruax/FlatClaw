@@ -10,7 +10,7 @@ export const runtime = "nodejs";
 
 /**
  * Per-user tool access. Reads/writes the user's agent
- * `agents.list[<agentId>].tools.deny` (OpenClaw's native tool policy) — the
+ * `agents.entries.<agentId>.tools.deny` (OpenClaw's native tool policy) — the
  * admin toggles built-in tool groups + specific MCP tools off, the gateway
  * filters them from the agent's roster. No custom policy layer.
  *

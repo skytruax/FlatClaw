@@ -50,7 +50,7 @@ export function ConfirmDeleteUserForm({
       <input type="hidden" name="id" value={userId} />
       <PendingButton
         pendingLabel="Deleting…"
-        className="text-sm text-red-600 hover:underline disabled:opacity-60"
+        className="fc-btn fc-btn-sm fc-btn-danger"
       >
         Delete
       </PendingButton>

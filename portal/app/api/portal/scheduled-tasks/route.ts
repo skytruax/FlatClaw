@@ -10,7 +10,7 @@ import { NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
 import { auth } from "@/lib/auth/config";
 import { db, schema } from "@/lib/db/client";
-import { getGatewayClient } from "@/lib/openclaw/adapter";
+import { gatewayClientFor } from "@/lib/gateways/registry";
 import { buildSchedule, isOneOff, ScheduleBuildError } from "@/lib/scheduler/cron-expr";
 import {
   listCronJobs,
@@ -38,7 +38,7 @@ export async function GET(req: Request) {
   const { agentId } = resolved.agent;
 
   try {
-    const jobs = await listCronJobs();
+    const jobs = await listCronJobs(agentId);
     const tasks = jobs
       .filter((j) => j.agentId === agentId)
       .map(toScheduledTaskDTO);
@@ -90,7 +90,7 @@ export async function POST(req: Request) {
     typeof body.thinking === "string" && body.thinking ? body.thinking : "medium";
 
   try {
-    const client = getGatewayClient();
+    const client = await gatewayClientFor(agentId);
     const job = await client.call("cron.add", {
       agentId,
       name,

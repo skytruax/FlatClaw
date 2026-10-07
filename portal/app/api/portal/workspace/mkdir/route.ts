@@ -3,14 +3,15 @@ import { auth } from "@/lib/auth/config";
 import { db, schema } from "@/lib/db/client";
 import { eq } from "drizzle-orm";
 import { mkdir } from "node:fs/promises";
-import { homedir } from "node:os";
 import { resolve, sep } from "node:path";
+import { workspacePathFor } from "@/lib/gateways/paths";
+import { adoptCreatedPath } from "@/lib/gateways/ownership";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 function workspaceRoot(agentId: string) {
-  return resolve(homedir(), ".openclaw", `workspace-${agentId}`);
+  return resolve(workspacePathFor(agentId));
 }
 
 function safeJoin(root: string, relPath: string): string | null {
@@ -51,5 +52,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "invalid path" }, { status: 400 });
 
   await mkdir(abs, { recursive: true });
+  await adoptCreatedPath(rows[0].agentId, root, abs);
   return NextResponse.json({ ok: true });
 }

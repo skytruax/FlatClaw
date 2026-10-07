@@ -6,6 +6,11 @@ import { eq } from "drizzle-orm";
 import { seedAdminFromEnv } from "./seed";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  // Trust the host header — required when running behind a reverse proxy
+  // (Northflank ingress terminates TLS and forwards X-Forwarded-Host). Without
+  // this, Auth.js rejects auth actions in production with an UntrustedHost
+  // "server configuration" error. Safe here: the only ingress is Northflank's.
+  trustHost: true,
   session: { strategy: "jwt" },
   pages: { signIn: "/login" },
   providers: [

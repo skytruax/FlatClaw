@@ -11,10 +11,11 @@
  *
  * Idempotent. Activated when `FLATCLAW_SERVICE_SUBAGENTS=1` is set.
  */
-import { homedir } from "node:os";
 import { eq } from "drizzle-orm";
 import { db, schema } from "@/lib/db/client";
-import { getGatewayClient } from "@/lib/openclaw/adapter";
+import { gatewayClientFor } from "@/lib/gateways/registry";
+import { workspacePathFor } from "@/lib/gateways/paths";
+import { waitForAgentLoaded } from "@/lib/openclaw/agent-lifecycle";
 import {
   SUBAGENT_SERVICES,
   type SubagentService,
@@ -24,12 +25,7 @@ import {
 } from "@/lib/openclaw/service-subagents";
 import { listManagedMcpServices } from "@/lib/openclaw/managed-mcp";
 import "@/lib/openclaw/services"; // populate the registry (plugin side effects)
-import type { ConfigBlob } from "@/lib/openclaw/agent-tool-policy";
-
-interface ConfigGetResult {
-  blob?: ConfigBlob;
-  hash?: string;
-}
+import { readGatewayConfig, writeGatewayConfig } from "@/lib/openclaw/gateway-config";
 
 /**
  * Returns true if subagents are activated for this deployment. Gated
@@ -99,12 +95,13 @@ export async function provisionServiceSubagentsForUser(
   const connected = await detectConnectedServices(userId);
   if (connected.length === 0) return [];
 
-  const client = getGatewayClient();
+  // Sub-agents live on their owner's gateway.
+  const client = await gatewayClientFor(safeAgentId);
   const result: Array<{ subagentId: string; service: SubagentService }> = [];
 
   for (const service of connected) {
     const subagentId = subagentIdFor(safeAgentId, service);
-    const workspace = `${homedir()}/.openclaw/workspace-${subagentId}`;
+    const workspace = workspacePathFor(subagentId, safeAgentId);
     const createPayload: Record<string, unknown> = {
       name: subagentId,
       workspace,
@@ -118,8 +115,10 @@ export async function provisionServiceSubagentsForUser(
         continue;
       }
     }
-    // Wait for the gateway reload settled before piling on file writes.
+    // Wait for the gateway reload to settle, and for the gateway to have
+    // loaded the new agent, before piling on file writes.
     await client.waitUntilReady();
+    await waitForAgentLoaded(subagentId, undefined, client);
     // Write the focused SOUL.md.
     const soul = buildServiceSubagentSoul({
       service,
@@ -142,11 +141,8 @@ export async function provisionServiceSubagentsForUser(
   // Apply the layout (deny on primary, allow on subagents) in a single
   // config.set. Read-modify-write with the gateway's optimistic-concurrency
   // baseHash so a parallel write fails loud rather than racing.
-  const cfgResult = (await client.call("config.get", {})) as ConfigGetResult;
-  if (!cfgResult.blob) {
-    throw new Error("config.get returned no blob");
-  }
-  applyServiceSubagentLayout(cfgResult.blob, {
+  const snapshot = await readGatewayConfig(client);
+  const { staleSubagentIds } = applyServiceSubagentLayout(snapshot.blob, {
     cfg: {
       parentAgentId: safeAgentId,
       safeAgentId,
@@ -154,11 +150,14 @@ export async function provisionServiceSubagentsForUser(
     },
     connectedServices: connected,
   });
-  await client.call("config.set", {
-    raw: JSON.stringify(cfgResult.blob, null, 2),
-    baseHash: cfgResult.hash,
-  });
-  await client.waitUntilReady();
+  await writeGatewayConfig(snapshot, client);
+
+  // Retire subagents whose service was disconnected. This is the gateway's
+  // job (a config.set may not drop a roster entry).
+  for (const staleId of staleSubagentIds) {
+    await client.call("agents.delete", { agentId: staleId, deleteFiles: true });
+    await client.waitUntilReady();
+  }
 
   return result;
 }

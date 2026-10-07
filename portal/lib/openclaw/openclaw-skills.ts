@@ -11,7 +11,7 @@
  * per-agent allowlist layer instead.
  */
 
-import { getGatewayClient } from "./adapter";
+import { gatewayClientFor } from "@/lib/gateways/registry";
 
 export interface OpenclawSkillRequirement {
   bins?: string[];
@@ -56,7 +56,7 @@ interface SkillsStatusResponse {
 export async function listOpenclawSkills(
   agentId: string,
 ): Promise<OpenclawSkill[]> {
-  const client = getGatewayClient();
+  const client = await gatewayClientFor(agentId);
   const r = (await client.call("skills.status", { agentId })) as SkillsStatusResponse;
   return Array.isArray(r?.skills) ? r.skills : [];
 }

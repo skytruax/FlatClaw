@@ -1,0 +1,24 @@
+# Build-context excludes for infra/kirk/Dockerfile.control (context = repo root).
+# The Dockerfile rebuilds deps/output fresh, so never ship host artifacts.
+
+**/node_modules
+**/.next
+**/build
+**/dist
+**/out
+.git
+.gitignore
+
+# Internal-only + local
+docs/
+openclaw/
+web/
+**/*.log
+**/.env
+**/.env.*
+!**/.env.example
+
+# Editor / OS
+**/.DS_Store
+**/.vscode
+**/.idea

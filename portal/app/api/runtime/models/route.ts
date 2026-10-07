@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth/config";
-import { getGatewayClient } from "@/lib/openclaw/adapter";
+import { gatewayClientForUser } from "@/lib/gateways/registry";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -11,7 +11,7 @@ export async function GET() {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   try {
-    const client = getGatewayClient();
+    const client = await gatewayClientForUser(session.user.id, session.user.role === "admin");
     const result = await client.call("models.list", {});
     return NextResponse.json({ ok: true, result });
   } catch (err) {

@@ -44,34 +44,38 @@ another user, and that is audited). Each user's MCP servers are hidden from
 every other agent's roster by OpenClaw's own tool policy, and reach that
 user's data only through capability tokens scoped to (tenant, user, service).
 
-**What v0.3.0 does not isolate.** All agents run inside one gateway process
+**Shared mode (the default).** All agents run inside one gateway process
 under one operating-system account, so the separation between users is
 OpenClaw's policy layer, not the kernel. A user who can make their agent run
 an arbitrary shell command can reach files that belong to other users' agents
-on the same host. Treat v0.3.0 as suitable for a single team that already
-shares a workspace, not for mutually untrusting users.
+on the same host. Treat shared mode as suitable for a single team that
+already shares a workspace, not for mutually untrusting users.
 
-**What v0.4 changes** (built on the development line, not yet in a release
-tag). One gateway per user, each under its own system account, state
-directory and token, so another user's workspace, agent state and gateway
-token are denied by the operating system. A pinned tenant baseline for the
-gateway settings that isolation depends on, with every built-in tool decided
-by name and an allowlisted plugin set. Portal chat text is no longer
-interpreted as gateway owner commands, and the browser event stream is
-filtered per agent. A live contract probe checks all of it against the pinned
-OpenClaw version.
+**Per-user mode (v0.4.0, `FLATCLAW_GATEWAY_MODE=per-user`).** One gateway per
+user, each under its own system account, state directory, port and token,
+supervised by the Portal, so another user's workspace, agent state and
+gateway token are denied by the operating system. The Portal's own secrets
+and anything credential-shaped are filtered out of every gateway's
+environment. A pinned tenant baseline covers the gateway settings that
+isolation depends on, with every built-in tool decided by name and an
+allowlisted plugin set. Portal chat text is never interpreted as gateway
+owner commands, and the browser event stream is filtered per agent. A live
+contract probe checks all of it against the pinned OpenClaw version
+(2026.9.8).
 
-Until v0.4 is released, a report that shows one user reaching another user's
-data through the shared account is the documented limit above. It is in scope
+In shared mode, a report that shows one user reaching another user's data
+through the shared account is the documented limit above; it is in scope
 whenever it crosses OpenClaw's policy layer instead (for example a hidden
-tool that an agent can still call), and after v0.4 any cross-user reach in
-per-user mode is a vulnerability in the strict sense.
+tool that an agent can still call). In per-user mode any cross-user reach —
+another user's workspace, agent state or gateway token, or a Portal secret
+visible to a gateway — is a vulnerability in the strict sense.
 
 **Secrets.** Per-user service credentials are AES-256-GCM sealed in the Portal
 database with a key the Portal alone holds; MCP servers reach a user's data
 only through capability tokens scoped to (tenant, user, service).
 Consequential tool actions are composed, shown for human approval, and only
-then replayed with that user's own credentials.
+then replayed with that user's own credentials; the decision and the
+approver's identity are recorded in the audit log.
 
 ## Supported versions
 

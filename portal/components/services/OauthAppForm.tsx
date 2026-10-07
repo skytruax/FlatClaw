@@ -168,7 +168,7 @@ export function OauthAppForm({
         <button
           type="submit"
           disabled={pending}
-          className="rounded bg-[hsl(var(--brand-accent))] px-3 py-1 text-xs font-semibold text-[hsl(var(--brand-accent-fg))] hover:bg-[hsl(var(--brand-primary))] disabled:opacity-70"
+          className="fc-btn fc-btn-sm fc-btn-primary disabled:opacity-70"
         >
           {pending
             ? "Saving…"

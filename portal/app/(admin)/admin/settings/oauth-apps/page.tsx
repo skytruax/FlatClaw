@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth/config";
+import { PageHeader } from "@/components/shell/PageHeader";
 import { redirect } from "next/navigation";
 import "@/lib/openclaw/services";
 import { listManagedMcpServices } from "@/lib/openclaw/managed-mcp";
@@ -46,20 +47,16 @@ export default async function OauthAppsPage() {
   );
 
   return (
-    <div className="mx-auto max-w-3xl p-6 space-y-4">
-      <div>
-        <h1 className="text-xl font-semibold">OAuth applications</h1>
-        <p className="text-sm text-[hsl(var(--fc-fg-muted))] mt-1">
-          Tenant-level OAuth client config for every service that uses an
-          OAuth flow. Each row is one provider's <code>client_id</code>,{" "}
-          <code>client_secret</code>, and authorized <code>redirect_uri</code>.
-          Configure these once per tenant; users then connect their own
-          accounts via the per-user Service connections page.
-        </p>
-      </div>
+    <>
+      <PageHeader
+        eyebrow="Admin"
+        title="OAuth applications"
+        description="Tenant-level OAuth client configuration for every service that uses an OAuth flow: one client id, secret and redirect URI per provider. Set these once; users then connect their own accounts."
+      />
+      <div className="mx-auto max-w-4xl p-6 space-y-4">
 
       {tiles.length === 0 ? (
-        <div className="rounded-lg bg-[hsl(var(--fc-bg-surface))] ring-1 ring-[hsl(var(--fc-bg-tertiary))] p-4 text-sm text-[hsl(var(--fc-fg-muted))]">
+        <div className="fc-card p-4 text-sm text-[hsl(var(--fc-fg-muted))]">
           No OAuth-based services registered yet. Form-auth services (cPanel,
           CalDav) don&apos;t need tenant-level OAuth app configuration — their
           credentials are entered per user.
@@ -68,7 +65,7 @@ export default async function OauthAppsPage() {
         tiles.map((t) => (
           <div
             key={t.service}
-            className="rounded-lg bg-[hsl(var(--fc-bg-surface))] ring-1 ring-[hsl(var(--fc-bg-tertiary))] p-4"
+            className="fc-card p-4"
           >
             <div className="flex items-start gap-3">
               <div className="w-8 h-8 rounded-full bg-[hsl(var(--fc-bg-tertiary))] flex items-center justify-center text-base shrink-0">
@@ -120,7 +117,7 @@ export default async function OauthAppsPage() {
         ))
       )}
 
-      <div className="rounded-lg bg-[hsl(var(--fc-bg-surface))] ring-1 ring-[hsl(var(--fc-bg-tertiary))] p-4 text-xs text-[hsl(var(--fc-fg-muted))]">
+      <div className="fc-card p-4 text-xs text-[hsl(var(--fc-fg-muted))]">
         <h3 className="text-sm font-medium text-[hsl(var(--fc-fg-secondary))] mb-1">
           How redirect URIs work
         </h3>
@@ -143,6 +140,7 @@ export default async function OauthAppsPage() {
           form to match.
         </p>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

@@ -3,8 +3,9 @@ import { auth } from "@/lib/auth/config";
 import { db, schema } from "@/lib/db/client";
 import { eq } from "drizzle-orm";
 import { writeFile, mkdir } from "node:fs/promises";
-import { homedir } from "node:os";
 import { resolve, join, dirname, sep } from "node:path";
+import { workspacePathFor } from "@/lib/gateways/paths";
+import { adoptCreatedPath, adoptIntoWorkspace } from "@/lib/gateways/ownership";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -12,7 +13,7 @@ export const runtime = "nodejs";
 const MAX_FILE_BYTES = 500 * 1024 * 1024;
 
 function workspaceRoot(agentId: string) {
-  return resolve(homedir(), ".openclaw", `workspace-${agentId}`);
+  return resolve(workspacePathFor(agentId));
 }
 
 function safeJoin(root: string, relPath: string): string | null {
@@ -51,6 +52,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "invalid path" }, { status: 400 });
 
   await mkdir(targetDir, { recursive: true });
+  // Created by the portal process; the agent's own account must own them.
+  await adoptCreatedPath(rows[0].agentId, root, targetDir);
   const saved: string[] = [];
 
   for (const value of form.getAll("file")) {
@@ -66,8 +69,10 @@ export async function POST(req: Request) {
     if (!dest.startsWith(root))
       return NextResponse.json({ error: "invalid name" }, { status: 400 });
     await mkdir(dirname(dest), { recursive: true });
+    await adoptCreatedPath(rows[0].agentId, root, dirname(dest));
     const buf = Buffer.from(await value.arrayBuffer());
     await writeFile(dest, buf);
+    await adoptIntoWorkspace(rows[0].agentId, dest);
     saved.push(safe);
   }
 

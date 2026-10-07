@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth/config";
+import { PageHeader } from "@/components/shell/PageHeader";
 import { redirect } from "next/navigation";
 import { db, schema } from "@/lib/db/client";
 import { desc, eq, like } from "drizzle-orm";
@@ -140,14 +141,19 @@ export default async function AuditPage({
   }
 
   return (
-    <div className="mx-auto max-w-5xl p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-semibold">Audit log</h1>
-        <span className="text-sm text-[hsl(var(--fc-fg-muted))]">
-          {rows.length} {rows.length === 1 ? "entry" : "entries"}
-          {rows.length >= MAX_ROWS ? ` (latest ${MAX_ROWS})` : ""}
-        </span>
-      </div>
+    <>
+      <PageHeader
+        eyebrow="Admin"
+        title="Audit log"
+        description="Who did what: sign-ins, configuration changes, and every approval or refusal of an agent's action."
+        actions={
+          <span className="text-sm text-[hsl(var(--brand-accent-fg))/0.75]">
+            {rows.length} {rows.length === 1 ? "entry" : "entries"}
+            {rows.length >= MAX_ROWS ? ` (latest ${MAX_ROWS})` : ""}
+          </span>
+        }
+      />
+      <div className="mx-auto max-w-6xl p-6">
 
       <nav className="flex items-center gap-1 mb-4 text-sm">
         {FILTERS.map((f) => {
@@ -158,9 +164,9 @@ export default async function AuditPage({
               key={f.key}
               href={href}
               className={
-                "rounded px-3 py-1 " +
+                "rounded-md px-3 py-1 font-medium transition " +
                 (active
-                  ? "bg-[hsl(var(--brand-accent))] text-[hsl(var(--brand-accent-fg))] font-medium"
+                  ? "bg-[hsl(var(--brand-primary))] text-[hsl(var(--brand-accent-fg))]"
                   : "bg-[hsl(var(--fc-bg-surface))] text-[hsl(var(--fc-fg-secondary))] ring-1 ring-[hsl(var(--fc-bg-tertiary))] hover:bg-[hsl(var(--fc-bg-tertiary))]")
               }
             >
@@ -171,7 +177,7 @@ export default async function AuditPage({
       </nav>
 
       {rows.length === 0 ? (
-        <div className="rounded-lg bg-[hsl(var(--fc-bg-surface))] ring-1 ring-[hsl(var(--fc-bg-tertiary))] p-4 text-sm text-[hsl(var(--fc-fg-muted))]">
+        <div className="fc-card p-4 text-sm text-[hsl(var(--fc-fg-muted))]">
           No audit entries{filter !== "all" ? ` for filter "${filter}"` : ""} yet.
         </div>
       ) : (
@@ -249,6 +255,7 @@ export default async function AuditPage({
           </tbody>
         </table>
       )}
-    </div>
+      </div>
+    </>
   );
 }

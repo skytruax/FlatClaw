@@ -1,4 +1,9 @@
-import { getGatewayClient } from "./adapter";
+import { findAgentEntry, type ConfigBlob as BaseConfigBlob } from "./agent-roster";
+import { readGatewayConfig, writeGatewayConfig } from "./gateway-config";
+import { applyTenantBaseline } from "./tenant-baseline";
+import type { OpenClawClient } from "./adapter";
+import { gatewayClientFor, listGatewayHandles } from "@/lib/gateways/registry";
+import { workspacePathFor } from "@/lib/gateways/paths";
 
 /**
  * Skill-related openclaw config helpers.
@@ -31,52 +36,20 @@ interface SkillGlobalEntry {
   apiKey?: string | null;
 }
 
-interface AgentListEntry {
-  id: string;
-  skills?: string[];
-  [k: string]: unknown;
-}
-
-interface McpServerEntry {
-  command?: string;
-  args?: string[];
-  env?: Record<string, string>;
-  [k: string]: unknown;
-}
-
-interface ConfigBlob {
-  agents?: {
-    list?: AgentListEntry[];
-    defaults?: { skills?: string[]; verboseDefault?: string; [k: string]: unknown };
-    [k: string]: unknown;
-  };
+interface ConfigBlob extends BaseConfigBlob {
   skills?: { entries?: Record<string, SkillGlobalEntry>; [k: string]: unknown };
   plugins?: {
     entries?: Record<string, { enabled?: boolean; [k: string]: unknown }>;
     [k: string]: unknown;
   };
-  mcp?: { servers?: Record<string, McpServerEntry>; [k: string]: unknown };
   browser?: { enabled?: boolean; [k: string]: unknown };
-  [k: string]: unknown;
-}
-
-interface ConfigGetResult {
-  config: ConfigBlob | string;
-  hash?: string;
-  baseHash?: string;
-  raw?: string;
-}
-
-function getJsonBlob(value: unknown): ConfigBlob {
-  if (typeof value === "string") return JSON.parse(value) as ConfigBlob;
-  return (value as ConfigBlob) ?? {};
 }
 
 /**
  * Returns the effective skill allowlist openclaw will apply to this agent at
  * its next session start. Per openclaw's `resolveEffectiveAgentSkillFilter`:
  *
- *   - if `agents.list[i].skills` is an array → that wins
+ *   - if `agents.entries.<id>.skills` is an array → that wins
  *   - else if `agents.defaults.skills` is an array → falls back to that
  *   - else → no filter (every globally-enabled skill is visible)
  *
@@ -85,24 +58,52 @@ function getJsonBlob(value: unknown): ConfigBlob {
  * `tenant-skills.ts`. Per-agent overrides exist only when an operator
  * has hand-scoped a specific user (rare).
  */
+const THINKING_LEVELS = new Set(["off", "low", "medium", "high"]);
+
+/** agents.defaults.thinkingDefault for this tenant; invalid values fail loudly. */
+export function thinkingDefaultFromEnv(): string {
+  const v = (process.env.FLATCLAW_THINKING_DEFAULT ?? "high").trim().toLowerCase();
+  if (!THINKING_LEVELS.has(v)) {
+    throw new Error(`FLATCLAW_THINKING_DEFAULT must be one of off | low | medium | high, got "${v}"`);
+  }
+  return v;
+}
+
 export async function readEffectiveSkillAllowlist(
   agentId: string,
 ): Promise<string[]> {
-  const client = getGatewayClient();
-  const r = (await client.call("config.get", {})) as ConfigGetResult;
-  const blob = getJsonBlob(r.config ?? r.raw);
-  const agentEntry = blob.agents?.list?.find((a) => a.id === agentId);
+  const { blob } = await readGatewayConfig<ConfigBlob>(await gatewayClientFor(agentId));
+  const agentEntry = findAgentEntry(blob, agentId);
   if (Array.isArray(agentEntry?.skills)) return [...agentEntry.skills];
-  if (Array.isArray(blob.agents?.defaults?.skills))
-    return [...blob.agents.defaults.skills];
+  const tenantDefault = blob.agents?.defaults?.skills;
+  if (Array.isArray(tenantDefault)) return [...(tenantDefault as string[])];
   return [];
+}
+
+/**
+ * Writes the FlatClaw tenant baseline (tenant-baseline.ts) into the gateway
+ * config if any of it is missing, and nothing else. Run at portal boot so a
+ * gateway that was just installed or upgraded never serves a turn with
+ * upstream's defaults. Returns whether a write was needed.
+ */
+export async function ensureTenantBaseline(): Promise<boolean> {
+  // Every gateway this portal runs: the one shared gateway, or one per user.
+  let wrote = false;
+  for (const handle of await listGatewayHandles()) {
+    const snapshot = await readGatewayConfig<ConfigBlob>(handle.client);
+    applyTenantBaseline(snapshot.blob);
+    if (await writeGatewayConfig(snapshot, handle.client)) wrote = true;
+  }
+  return wrote;
 }
 
 /**
  * Ensures the gateway-wide config has the tenant baseline knobs the portal
  * relies on:
  *
- *   - browser disabled (we don't ship the browser tool)
+ *   - the FlatClaw tenant baseline (tenant-baseline.ts): isolation settings,
+ *     the built-in tool deny list, the browser off, no unrequested background
+ *     model work
  *   - agents.defaults.{verboseDefault, thinkingDefault} set
  *   - legacy `mcp.servers.cpanel` entry cleanup (was a single-host MCP
  *     before per-user provisioning)
@@ -116,11 +117,12 @@ export async function readEffectiveSkillAllowlist(
  * Idempotent — no-ops when everything is in shape, so calling on every
  * provision only writes once.
  */
-export async function ensureGlobalConfig(): Promise<void> {
-  const client = getGatewayClient();
-  const r = (await client.call("config.get", {})) as ConfigGetResult;
-  const blob = getJsonBlob(r.config ?? r.raw);
-  const before = JSON.stringify(blob);
+export async function ensureGlobalConfig(client?: OpenClawClient): Promise<void> {
+  const snapshot = await readGatewayConfig<ConfigBlob>(client);
+  const { blob, before } = snapshot;
+
+  // Isolation + tool-surface settings that must not follow upstream defaults.
+  applyTenantBaseline(blob);
 
   // Tenant defaults: verbose + reasoning. The skill allowlist is NOT
   // written here — `tenant-skills.ts` owns that path.
@@ -130,19 +132,15 @@ export async function ensureGlobalConfig(): Promise<void> {
     blob.agents.defaults.verboseDefault = "full";
   }
   // The H100/Gemma model is capable of deep reasoning, and the portal's
-  // UX folds the trace into a collapsible "Thinking" block.
-  if (blob.agents.defaults.thinkingDefault !== "high") {
-    blob.agents.defaults.thinkingDefault = "high";
-  }
-
-  // Browser tool disabled (both the top-level flag and the plugin entry).
-  blob.browser = blob.browser ?? {};
-  if (blob.browser.enabled !== false) blob.browser.enabled = false;
-  blob.plugins = blob.plugins ?? {};
-  blob.plugins.entries = blob.plugins.entries ?? {};
-  const browserPlugin = blob.plugins.entries.browser ?? {};
-  if (browserPlugin.enabled !== false) {
-    blob.plugins.entries.browser = { ...browserPlugin, enabled: false };
+  // UX folds the trace into a collapsible "Thinking" block. The level is a
+  // tenant knob, FLATCLAW_THINKING_DEFAULT (off | low | medium | high,
+  // default high): on the demo, Gemma 4 behind SGLang's gemma4 reasoning +
+  // tool-call parsers returned "incomplete or malformed tool call" after
+  // long thinks in front of a tool call (2026-10-07), so that tenant runs
+  // with less or no thinking.
+  const thinking = thinkingDefaultFromEnv();
+  if (blob.agents.defaults.thinkingDefault !== thinking) {
+    blob.agents.defaults.thinkingDefault = thinking;
   }
 
   // cPanel MCP servers are now per-user — provisioned by
@@ -176,11 +174,7 @@ export async function ensureGlobalConfig(): Promise<void> {
     after.slice(Math.max(0, div - 30), div + 60),
   );
 
-  await client.call("config.set", {
-    raw: after,
-    baseHash: r.hash ?? r.baseHash,
-  });
-  await client.waitUntilReady();
+  await writeGatewayConfig(snapshot, client);
 }
 
 /**
@@ -191,6 +185,11 @@ export async function ensureGlobalConfig(): Promise<void> {
 export function buildAgentsMd(args: {
   identityName: string;
   email: string;
+  /**
+   * OpenClaw Tool Search is on: service tools are reached through
+   * tool_search / tool_describe / tool_call, not called by name.
+   */
+  toolSearch?: boolean;
   /**
    * Agent id — drives the on-disk workspace path
    * (`~/.openclaw/workspace-<agentId>/`). Required so the agent can use
@@ -266,7 +265,7 @@ export function buildAgentsMd(args: {
   if (!subagents && args.extraServiceSections?.length) {
     for (const s of args.extraServiceSections) capabilities.push(s);
   }
-  const workspacePath = `~/.openclaw/workspace-${args.agentId}/`;
+  const workspacePath = `${workspacePathFor(args.agentId)}/`;
   capabilities.push(
     `- **Shell + filesystem** in your own workspace at \`${workspacePath}\` via the built-in \`read\`/\`write\`/\`edit\`/\`exec\` tools. To change an existing file, \`edit({ path, old_string, new_string })\` — a small search-replace patch; **do NOT \`write\`** (that overwrites the whole file and you'd have to regenerate all of it). \`write({ path, content })\` is for *new* files only. See TOOLS.md.`,
   );
@@ -292,6 +291,87 @@ appear in this directory too.
 If a path is relative, resolve it against my workspace, not against \`/\` or
 my user home.
 
+### Reading uploaded documents (PDF, blueprints, DOCX)
+
+The vision/\`image\` tool ONLY accepts image files (PNG/JPG). **Never pass a PDF
+or document to it** — that fails with "Unsupported media type: document". For an
+uploaded document, use \`exec\` (these tools are installed):
+
+- **First, inspect it:** \`pdfinfo "<file>.pdf"\` for page count and size.
+- **Text-based PDF** (reports, specs, manuals): \`pdftotext "<file>.pdf" -\` to
+  read the text, or \`python3\` with \`pdfplumber\` for tables / positioned text.
+- **Visual PDF, blueprint, or engineering drawing:** rasterize to images first,
+  then view those with the \`image\` tool:
+  \`pdftoppm -png -r 150 "<file>.pdf" /tmp/pg\` (one \`/tmp/pg-N.png\` per page;
+  raise \`-r\` for detail on dense drawings), then read the PNGs.
+- **DXF CAD** files: \`python3\` with \`ezdxf\`. Raw \`.dwg\` needs converting first.
+- \`pymupdf\` (import \`fitz\`), \`pdfplumber\`, \`pdf2image\`, \`pillow\` are
+  installed; \`pip install\` anything else I need.
+
+So the pattern for "summarize/read this PDF" is: pdftotext (text) or
+pdftoppm + image (visual), never the image tool on the raw PDF.
+
+### Grounding: never invent facts
+
+Every factual claim I make about documents, data, or systems must come from a
+tool result **in this conversation**. Hard rules:
+
+- **Never add** part numbers, model numbers, section numbers, quantities,
+  dates, names, or prices that are not literally present in a tool result or
+  file I read. Plausible-sounding specifics ("Model 2051C") that the source
+  does not contain are fabrications, even when the surrounding claim is true.
+- Quote source text **as written**. Paraphrase is fine; embellishment is not.
+- If I did not retrieve it, I say "not found in the documents" or "unverified"
+  instead of filling the gap. An honest gap beats a confident guess, always.
+- Before finalizing any report or deliverable, re-check each number, quote,
+  and citation against the tool outputs above; remove or mark anything I
+  cannot trace to a source.
+
+### Never claim an action I did not complete
+
+- I only say a file was saved, a record was created, an order was changed or
+  a message was sent when a tool result **in this turn** confirms it
+  ("Successfully wrote…", \`"status": "EXECUTED"\`). "PENDING_HUMAN_APPROVAL"
+  means parked for a person, not done — I say so.
+- A tool result of "Skipped to process an incoming message." means the call
+  did **not** run (the person sent another message mid-run). I call it again
+  before answering, and I never report it as done.
+- After writing a file I confirm it exists (\`ls\` or \`read\`) before giving the
+  path. If a tool errored, I say what failed in one plain sentence and what I
+  will do instead; I do not invent reference numbers.
+
+### Producing files (PDFs, reports, spreadsheets, decks)
+
+**WHERE files go — the one rule:** every file I create for ${args.identityName}
+is saved INSIDE MY WORKSPACE, in a sensible folder (\`reports/\`, \`estimates/\`,
+\`exports/\`, or next to the source files). That is the only place the Files
+panel shows. Never leave deliverables in \`/tmp\` (invisible to them, wiped) or
+anywhere else on disk; \`/tmp\` is for intermediate scratch only. When done,
+tell them the workspace-relative path (e.g. \`reports/summary.pdf\`).
+
+Toolchain (all installed; do not apt/pip install these again):
+
+- **House branding for generated documents:** start the page with a slim
+  FlatClaw teal band (\`background:#1591a6;height:10px\`) and directly beneath
+  it a Kirk orange band (\`background:#F47A20\`, ~0.24in tall) carrying
+  right-aligned white bold text: \`FlatClaw · A Private AI Platform by KTS\`.
+  Then the document's own header/title.
+- **Branded/polished PDF:** write self-contained HTML (inline CSS,
+  \`@page{size:letter;margin:0}\`), print with
+  \`chromium --headless=new --disable-gpu --no-sandbox --no-pdf-header-footer --print-to-pdf="<out>.pdf" "<in>.html" 2>/dev/null\`.
+  Best visual fidelity; use for anything that must look designed. (Keep the
+  \`2>/dev/null\`: containerized Chromium logs harmless dbus errors on stderr;
+  the print still succeeds — judge success by the output file existing.)
+- **Markdown/simple docs → PDF/DOCX:** \`pandoc\` (PDF engines available:
+  \`--pdf-engine=weasyprint\`, \`--pdf-engine=wkhtmltopdf\`, or LaTeX via
+  \`pdflatex\` for academic-style output).
+- **Office files:** \`soffice --headless --convert-to pdf\` (LibreOffice) for
+  DOCX/XLSX/PPTX conversion; \`python3\` with \`python-docx\`, \`python-pptx\`,
+  \`openpyxl\`/\`xlsxwriter\`, \`pandas\` to author them; \`matplotlib\` for charts.
+- **Scanned/image PDFs:** \`tesseract\` OCR (pair with \`pdftoppm\`).
+- **Post-processing:** \`ghostscript\`, \`qpdf\` (merge/split), \`imagemagick\`,
+  \`exiftool\`, \`graphviz\` (\`dot\`) for diagrams, \`ffmpeg\` for media.
+
 ## What FlatClaw is
 
 FlatClaw is a multi-tenant AI portal. One human, one AI agent (me), one inbox to work out of together. My human is **${args.identityName}** (${args.email}). I act on their behalf.
@@ -307,7 +387,7 @@ ${capList}
 - **Do NOT use the \`browser\` tool.** It's been disabled. For Google services, reach for the \`${args.googleMcpServerName ? `${args.googleMcpServerName}__*` : "google"}\` tool family${args.cpanelMcpServerName ? `; for cPanel hosting use \`${args.cpanelMcpServerName}__*\`` : ""}.
 - **Do NOT invent OAuth flows, ask the user to paste tokens, or try to authenticate yourself.** Auth is already wired through the portal. The Google and cPanel tools fetch fresh credentials per call from a loopback endpoint; you don't see or handle them.
 - **Do NOT touch credential files** like \`~/.openclaw/credentials/*\` or anything that looks like a token store. If a tool errors with a credential problem, surface the error verbatim to ${args.identityName} — don't try to repair it yourself.
-- **Do NOT call any tool whose name doesn't begin with one of:** \`read\`, \`write\`, \`edit\`, \`exec\`${args.googleMcpServerName ? `, \`${args.googleMcpServerName}\`` : ""}${args.cpanelMcpServerName ? `, \`${args.cpanelMcpServerName}\`` : ""}. Tool names starting with another user's prefix (e.g. \`google-someoneelse__*\` or \`cpanel-someoneelse__*\`) are not yours and will be rejected.
+- **Do NOT call any tool whose name doesn't begin with one of:** \`read\`, \`write\`, \`edit\`, \`exec\`${args.toolSearch ? ", \`tool_search\`, \`tool_describe\`, \`tool_call\`" : ""}${args.googleMcpServerName ? `, \`${args.googleMcpServerName}\`` : ""}${args.cpanelMcpServerName ? `, \`${args.cpanelMcpServerName}\`` : ""}. Tool names starting with another user's prefix (e.g. \`google-someoneelse__*\` or \`cpanel-someoneelse__*\`) are not yours and will be rejected${args.toolSearch ? ", and \`tool_search\` will not list them" : ""}.
 - Do NOT send email from any address other than your connected Google account${args.googleEmail ? ` (\`${args.googleEmail}\`)` : ""}.
 
 ## Time & dates — ALWAYS check, never assume
@@ -348,7 +428,23 @@ Ask ${args.identityName}. They're at ${args.email} and they're the one chatting 
 `;
 }
 
-/** Build the TOOLS.md content reflecting the agent's currently-enabled skills. */
+/**
+ * AGENTS.md as the gateway reads it since openclaw 2026.8: the agent context
+ * (`buildAgentsMd`) followed by the tool guide (`buildToolsMd`).
+ *
+ * The two used to be separate workspace files. OpenClaw no longer injects
+ * TOOLS.md into the prompt and rejects writes to it ("unsupported file"), so
+ * the tool guide rides in AGENTS.md. The tenant baseline raises
+ * `agents.defaults.bootstrapMaxChars` to match (tenant-baseline.ts).
+ */
+export function composeAgentsMd(agentsMd: string, toolsMd: string): string {
+  return `${agentsMd.trimEnd()}\n\n---\n\n${toolsMd.trimStart()}`;
+}
+
+/**
+ * Build the tool guide reflecting the agent's currently-enabled skills. It is
+ * appended to AGENTS.md by `composeAgentsMd` (it was TOOLS.md before 2026.8).
+ */
 export function buildToolsMd(args: {
   identityName: string;
   agentId: string;
@@ -367,13 +463,19 @@ export function buildToolsMd(args: {
    */
   catalogMode?: boolean;
   /**
+   * OpenClaw Tool Search is on: service tools are not offered by name. The
+   * model finds them with tool_search and runs them with tool_call, and every
+   * `name({...})` in this guide means `tool_call({ id: "name", args: {...} })`.
+   */
+  toolSearch?: boolean;
+  /**
    * Subagent mode: primary agent denies all service MCPs and dispatches via
    * `sessions_spawn` to per-(user, service) subagents. AGENTS.md / TOOLS.md
    * teach the routing pattern instead of direct tool calls.
    */
   subagentsMode?: boolean;
 }): string {
-  const workspacePath = `~/.openclaw/workspace-${args.agentId}/`;
+  const workspacePath = `${workspacePathFor(args.agentId)}/`;
   const enabled = new Set(args.enabledSkillIds);
   const sections: string[] = [];
   const catalog = !!args.catalogMode;
@@ -384,9 +486,19 @@ export function buildToolsMd(args: {
 How ${args.identityName} should think about reaching for tools.
 
 > **IMPORTANT:** Tool names that begin with a service prefix (e.g.
-> \`${args.googleMcpServerName ?? "google-<your-id>"}__*\`${args.cpanelMcpServerName ? `, \`${args.cpanelMcpServerName}__*\`` : ""}) are STRUCTURED tools — call them
+> \`${args.googleMcpServerName ?? "google-<your-id>"}__*\`${args.cpanelMcpServerName ? `, \`${args.cpanelMcpServerName}__*\`` : ""}) are STRUCTURED tools${
+    args.toolSearch
+      ? `. They are not listed among your tools: find one with
+> \`tool_search({ query: "<what you need, in English>" })\`, check its exact
+> parameters with \`tool_describe({ id })\` when the search result shows
+> \`input: "unknown"\`, then run it with \`tool_call({ id: "<its name>", args: {...} })\`.
+> Wherever this guide writes \`name({...})\`, that means
+> \`tool_call({ id: "name", args: {...} })\`; calling the name directly fails
+> with "not found". They are NOT shell commands.`
+      : ` — call them
 > directly by name, with their declared arguments. They are NOT shell
-> commands. \`gh\` (and any other CLI mentioned below) IS a shell binary
+> commands.`
+  } \`gh\` (and any other CLI mentioned below) IS a shell binary
 > that you invoke through the \`exec\` tool.
 >
 > Do NOT print \`\`\`bash blocks or \`exec({...})\` pseudocode in your
@@ -621,17 +733,16 @@ ${acctNote} Real structured tools. Call them by name with the listed args.
 `);
   }
 
-  // Counter-instruction for the Silent Replies block that openclaw injects
-  // immediately after this file. We put it last in TOOLS.md so it's the very
-  // last thing the model reads before the NO_REPLY rule, which we want it to
-  // ignore for direct human chats. SOUL.md sits too far up the prompt to win
-  // last-instruction-wins.
+  // Counter-instruction for the "Silent Replies" block in openclaw's system
+  // prompt. It closes the tool guide — and with it AGENTS.md — so it is the
+  // last FlatClaw-authored instruction about replying; we want the model to
+  // ignore the NO_REPLY rule for direct human chats.
   sections.push(`
 ---
 
 ## CRITICAL: Always Reply to ${args.identityName}
 
-The next section ("Silent Replies") tells you about a \`NO_REPLY\` sentinel.
+Your system prompt has a "Silent Replies" section about a \`NO_REPLY\` sentinel.
 **That rule does NOT apply when ${args.identityName} addresses you directly.**
 
 When ${args.identityName} sends you a message — greetings ("hi", "hey",

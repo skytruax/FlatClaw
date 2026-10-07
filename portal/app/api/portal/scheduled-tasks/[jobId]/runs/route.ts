@@ -7,7 +7,7 @@
  */
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth/config";
-import { getGatewayClient } from "@/lib/openclaw/adapter";
+import { gatewayClientFor } from "@/lib/gateways/registry";
 import {
   getOwnedCronJob,
   resolveActingAgent,
@@ -55,7 +55,7 @@ export async function GET(
   const limit = Math.max(1, Math.min(200, Number(limitParamRaw) || 50));
 
   try {
-    const client = getGatewayClient();
+    const client = await gatewayClientFor(agentId);
     const r = (await client.call("cron.runs", {
       id: jobId,
       limit,

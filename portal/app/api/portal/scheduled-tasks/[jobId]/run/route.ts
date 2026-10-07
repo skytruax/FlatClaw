@@ -9,7 +9,7 @@ import { NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
 import { auth } from "@/lib/auth/config";
 import { db, schema } from "@/lib/db/client";
-import { getGatewayClient } from "@/lib/openclaw/adapter";
+import { gatewayClientFor } from "@/lib/gateways/registry";
 import {
   getOwnedCronJob,
   resolveActingAgent,
@@ -53,7 +53,7 @@ export async function POST(
   }
 
   try {
-    const client = getGatewayClient();
+    const client = await gatewayClientFor(agentId);
     const result = (await client.call("cron.run", { id: jobId, mode: "force" })) as {
       ok?: boolean;
       ran?: boolean;

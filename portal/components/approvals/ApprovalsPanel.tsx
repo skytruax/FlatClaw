@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import {
   Check,
   X,
@@ -10,6 +10,8 @@ import {
   ArrowLeftRight,
   Landmark,
   UserCheck,
+  AlertTriangle,
+  PhoneCall,
 } from "lucide-react";
 
 interface ApproverPolicy {
@@ -28,6 +30,8 @@ interface PendingApproval {
   approverPolicy: ApproverPolicy;
   amountUsd?: number;
   composedRequest?: unknown;
+  /** Why the tool parked this instead of executing it (from the tool's envelope). */
+  reasons?: string[];
   composedAt: number;
   routedToYou?: "self" | "role";
 }
@@ -54,12 +58,77 @@ function when(ts: number): string {
   });
 }
 
+function usd(n: number): string {
+  return n.toLocaleString("en-US", { style: "currency", currency: "USD" });
+}
+
 function KindIcon({ kind }: { kind: string }) {
   if (kind === "loan_origination")
     return <Landmark className="w-3.5 h-3.5 text-[hsl(var(--brand-accent))]" />;
   if (kind === "transfer_funds")
     return <ArrowLeftRight className="w-3.5 h-3.5 text-[hsl(var(--brand-accent))]" />;
+  if (kind === "escalation_adverse_event")
+    return <AlertTriangle className="w-3.5 h-3.5 text-red-600" />;
+  if (kind === "escalation_callback")
+    return <PhoneCall className="w-3.5 h-3.5 text-[hsl(var(--brand-accent))]" />;
   return <ShieldCheck className="w-3.5 h-3.5 text-[hsl(var(--brand-accent))]" />;
+}
+
+interface CustomerContact {
+  name?: string;
+  phone?: string;
+  email?: string;
+  bestTime?: string;
+}
+
+/**
+ * The facts an approver needs, pulled from the composed request: order,
+ * amount, items, rule, reason, environment, and how to reach the customer.
+ * Generic over services — unknown shapes simply render fewer rows; the raw
+ * JSON stays one click away.
+ */
+function RequestSummary({ composed }: { composed: unknown }) {
+  if (!composed || typeof composed !== "object") return null;
+  const c = composed as Record<string, unknown>;
+  const rows: Array<[string, string]> = [];
+  const text = (v: unknown): string | null =>
+    typeof v === "string" && v.trim() ? v.trim() : typeof v === "number" ? String(v) : null;
+  const add = (label: string, v: string | null) => {
+    if (v) rows.push([label, v]);
+  };
+  add("Order", text(c.orderName) ?? text(c.order));
+  if (typeof c.amountUsd === "number") add("Amount", usd(c.amountUsd));
+  if (typeof c.valueUsd === "number") add("Goods value", usd(c.valueUsd));
+  if (Array.isArray(c.items)) {
+    const items = (c.items as Array<{ title?: string; quantity?: number }>)
+      .map((i) => `${i.quantity ?? 1}× ${i.title ?? "item"}`)
+      .join(", ");
+    add("Items", items || null);
+  }
+  add("Rule", text(c.ruleId));
+  add("Reason", text(c.reason) ?? text(c.staffNote) ?? text(c.summary));
+  const contact = c.customerContact as CustomerContact | undefined;
+  if (contact && typeof contact === "object") {
+    const bits = [
+      text(contact.name),
+      text(contact.phone),
+      text(contact.email),
+      text(contact.bestTime) ? `best time ${contact.bestTime}` : null,
+    ].filter((x): x is string => Boolean(x));
+    add("Reach the customer", bits.length ? bits.join(" · ") : null);
+  }
+  add("Environment", text(c.environment));
+  if (rows.length === 0) return null;
+  return (
+    <dl className="grid grid-cols-[auto_1fr] gap-x-2.5 gap-y-0.5 text-[11px] leading-snug">
+      {rows.map(([k, v]) => (
+        <Fragment key={k}>
+          <dt className="text-[hsl(var(--fc-fg-muted))] whitespace-nowrap">{k}</dt>
+          <dd className="text-[hsl(var(--fc-fg-primary))] break-words min-w-0">{v}</dd>
+        </Fragment>
+      ))}
+    </dl>
+  );
 }
 
 export default function ApprovalsPanel({
@@ -75,6 +144,7 @@ export default function ApprovalsPanel({
 }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [open, setOpen] = useState<Set<string>>(new Set());
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const toggle = (id: string) =>
     setOpen((prev) => {
@@ -86,12 +156,23 @@ export default function ApprovalsPanel({
 
   const resolve = async (toolCallId: string, decision: "approved" | "denied") => {
     setBusy(toolCallId);
+    setErrors((e) => {
+      const next = { ...e };
+      delete next[toolCallId];
+      return next;
+    });
     try {
-      await fetch("/api/portal/approvals/resolve", {
+      const r = await fetch("/api/portal/approvals/resolve", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ toolCallId, decision, agent: agentId }),
       });
+      if (!r.ok) {
+        // Execution failed server-side: the item stays pending; show why so
+        // the approver can retry or fix the cause instead of guessing.
+        const body = (await r.json().catch(() => ({}))) as { error?: string };
+        setErrors((e) => ({ ...e, [toolCallId]: body.error ?? `HTTP ${r.status}` }));
+      }
       onChanged();
     } finally {
       setBusy(null);
@@ -120,6 +201,7 @@ export default function ApprovalsPanel({
           {pending.map((t) => {
             const isOpen = open.has(t.toolCallId);
             const routedFromOther = t.routedToYou === "role";
+            const reasons = (t.reasons ?? []).slice(0, 4);
             return (
               <div
                 key={t.toolCallId}
@@ -142,6 +224,19 @@ export default function ApprovalsPanel({
                   ) : (
                     <div className="text-[11px] text-[hsl(var(--fc-fg-muted))]">
                       Your action · self sign-off
+                    </div>
+                  )}
+                  <RequestSummary composed={t.composedRequest} />
+                  {reasons.length > 0 && (
+                    <div className="text-[11px] text-[hsl(var(--fc-fg-secondary))]">
+                      <div className="text-[10px] uppercase tracking-wider text-[hsl(var(--fc-fg-muted))] font-semibold">
+                        Why it needs a person
+                      </div>
+                      <ul className="list-disc pl-4 space-y-0.5 leading-snug">
+                        {reasons.map((r, i) => (
+                          <li key={i}>{r}</li>
+                        ))}
+                      </ul>
                     </div>
                   )}
                   <div className="text-[10px] text-[hsl(var(--fc-fg-muted))]">
@@ -177,10 +272,15 @@ export default function ApprovalsPanel({
                       <ChevronRight
                         className={"w-3 h-3 transition-transform " + (isOpen ? "rotate-90" : "")}
                       />
-                      EFX request
+                      Raw request
                     </button>
                   )}
                 </div>
+                {errors[t.toolCallId] && (
+                  <div className="px-3 pb-2 text-[11px] text-red-600 break-words">
+                    Could not execute: {errors[t.toolCallId]} — still pending; fix the cause and try again.
+                  </div>
+                )}
 
                 {isOpen && t.composedRequest != null && (
                   <pre className="border-t border-[hsl(var(--fc-bg-tertiary))] px-3 py-2 text-[10.5px] font-mono whitespace-pre-wrap break-words bg-[hsl(var(--fc-bg-primary))] max-h-72 overflow-auto leading-relaxed">
@@ -214,6 +314,7 @@ export default function ApprovalsPanel({
                   {t.decision === "approved" && t.confirmationRef
                     ? t.confirmationRef
                     : t.decision}
+                  {t.approverName ? ` · ${t.approverName}` : ""}
                   {" · "}
                   {when(t.decidedAt)}
                 </span>

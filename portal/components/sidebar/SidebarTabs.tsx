@@ -75,7 +75,7 @@ export function SidebarTabs({
   return (
     <div
       className={
-        "flex flex-col rounded-lg bg-[hsl(var(--fc-bg-surface))] ring-1 ring-[hsl(var(--fc-bg-tertiary))] overflow-hidden " +
+        "flex flex-col fc-card overflow-hidden " +
         (className ?? "")
       }
     >

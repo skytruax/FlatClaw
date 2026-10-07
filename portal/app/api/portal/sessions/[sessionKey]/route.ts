@@ -3,7 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { auth } from "@/lib/auth/config";
 import { db, schema } from "@/lib/db/client";
-import { getGatewayClient } from "@/lib/openclaw/adapter";
+import { gatewayClientForSessionKey } from "@/lib/gateways/registry";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -52,7 +52,7 @@ export async function PATCH(
     return NextResponse.json({ error: "title is required" }, { status: 400 });
 
   try {
-    const client = getGatewayClient();
+    const client = await gatewayClientForSessionKey(decoded);
     await client.call("sessions.patch", { key: decoded, label: title });
   } catch (err) {
     return NextResponse.json(
@@ -111,7 +111,7 @@ export async function DELETE(
     return NextResponse.json({ error: ok.error }, { status: ok.status });
 
   try {
-    const client = getGatewayClient();
+    const client = await gatewayClientForSessionKey(decoded);
     await client.call("sessions.delete", { key: decoded });
   } catch (err) {
     return NextResponse.json(

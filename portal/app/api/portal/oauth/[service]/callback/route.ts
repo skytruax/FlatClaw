@@ -6,6 +6,7 @@ import { verifyOAuthState } from "@/lib/oauth/state";
 import { ensureCapabilityToken } from "@/lib/oauth/capability-tokens";
 import { setServiceOauthToken } from "@/lib/credentials/oauth";
 import { readOauthApp } from "@/lib/credentials/oauth-app";
+import { publicUrl } from "@/lib/http/public-origin";
 import "@/lib/openclaw/services"; // register plugins
 import {
   getManagedMcpService,
@@ -33,7 +34,7 @@ export async function GET(
 ) {
   const session = await auth();
   if (!session?.user) {
-    return NextResponse.redirect(new URL("/login", req.url));
+    return NextResponse.redirect(publicUrl("/login", req));
   }
 
   const { service } = await params;
@@ -56,7 +57,7 @@ export async function GET(
   const stateParam = url.searchParams.get("state");
   const errParam = url.searchParams.get("error");
   if (errParam) {
-    const back = new URL("/admin/users", req.url);
+    const back = publicUrl("/admin/users", req);
     back.searchParams.set("oauth_error", errParam);
     return NextResponse.redirect(back);
   }
@@ -171,7 +172,7 @@ export async function GET(
     },
   });
 
-  const back = new URL(`/admin/users/${payload.userId}`, req.url);
+  const back = publicUrl(`/admin/users/${payload.userId}`, req);
   back.searchParams.set("oauth_connected", service);
   return NextResponse.redirect(back);
 }

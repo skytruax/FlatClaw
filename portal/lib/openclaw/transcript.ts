@@ -22,7 +22,14 @@
  *   - one bubble per user/assistant message
  *   - toolCall blocks become entries in `bubble.tools`
  *   - toolResult messages match back to the originating tool by `toolCallId`
+ *
+ * With Tool Search on, MCP tools are called through `tool_call` and the
+ * transcript records the wrapper; tool-call-wrapper.ts turns it back into the
+ * target tool. The gateway also records a `role: "custom"` display entry for
+ * each target call; it is skipped here, like every other non-chat role.
  */
+
+import { unwrapToolCall, unwrapToolResult } from "./tool-call-wrapper";
 
 export interface TranscriptToolEvent {
   id: string;
@@ -176,10 +183,13 @@ export function transcriptToBubbles(messages: RawMessage[]): TranscriptBubble[] 
         if (t === "text") textParts.push(asText(b));
         else if (t === "thinking" || t === "reasoning") reasoningParts.push(asText(b));
         else if (TOOL_CALL_BLOCK_TYPES.has(t)) {
+          // Under Tool Search the block is `tool_call {id, args}`; show the
+          // tool it targets, keep the wrapper's id for the result to attach.
+          const call = unwrapToolCall(b.name ?? "tool", b.arguments ?? b.input);
           tools.push({
             id: b.id ?? crypto.randomUUID(),
-            name: b.name ?? "tool",
-            args: b.arguments ?? b.input,
+            name: call.name,
+            args: call.args,
             status: "pending",
           });
         }
@@ -222,10 +232,9 @@ export function transcriptToBubbles(messages: RawMessage[]): TranscriptBubble[] 
       if (!owner) continue;
       const tool = owner.bubble.tools.find((t) => t.id === callId);
       if (!tool) continue;
-      const isErr = msg.isError === true;
       // Result body: try message-level content first; fall back to scanning
       // text blocks; for anthropic-style scan tool_result block content.
-      const text =
+      const rawText =
         stringifyContent(msg.content) ??
         blocks
           .map((b) => {
@@ -236,12 +245,16 @@ export function transcriptToBubbles(messages: RawMessage[]): TranscriptBubble[] 
           })
           .filter(Boolean)
           .join("\n");
+      // A tool_call result holds the target's result inside an envelope (and
+      // the gateway's external-content markers); show the target's own text.
+      const unwrapped = unwrapToolResult(msg.toolName ?? "", rawText);
+      const isErr = msg.isError === true || unwrapped.error !== undefined;
       if (isErr) {
         tool.status = "failed";
-        tool.error = text || undefined;
+        tool.error = unwrapped.error ?? unwrapped.text ?? undefined;
       } else {
         tool.status = "done";
-        tool.result = text || undefined;
+        tool.result = unwrapped.text || undefined;
       }
       continue;
     }

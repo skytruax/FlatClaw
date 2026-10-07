@@ -246,7 +246,7 @@ export const serviceSettings = sqliteTable("service_settings", {
  * Tenant-level allowlist for openclaw OOTB skills. Default-deny: a skill is
  * only visible to any agent if it has a row here with `enabled = true`.
  *
- * Enforced via per-agent allowlist (`agents.list[i].skills` in
+ * Enforced via per-agent allowlist (`agents.entries.<id>.skills` in
  * openclaw config), NOT by writing `skills.entries.<name>.enabled = false`
  * globally. That keeps openclaw config minimal and lets us layer Cedar
  * policies on top later without competing with explicit-disable writes.
@@ -396,3 +396,43 @@ export type ServiceOauthToken = typeof serviceOauthTokens.$inferSelect;
 export type NewServiceOauthToken = typeof serviceOauthTokens.$inferInsert;
 export type ServiceOauthApp = typeof serviceOauthApps.$inferSelect;
 export type NewServiceOauthApp = typeof serviceOauthApps.$inferInsert;
+
+/**
+ * One row per per-user gateway (FLATCLAW_GATEWAY_MODE=per-user): where its
+ * state lives, which loopback port it listens on, the Unix account it runs as
+ * (null when the portal is not root), and its gateway token, AES-256-GCM
+ * sealed with PORTAL_SECRETS_KEY (AAD pins the row to its agent). Shared mode
+ * never writes here. See lib/gateways/.
+ */
+export const agentGateways = sqliteTable("agent_gateways", {
+  agentId: text("agent_id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  stateDir: text("state_dir").notNull(),
+  port: integer("port").notNull().unique(),
+  uid: integer("uid"),
+  gid: integer("gid"),
+  unixUser: text("unix_user"),
+  tokenSealed: text("token_sealed").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" })
+    .notNull()
+    .default(sql`(unixepoch() * 1000)`),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+    .notNull()
+    .default(sql`(unixepoch() * 1000)`),
+});
+
+/**
+ * Operator settings the portal owns, as key/value. Today: the inference
+ * endpoint (`inference.*`), so an admin can point every gateway at a model
+ * server from the portal instead of editing a Northflank secret and
+ * redeploying. Values are not secret; secrets stay in the vault tables.
+ */
+export const portalSettings = sqliteTable("portal_settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+    .notNull()
+    .default(sql`(unixepoch() * 1000)`),
+});

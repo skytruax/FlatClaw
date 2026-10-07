@@ -1,6 +1,6 @@
 {
   "name": "portal",
-  "version": "0.1.0",
+  "version": "0.4.0",
   "private": true,
   "scripts": {
     "gen:plugins": "node scripts/gen-service-plugins.mjs",
@@ -9,7 +9,10 @@
     "prebuild": "node scripts/gen-service-plugins.mjs",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test lib/openclaw/*.test.ts lib/gateways/*.test.ts lib/settings/*.test.ts lib/http/*.test.ts",
+    "test:gateway": "tsx scripts/gateway-contract-probe.ts --yes"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

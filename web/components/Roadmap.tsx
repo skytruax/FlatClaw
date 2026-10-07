@@ -1,19 +1,18 @@
 const milestones = [
   {
-    version: "v0.3.0",
+    version: "v0.4.0",
     status: "This release",
     points: [
-      "Human approval engine — consequential MCP actions (outbound mail, destructive/exposing calls) are composed, pause for human sign-off in the Portal, and replay with the user's own credentials on approve",
-      "Public/private MCP split — the repo ships mcp/public (Google, Jira); private add-on connectors self-register through the same plugin registry",
-      "Harness runtime pin bumped and re-verified against the RBAC contract (tool-name flattening, deny-glob pipeline)",
-      "Portal approvals queue + per-service admin visibility controls",
+      "One gateway per user (opt-in) — each user's agent runs in its own OpenClaw gateway under its own operating-system account, state directory and token, created and supervised by the Portal; the Portal's secrets never reach a gateway",
+      "OpenClaw 2026.9.8 on Node 24 — backend-client handshake with a device identity, a pinned tenant baseline (every built-in tool decided by name, allowlisted plugins), and a live gateway contract probe on every pin bump",
+      "Approvals that explain themselves — the card shows the request's facts, the tool's reasons for not acting alone, and replay errors in place; the approver's identity reaches the service that executes",
+      "Portal — inference endpoint as a setting, sessions named by the model, mid-run messages queued instead of injected, per-user gateway status in Admin",
     ],
   },
   {
-    version: "v0.4",
+    version: "v0.5",
     status: "Next",
     points: [
-      "OpenClaw 2026.9 and one gateway per user — each user's agent runs under its own operating-system account, created and supervised by the Portal",
       "One-command tenant provisioning — provision-tenant.sh / destroy-tenant.sh: full tenant lifecycle on the target cloud (Northflank lane first; Azure, AWS and Google Cloud lanes follow)",
       "RAGFlow — cited document retrieval behind a stable interface",
       "Semantic memory + embeddings via bge-m3 — on its own GPU card",
@@ -23,7 +22,7 @@ const milestones = [
     ],
   },
   {
-    version: "v0.5+",
+    version: "v0.6+",
     status: "Future",
     points: [
       "WorkOS SSO for enterprise tenants (Okta / Azure AD / Google Workspace)",

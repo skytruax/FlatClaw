@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { auth } from "@/lib/auth/config";
 import { db, schema } from "@/lib/db/client";
-import { getGatewayClient } from "@/lib/openclaw/adapter";
+import { gatewayClientForSessionKey } from "@/lib/gateways/registry";
+import { readGatewayConfig } from "@/lib/openclaw/gateway-config";
+import { agentContextTokens } from "@/lib/openclaw/model-config";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -18,7 +20,6 @@ export const runtime = "nodejs";
  *          toolSchemaChars:       number | null,   // sum of tool-schema chars
  *          estimatedPromptTokens: number | null,   // (system + tools) chars / 4
  *          messageCount:          number | null,   // total messages in transcript
- *          checkpointCount:       number | null,   // compaction checkpoints
  *        }
  *
  * The portal's chat header uses this to populate the live token meter:
@@ -45,7 +46,6 @@ interface SessionUsageEntry {
     messageCounts?: { total?: number };
     dailyMessageCounts?: Array<{ total?: number }>;
   };
-  compactionCheckpointCount?: number;
 }
 
 interface UsageResult {
@@ -83,7 +83,7 @@ export async function GET(
   if (!ok.ok)
     return NextResponse.json({ error: ok.error }, { status: ok.status });
 
-  const client = getGatewayClient();
+  const client = await gatewayClientForSessionKey(decoded);
   const result = (await client.call("sessions.usage", {
     key: decoded,
     includeContextWeight: true,
@@ -91,8 +91,8 @@ export async function GET(
   const entry = result.sessions?.[0];
 
   // sessions.usage doesn't include contextTokens — pull from sessions.describe
-  // (or fall back to agents.defaults.contextTokens). Without this the meter
-  // denominator is null and renders as "—".
+  // (or fall back to the model's window in the gateway config). Without this
+  // the meter denominator is null and renders as "—".
   let contextTokens: number | null = null;
   if (typeof entry?.contextTokens === "number") {
     contextTokens = entry.contextTokens;
@@ -105,35 +105,14 @@ export async function GET(
       if (sess && typeof sess.contextTokens === "number") {
         contextTokens = sess.contextTokens;
       } else {
-        const cfgResult = (await client.call("config.get", {})) as {
-          blob?: {
-            agents?: {
-              defaults?: { contextTokens?: number };
-              list?: Array<{ id?: string; contextTokens?: number }>;
-            };
-          };
-        };
-        const blob = cfgResult.blob ?? {};
-        const perAgent = sess?.agentId
-          ? blob.agents?.list?.find((a) => a.id === sess.agentId)?.contextTokens
-          : undefined;
-        contextTokens =
-          perAgent ?? blob.agents?.defaults?.contextTokens ?? null;
+        const { blob } = await readGatewayConfig(client);
+        contextTokens = agentContextTokens(blob, sess?.agentId);
       }
-    } catch {
-      /* best-effort fallback */
+    } catch (err) {
+      // The meter can render without a denominator; the usage numbers below
+      // are still worth returning.
+      console.warn("[sessions.usage] context window lookup failed:", err);
     }
-  }
-
-  // Fetch checkpoint count separately — sessions.usage doesn't include it.
-  let checkpointCount = 0;
-  try {
-    const cp = (await client.call("sessions.compaction.list", {
-      key: decoded,
-    })) as { checkpoints?: unknown[] };
-    checkpointCount = cp.checkpoints?.length ?? 0;
-  } catch {
-    /* best-effort */
   }
 
   if (!entry) {
@@ -144,7 +123,6 @@ export async function GET(
       toolSchemaChars: null,
       estimatedPromptTokens: null,
       messageCount: null,
-      checkpointCount,
     });
   }
 
@@ -175,6 +153,5 @@ export async function GET(
       (acc, d) => acc + (d.total ?? 0),
       0,
     ) ?? null,
-    checkpointCount,
   });
 }

@@ -21,19 +21,19 @@
 #                                                      #   no RoPE scaling needed). A stale MAX_CONTEXT=131072
 #                                                      #   silently overrode the entrypoint default and pinned
 #                                                      #   the served context to 128K — that bug cost us hours.
-#       SGLANG_EXTRA_ARGS="--kv-cache-dtype fp8_e5m2 --max-running-requests 1 --cuda-graph-max-bs 1 --mem-fraction-static 0.92"
+#       SGLANG_EXTRA_ARGS="--kv-cache-dtype fp8_e5m2 --max-running-requests 1 --cuda-graph-max-bs-decode 1 --mem-fraction-static 0.92"
 #                                                      #   e5m2 (not e4m3) — Triton attention backend on sm_90.
 #                                                      #   --max-running-requests 1: single-tenant box → one turn
 #                                                      #   at a time, each gets the full H100 (no decode thrash).
-#                                                      #   --cuda-graph-max-bs 1: only the batch-1 graph is ever
+#                                                      #   --cuda-graph-max-bs-decode 1: only the batch-1 graph is ever
 #                                                      #   used → faster cold boot, more KV headroom. 0.92 mem-frac.
 #   - Resulting SGLang launch:  --context-length 262144 --quantization fp8 (FP8 weights) --tp 1
-#       --kv-cache-dtype fp8_e5m2 --max-running-requests 1 --cuda-graph-max-bs 1 --mem-fraction-static 0.92 --tool-call-parser gemma4 --reasoning-parser gemma4
+#       --kv-cache-dtype fp8_e5m2 --max-running-requests 1 --cuda-graph-max-bs-decode 1 --mem-fraction-static 0.92 --tool-call-parser gemma4 --reasoning-parser gemma4
 #   - max_total_num_tokens (the *active concurrent* KV pool, VRAM-bound) lands ~113 k — and it's ~the same
 #     at 128K vs 256K context, because Gemma 4 is 5:1 sliding:full attention (50 of 60 layers cap KV at a
 #     1024-token window), so widening the window barely grows the pool. So: 256K *window*, ~113K fittable
 #     per request — openclaw's compaction reserve keeps turns under that.
-#   - openclaw side (step 4): agents.defaults.model=openai/gemma-4-31b-it, contextTokens=262144,
+#   - openclaw side (step 4): agents.defaults.model=openai/gemma-4-31b-it, model contextWindow=262144,
 #     thinkingDefault=medium, timeoutSeconds=1800,
 #     provider contextWindow=262144 + provider timeoutSeconds=600 (lifts the LLM idle watchdog to 600s).
 #
@@ -93,14 +93,14 @@ except Exception: env = {}
 env["MODEL_DIR"] = "/workspace/models"
 env["GEMMA_DIR_NAME"] = "gemma-4-31B-it"
 env["MAX_CONTEXT"] = "262144"
-env["SGLANG_EXTRA_ARGS"] = "--kv-cache-dtype fp8_e5m2 --max-running-requests 1 --cuda-graph-max-bs 1 --mem-fraction-static 0.92"
+env["SGLANG_EXTRA_ARGS"] = "--kv-cache-dtype fp8_e5m2 --max-running-requests 1 --cuda-graph-max-bs-decode 1 --mem-fraction-static 0.92"
 print(json.dumps({"runtimeEnvironment": env}))
 ')"
 # No `|| true` here — Northflank dedupes identical POSTs, so the only ways this fails are
 # real bugs (bad token, network out, schema change). Let set -e abort loudly rather than
 # silently proceeding with stale env on the service.
 api POST "/projects/$PROJECT/services/$PROD_SVC/runtime-environment" "$NEW_ENV" >/dev/null
-echo "  MAX_CONTEXT=262144, SGLANG_EXTRA_ARGS=\"--kv-cache-dtype fp8_e5m2 --max-running-requests 1 --cuda-graph-max-bs 1 --mem-fraction-static 0.92\""
+echo "  MAX_CONTEXT=262144, SGLANG_EXTRA_ARGS=\"--kv-cache-dtype fp8_e5m2 --max-running-requests 1 --cuda-graph-max-bs-decode 1 --mem-fraction-static 0.92\""
 
 say "2/6 ensure image=lmsysorg/sglang:dev + customEntrypoint with inlined SGLang launch"
 # Two things in one PATCH so they go through atomically:
@@ -163,7 +163,7 @@ PY
 
 echo "[fetch] launching SGLang on :8000 (context-length=${MAX_CONTEXT:-262144})"
 # SGLANG_EXTRA_ARGS (set on the service env) carries the prod-specific flags:
-#   --kv-cache-dtype fp8_e5m2 --max-running-requests 1 --cuda-graph-max-bs 1 --mem-fraction-static 0.92
+#   --kv-cache-dtype fp8_e5m2 --max-running-requests 1 --cuda-graph-max-bs-decode 1 --mem-fraction-static 0.92
 # argparse takes the LAST value when a flag is repeated, so SGLANG_EXTRA_ARGS overrides any
 # explicit defaults we put before it.
 exec python3 -m sglang.launch_server \
@@ -219,13 +219,19 @@ done
 say "4/6 resume inference (H100 — billing starts now: ~\$3-4/hr)"
 api POST "/projects/$PROJECT/services/$PROD_SVC/resume" '{"instances":1}' >/dev/null || true
 
-say "5/6 wait for SGLang ready (~10-15 min cold: the pod re-downloads ~33 GB of weights every restart, then SGLang loads + FP8-quantizes + captures CUDA graphs)"
-for i in $(seq 1 60); do
+# PROD_UP_WAIT_STEPS: how many 30 s polls to allow (default 60 = 30 min). The
+# scheduled bring-up sets it much higher: when Northflank has no H100 node
+# free the pod sits in TASK_STAGING for hours (3+ h on 2026-10-06), and
+# re-running this script would only re-apply the deployment and re-create
+# the pod. A pending pod costs nothing; wait here instead.
+WAIT_STEPS="${PROD_UP_WAIT_STEPS:-60}"
+say "5/6 wait for SGLang ready (~10-15 min cold: the pod re-downloads ~33 GB of weights every restart, then SGLang loads + FP8-quantizes + captures CUDA graphs; waiting up to $((WAIT_STEPS / 2)) min, TASK_STAGING = no GPU node yet)"
+for i in $(seq 1 "$WAIT_STEPS"); do
   if curl -fsS --max-time 4 "$PROD_INFERENCE_URL/models" >/dev/null 2>&1; then
     echo "  SGLang ready after ${i}x30s"
     break
   fi
-  if [ "$i" = "60" ]; then echo "  TIMEOUT after 30 min"; exit 2; fi
+  if [ "$i" = "$WAIT_STEPS" ]; then echo "  TIMEOUT after $((WAIT_STEPS / 2)) min (pod still waiting for a GPU node, or SGLang failed to boot: check the service logs)"; exit 2; fi
   sleep 30
 done
 
@@ -264,17 +270,20 @@ prov["openai"] = {
 # model" the moment we swap lanes.
 defaults = cfg.setdefault("agents", {}).setdefault("defaults", {})
 defaults["model"] = "openai/$PROD_MODEL_ID"
-# Match the model's native context window. Gemma 4 31B-IT genuinely supports
-# 256k (262144) tokens — text_config.max_position_embeddings=262144, no RoPE
-# scaling involved. SGLang serves --context-length 262144 (driven by the
-# MAX_CONTEXT env on the service — see step 1 / the header). Note: the
-# *active concurrent* KV pool (SGLang's max_total_num_tokens) profiles to
-# ~113k regardless, because Gemma 4's 5:1 sliding:full attention means
-# widening the window barely grows the pool — that's a per-request ceiling,
-# not a window cap, and openclaw's compaction reserve stays under it.
-# Bump --mem-fraction-static via SGLANG_EXTRA_ARGS (not entrypoint.sh) to
-# recover more pool, watching for OOM headroom.
-defaults["contextTokens"] = 262144
+# The context window is the model entry's contextWindow above (262144).
+# (No backticks anywhere in this heredoc: it is unquoted so $GATEWAY_CFG
+# expands, which means bash would run anything in backticks as a command.)
+# openclaw 2026.8 removed agents.defaults.contextTokens ("cannot be represented
+# per model"); a config that still sets it does not validate.
+# Why 262144: Gemma 4 31B-IT genuinely supports 256k tokens —
+# text_config.max_position_embeddings=262144, no RoPE scaling involved. SGLang
+# serves --context-length 262144 (driven by the MAX_CONTEXT env on the service
+# — see step 1 / the header). Note: the *active concurrent* KV pool (SGLang's
+# max_total_num_tokens) profiles to ~113k regardless, because Gemma 4's 5:1
+# sliding:full attention means widening the window barely grows the pool —
+# that's a per-request ceiling, not a window cap, and openclaw's compaction
+# reserve stays under it. Bump --mem-fraction-static via SGLANG_EXTRA_ARGS
+# (not entrypoint.sh) to recover more pool, watching for OOM headroom.
 # Overall per-turn timeout (default is none → the 120 s LLM idle watchdog is
 # the effective ceiling). 1800 s: long multi-step agentic turns (site builds,
 # bulk uploads) were hitting the old 600 s cap while ACTIVELY working — a tool
@@ -290,10 +299,8 @@ defaults["timeoutSeconds"] = 1800
 # 300 s idle watchdog above gives those turns the slack to complete).
 # See plan.md → "OpenClaw configuration deep reference" for the lane matrix.
 defaults["thinkingDefault"] = "medium"
-# Per-tool-result char cap. openclaw also bounds this relative to
-# contextTokens, so the effective limit is min(this, openclaw's formula);
-# with a 256K window 250000 is the binding number. (openclaw default: 16k.)
-defaults.setdefault("contextLimits", {})["toolResultMaxChars"] = 250000
+# No contextLimits.toolResultMaxChars: retired in openclaw 2026.8 — tool results
+# are capped from the model's context window now.
 # --- Compaction (defensible defaults; see plan.md → "trust openclaw") ---
 # Five keys we set deliberately. Everything else (mode/maxHistoryShare/
 # reserveTokens/keepRecentTokens/truncateAfterCompaction/model/timeoutSeconds)
@@ -309,55 +316,21 @@ defaults["compaction"] = {
 # Wipe any prior contextPruning override; openclaw's defaults handle
 # per-turn pruning fine.
 defaults.pop("contextPruning", None)
-# Rewrite any per-session model id that isn't the active prod model. No
-# allowlist — if model or modelId is a non-empty string that doesn't
-# match the current target, replace it. Symmetric with dev-up.sh.
-import os, json as _json
-for agent_id in os.listdir(os.path.expanduser("~/.openclaw/agents")):
-    sj = os.path.expanduser(f"~/.openclaw/agents/{agent_id}/sessions/sessions.json")
-    if not os.path.exists(sj):
-        continue
-    sdata = _json.load(open(sj))
-    def _fix(obj):
-        n = 0
-        if isinstance(obj, dict):
-            mv = obj.get("model")
-            if isinstance(mv, str) and mv and mv != "$PROD_MODEL_ID":
-                obj["model"] = "$PROD_MODEL_ID"; n += 1
-                if obj.get("modelProvider"): obj["modelProvider"] = "openai"
-                if obj.get("provider") in ("openai", "openai-dev"): obj["provider"] = "openai"
-            mid = obj.get("modelId")
-            if isinstance(mid, str) and mid and mid != "$PROD_MODEL_ID":
-                obj["modelId"] = "$PROD_MODEL_ID"; n += 1
-                if obj.get("provider") in ("openai", "openai-dev"): obj["provider"] = "openai"
-            # Reset per-session thinkingLevel: high/xhigh/max → "medium" (the
-            # prod default). Users opt into a deeper level per-session via the
-            # chat thinking-level dropdown; we don't want sessions stuck on a
-            # level that idle-times-out. Leave "off"/"low" alone if set.
-            if obj.get("thinkingLevel") in ("high", "xhigh", "max"):
-                obj["thinkingLevel"] = "medium"; n += 1
-            # Pin per-session contextTokens to the prod window (262144 —
-            # Gemma 4 31B's native 256k). Sessions inherit whichever value
-            # was current at create time, so rewrite anything that differs.
-            ct = obj.get("contextTokens")
-            if isinstance(ct, int) and ct != 262144:
-                obj["contextTokens"] = 262144; n += 1
-            for v in obj.values(): n += _fix(v)
-        elif isinstance(obj, list):
-            for v in obj: n += _fix(v)
-        return n
-    if _fix(sdata):
-        _json.dump(sdata, open(sj, "w"), indent=2)
+# Stored sessions are NOT rewritten here any more. Up to openclaw 2026.7 they
+# lived in ~/.openclaw/agents/<id>/sessions/sessions.json and this script
+# patched their model / thinkingLevel / contextTokens in place. Since 2026.8
+# sessions are rows in each agent's SQLite database, which only the gateway
+# may write. A session with no explicit model follows agents.defaults.model,
+# so it moves to this lane by itself; one that was pinned to the other lane's
+# model has to be re-pointed in the chat UI (or started fresh).
 
 json.dump(cfg, open(p, "w"), indent=2)
 print(f"  added openai (prod) provider with $PROD_MODEL_ID (timeoutSeconds=600 → idle watchdog 600s)")
 print(f"  set agents.defaults.model = openai/$PROD_MODEL_ID")
 print(f"  set agents.defaults.thinkingDefault = medium")
 print(f"  set agents.defaults.timeoutSeconds = 1800")
-print(f"  set agents.defaults.contextTokens = 262144 (Gemma 4 31B native 256k window)")
 print(f"  set agents.defaults.compaction.{{notifyUser=true, postIndexSync=async, qualityGuard.enabled=true, recentTurnsPreserve=3, midTurnPrecheck.enabled=false}} (budget knobs left to safeguard defaults)")
 print(f"  cleared agents.defaults.contextPruning (openclaw default per-turn pruning)")
-print(f"  rewrote stored per-session model + thinkingLevel (high→medium) + contextTokens (→ 262144)")
 PY
 
 sed -i '/^PROD_INFERENCE_URL=/d; /^PROD_MODEL_ID=/d' "$ENV_FILE"

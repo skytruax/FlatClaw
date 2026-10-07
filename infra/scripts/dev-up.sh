@@ -20,7 +20,7 @@
 #       · gemma4 tool-call/reasoning parsers match prod's image exactly, so dev↔prod chat-template +
 #         tool-grammar + thinking-channel behavior is 1:1. Thinking is OFF in the chat template by
 #         default; callers pass extra_body.chat_template_kwargs.enable_thinking=true per request.
-#   - openclaw side (step 4): agents.defaults.model=openai-dev/gemma-4-e4b-it, contextTokens=131072,
+#   - openclaw side (step 4): agents.defaults.model=openai-dev/gemma-4-e4b-it, model contextWindow=131072,
 #     thinkingDefault=medium (E4B is ~4B — keep it moving; prod's 31B runs "high"), provider contextWindow=131072.
 #
 # Why Gemma 4 E4B for dev: same Gemma 4 chat template + tool-call grammar + reasoning channel as prod's
@@ -121,7 +121,7 @@ fi
   #     static fraction profiles max_total_num_tokens to ~600k+ tokens, so the
   #     full 131k window fits with ~5x headroom. (We tried A100 *40 GB* first —
   #     it capped max_total_num_tokens at ~52k even with --mem-fraction-static
-  #     0.5 + --cuda-graph-max-bs 1, structurally too small for E4B at 128k —
+  #     0.5 + --cuda-graph-max-bs-decode 1, structurally too small for E4B at 128k —
   #     hence the 80 GB plan. On 80 GB no mem-frac / cuda-graph-bs tuning is
   #     needed; SGLang's defaults are fine.)
   #
@@ -257,19 +257,20 @@ prov["openai-dev"] = {
 # model" the moment we swap lanes.
 defaults = cfg.setdefault("agents", {}).setdefault("defaults", {})
 defaults["model"] = "openai-dev/$DEV_MODEL_ID"
-# Match the dev model's context window so per-session contextTokens defaults
-# inherit it. A100 80GB serves E4B's full 128k window comfortably (BF16 KV;
-# max_total_num_tokens profiles to ~600k+).
-defaults["contextTokens"] = 131072
+# The context window is the model entry's contextWindow above (131072).
+# (No backticks anywhere in this heredoc: it is unquoted so shell variables
+# expand, which means bash would run anything in backticks as a command.)
+# openclaw 2026.8 removed agents.defaults.contextTokens ("cannot be represented
+# per model"); a config that still sets it does not validate. A100 80GB serves
+# E4B's full 128k window comfortably (BF16 KV; max_total_num_tokens profiles to
+# ~600k+).
 # Dev runs "medium" thinking — E4B is ~4B params; keep it moving. (Prod's
 # 31B runs "high" — that's the answer-quality tier prod exists for, so the
 # two lanes are NOT symmetric on this knob. See plan.md → "OpenClaw
 # configuration deep reference" for the lane parity matrix.)
 defaults["thinkingDefault"] = "medium"
-# Tool-result single-call cap. openclaw also bounds this relative to
-# contextTokens (≈ contextTokens × 0.3 × 4 chars); at 131072 that formula
-# allows ~157k chars, so our 64000 is the binding limit. (openclaw default: 16k.)
-defaults.setdefault("contextLimits", {})["toolResultMaxChars"] = 64000
+# No contextLimits.toolResultMaxChars: retired in openclaw 2026.8 — tool results
+# are capped from the model's context window now.
 # --- Compaction (defensible defaults; see plan.md → "trust openclaw") ---
 # Same five keys as prod — environment-agnostic UX decisions (notify on
 # compact, don't block on sync, retry bad summaries, preserve last 3 turns,
@@ -283,57 +284,20 @@ defaults["compaction"] = {
     "midTurnPrecheck": {"enabled": False},
 }
 defaults.pop("contextPruning", None)
-# Also rewrite per-session model + thinkingLevel + contextTokens so existing
-# sessions (which may have been stamped during the prod lane) don't try to
-# invoke the prod model, run at prod's "high" thinking, or carry a 256k cap
-# the dev model can't honor.
-import os, json as _json
-for agent_id in os.listdir(os.path.expanduser("~/.openclaw/agents")):
-    sj = os.path.expanduser(f"~/.openclaw/agents/{agent_id}/sessions/sessions.json")
-    if not os.path.exists(sj):
-        continue
-    sdata = _json.load(open(sj))
-    # Rewrite any per-session model id that isn't the active dev model.
-    # No allowlist — if model or modelId is a non-empty string that
-    # doesn't match the current target, replace it. Covers any model id
-    # left over from earlier swaps without naming names.
-    def _fix(obj):
-        n = 0
-        if isinstance(obj, dict):
-            mv = obj.get("model")
-            if isinstance(mv, str) and mv and mv != "$DEV_MODEL_ID":
-                obj["model"] = "$DEV_MODEL_ID"; n += 1
-                if obj.get("modelProvider"): obj["modelProvider"] = "openai-dev"
-                if obj.get("provider") in ("openai", "openai-dev"): obj["provider"] = "openai-dev"
-            mid = obj.get("modelId")
-            if isinstance(mid, str) and mid and mid != "$DEV_MODEL_ID":
-                obj["modelId"] = "$DEV_MODEL_ID"; n += 1
-                if obj.get("provider") in ("openai", "openai-dev"): obj["provider"] = "openai-dev"
-            # Clamp thinkingLevel to "medium" (dev's E4B tier — prod runs "high").
-            if obj.get("thinkingLevel") in ("off", "low", "high", "xhigh", "max"):
-                obj["thinkingLevel"] = "medium"; n += 1
-            # Cap per-session contextTokens to the dev model's window. Without
-            # this, sessions stamped during the prod lane (262144) outrun E4B's
-            # max_model_len (131072) and SGLang rejects the request.
-            ct = obj.get("contextTokens")
-            if isinstance(ct, int) and ct > 131072:
-                obj["contextTokens"] = 131072; n += 1
-            for v in obj.values():
-                n += _fix(v)
-        elif isinstance(obj, list):
-            for v in obj: n += _fix(v)
-        return n
-    if _fix(sdata):
-        _json.dump(sdata, open(sj, "w"), indent=2)
+# Stored sessions are NOT rewritten here any more. Up to openclaw 2026.7 they
+# lived in ~/.openclaw/agents/<id>/sessions/sessions.json and this script
+# patched their model / thinkingLevel / contextTokens in place. Since 2026.8
+# sessions are rows in each agent's SQLite database, which only the gateway
+# may write. A session with no explicit model follows agents.defaults.model,
+# so it moves to this lane by itself; one that was pinned to the other lane's
+# model has to be re-pointed in the chat UI (or started fresh).
 
 json.dump(cfg, open(p, "w"), indent=2)
 print(f"  added openai-dev provider with $DEV_MODEL_ID (contextWindow 131072)")
 print(f"  set agents.defaults.model = openai-dev/$DEV_MODEL_ID")
 print(f"  set agents.defaults.thinkingDefault = medium")
-print(f"  set agents.defaults.contextTokens = 131072")
 print(f"  set agents.defaults.compaction.{{notifyUser=true, postIndexSync=async, qualityGuard.enabled=true, recentTurnsPreserve=3, midTurnPrecheck.enabled=false}} (budget knobs left to safeguard defaults)")
 print(f"  cleared agents.defaults.contextPruning (openclaw default per-turn pruning)")
-print(f"  rewrote stored per-session model + thinkingLevel (→ medium) + contextTokens (→ 131072)")
 PY
 
 say "5/5 update .env.local + restart local gateway"

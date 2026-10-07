@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth/config";
 import { db, schema } from "@/lib/db/client";
 import { eq } from "drizzle-orm";
-import { getGatewayClient } from "@/lib/openclaw/adapter";
+import { gatewayClientFor } from "@/lib/gateways/registry";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -30,9 +30,10 @@ export async function POST(req: Request) {
   if (rows.length === 0 || !rows[0].agentId)
     return NextResponse.json({ error: "no agent" }, { status: 404 });
 
-  const sessionKey = `agent:${rows[0].agentId}:main`;
+  const agentId = rows[0].agentId;
+  const sessionKey = `agent:${agentId}:main`;
   try {
-    const client = getGatewayClient();
+    const client = await gatewayClientFor(agentId);
     const params: Record<string, unknown> = { sessionKey };
     if (body.runId) params.runId = body.runId;
     const result = await client.call("chat.abort", params);

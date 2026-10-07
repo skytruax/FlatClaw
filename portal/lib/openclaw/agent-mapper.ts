@@ -8,6 +8,8 @@
 
 import { homedir } from "node:os";
 import { readFileSync } from "node:fs";
+import { gatewayMode } from "@/lib/gateways/paths";
+import { INFERENCE_PROVIDER_ID, inferenceModelRef, inferenceProviderEntry, readInferenceSettings } from "@/lib/settings/inference";
 
 export interface RegisteredModel {
   providerId: string;
@@ -23,6 +25,12 @@ interface OpenclawProvidersConfig {
 }
 
 export function readRegisteredModels(): RegisteredModel[] {
+  // Per-user gateways all get the same provider, from the portal's settings.
+  if (gatewayMode() === "per-user") {
+    const s = readInferenceSettings();
+    const entry = inferenceProviderEntry(s) as { models?: { id: string; name?: string }[] } | null;
+    return (entry?.models ?? []).map((m) => ({ providerId: INFERENCE_PROVIDER_ID, id: m.id, name: m.name ?? m.id }));
+  }
   try {
     const path =
       process.env.PORTAL_OPENCLAW_CONFIG ?? `${homedir()}/.openclaw/openclaw.json`;
@@ -40,6 +48,7 @@ export function readRegisteredModels(): RegisteredModel[] {
 }
 
 export function readDefaultModel(): string | null {
+  if (gatewayMode() === "per-user") return inferenceModelRef();
   try {
     const path =
       process.env.PORTAL_OPENCLAW_CONFIG ?? `${homedir()}/.openclaw/openclaw.json`;

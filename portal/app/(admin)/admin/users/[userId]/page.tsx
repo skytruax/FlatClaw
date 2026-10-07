@@ -5,7 +5,14 @@ import { revalidatePath } from "next/cache";
 import ChatPanel from "@/components/chat/ChatPanel";
 import { SidebarTabs } from "@/components/sidebar/SidebarTabs";
 import { PendingButton } from "@/components/PendingButton";
-import { getGatewayClient } from "@/lib/openclaw/adapter";
+import { closeSync, existsSync, openSync, readSync, statSync } from "node:fs";
+import { join } from "node:path";
+import { gatewayMode } from "@/lib/gateways/paths";
+import { gatewayClientFor, gatewayRecord } from "@/lib/gateways/registry";
+import { gatewayProcessStatus, restartGateway, startGateway, stopGateway } from "@/lib/gateways/supervisor";
+import { GatewayCell, type GatewayRow } from "@/components/admin/GatewayCell";
+import { PageHeader } from "@/components/shell/PageHeader";
+import Link from "next/link";
 import { syncSkillsForUser } from "@/lib/openclaw/sync-skills";
 import ConnectionsTabs from "@/components/services/ConnectionsTabs";
 import ScheduledTasksPanel from "@/components/scheduler/ScheduledTasksPanel";
@@ -77,7 +84,7 @@ async function repairAgent(formData: FormData) {
  * One-click sync: re-runs the parts of provisioning that matter for an
  * already-created agent —
  *
- *   1. rewrite SOUL.md / AGENTS.md / TOOLS.md from current state (tenant
+ *   1. rewrite SOUL.md / AGENTS.md from current state (tenant
  *      skill allowlist, which managed services the user has creds for), and
  *   2. re-register the user's managed MCPs (cpanel, caldav, google, jira)
  *      from their stored credentials against the live `mcp.servers` config —
@@ -99,7 +106,7 @@ async function syncAgent(formData: FormData) {
     const u = rows[0];
     if (!u?.agentId) throw new Error("user has no agent yet");
 
-    // 1. SOUL/AGENTS/TOOLS markdown — tenant skill allowlist comes from
+    // 1. SOUL/AGENTS markdown — tenant skill allowlist comes from
     //    tenant_skill_settings (materialized into agents.defaults.skills by
     //    tenant-skills.ts); this just rewrites the workspace files.
     await syncSkillsForUser(userId);
@@ -120,7 +127,7 @@ interface GatewayAgent {
 
 async function checkAgentExists(agentId: string): Promise<boolean> {
   try {
-    const client = getGatewayClient();
+    const client = await gatewayClientFor(agentId);
     const result = (await client.call("agents.list", {})) as {
       agents?: GatewayAgent[];
     };
@@ -134,7 +141,69 @@ const OP_LABELS: Record<string, string> = {
   "save-skills": "Save skills",
   sync: "Sync",
   repair: "Repair agent",
+  "gateway-start": "Start gateway",
+  "gateway-stop": "Stop gateway",
+  "gateway-restart": "Restart gateway",
 };
+
+/** Start / stop / restart this user's gateway (per-user mode). */
+async function gatewayAction(formData: FormData) {
+  "use server";
+  const agentId = String(formData.get("agentId") ?? "");
+  const action = String(formData.get("action") ?? "");
+  const rows = await db
+    .select({ id: schema.users.id })
+    .from(schema.users)
+    .where(eq(schema.users.agentId, agentId))
+    .limit(1);
+  const userId = rows[0]?.id;
+  if (!userId) notFound();
+  await withActionResult(userId, `gateway-${action}`, async () => {
+    if (action === "start") await startGateway(agentId);
+    else if (action === "stop") await stopGateway(agentId);
+    else if (action === "restart") await restartGateway(agentId);
+    else throw new Error(`unknown gateway action ${JSON.stringify(action)}`);
+  });
+}
+
+/** The last ~16 KB of a gateway's log, for the card below. */
+function tailFile(path: string, maxBytes = 16 * 1024, maxLines = 25): string {
+  if (!existsSync(path)) return "";
+  const size = statSync(path).size;
+  const start = Math.max(0, size - maxBytes);
+  const fd = openSync(path, "r");
+  try {
+    const buf = Buffer.alloc(size - start);
+    readSync(fd, buf, 0, buf.length, start);
+    return buf.toString("utf8").split("\n").slice(-maxLines).join("\n").trim();
+  } finally {
+    closeSync(fd);
+  }
+}
+
+async function loadGatewayCard(
+  agentId: string,
+): Promise<{ row: GatewayRow; stateDir: string; logTail: string } | null> {
+  if (gatewayMode() !== "per-user") return null;
+  const record = await gatewayRecord(agentId);
+  if (!record) return null;
+  const proc = gatewayProcessStatus(agentId);
+  let reachable = false;
+  let error: string | null = null;
+  if (proc.state === "running") {
+    try {
+      await (await gatewayClientFor(agentId)).call("models.list", {}, 4_000);
+      reachable = true;
+    } catch (err) {
+      error = err instanceof Error ? err.message : String(err);
+    }
+  }
+  return {
+    row: { agentId, port: record.port, unixUser: record.unixUser, ...proc, reachable, error },
+    stateDir: record.stateDir,
+    logTail: tailFile(join(record.stateDir, "gateway.log")),
+  };
+}
 
 function ActionBanner({
   op,
@@ -189,20 +258,30 @@ export default async function UserDetailPage({
   const agentLive = user.agentId
     ? await checkAgentExists(user.agentId)
     : false;
+  const gatewayCard = user.agentId ? await loadGatewayCard(user.agentId) : null;
 
   return (
-    <div className="mx-auto max-w-5xl p-6 space-y-4">
+    <>
+      <PageHeader
+        back={
+          <Link href="/admin/users" className="transition hover:text-[hsl(var(--brand-accent))]">
+            ← All users
+          </Link>
+        }
+        eyebrow={user.role === "admin" ? "Administrator" : "User"}
+        title={
+          <>
+            {user.identityEmoji && <span className="mr-1.5">{user.identityEmoji}</span>}
+            {user.identityName ?? user.email}
+          </>
+        }
+        description={user.email}
+      />
+      <div className="mx-auto max-w-6xl p-6 space-y-4">
       <ActionBanner op={op} status={status} msg={msg} />
-      <div>
-        <h1 className="text-xl font-semibold">
-          {user.identityEmoji && <span className="mr-1.5">{user.identityEmoji}</span>}
-          {user.identityName ?? user.email}
-        </h1>
-        <p className="text-sm text-[hsl(var(--fc-fg-muted))]">{user.email}</p>
-      </div>
 
-      <div className="rounded-lg bg-[hsl(var(--fc-bg-surface))] ring-1 ring-[hsl(var(--fc-bg-tertiary))] p-4">
-        <h2 className="text-sm font-medium mb-2">Profile</h2>
+      <div className="fc-card p-4">
+        <h2 className="fc-card-title mb-2">Profile</h2>
         <dl className="text-sm grid grid-cols-2 gap-y-1.5">
           <dt className="text-[hsl(var(--fc-fg-muted))]">Role</dt>
           <dd>{user.role}</dd>
@@ -230,8 +309,8 @@ export default async function UserDetailPage({
           <div className="mt-3 pt-3 border-t border-[hsl(var(--fc-bg-tertiary))] flex items-center justify-between">
             <span className="text-[11px] text-[hsl(var(--fc-fg-muted))]">
               Re-runs everything provisioning does: rewrites{" "}
-              <code className="font-mono">AGENTS.md</code> +{" "}
-              <code className="font-mono">TOOLS.md</code>, refreshes skill
+              <code className="font-mono">SOUL.md</code> +{" "}
+              <code className="font-mono">AGENTS.md</code>, refreshes skill
               config, and re-registers the user&apos;s managed MCPs from their
               stored credentials.
             </span>
@@ -239,7 +318,7 @@ export default async function UserDetailPage({
               <input type="hidden" name="userId" value={user.id} />
               <PendingButton
                 pendingLabel="Syncing…"
-                className="rounded bg-[hsl(var(--brand-accent))] px-3 py-1 text-xs font-semibold text-[hsl(var(--brand-accent-fg))] hover:bg-[hsl(var(--brand-primary))] shrink-0 ml-3 disabled:opacity-70"
+                className="fc-btn fc-btn-sm fc-btn-primary shrink-0 ml-3 disabled:opacity-70"
               >
                 Sync
               </PendingButton>
@@ -248,9 +327,47 @@ export default async function UserDetailPage({
         )}
       </div>
 
-      <div className="rounded-lg bg-[hsl(var(--fc-bg-surface))] ring-1 ring-[hsl(var(--fc-bg-tertiary))] p-4">
+      {gatewayCard && (
+        <div className="fc-card p-4">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="fc-card-title">Gateway</h2>
+            <span className="text-[10px] text-[hsl(var(--fc-fg-muted))]">
+              this user&apos;s own OpenClaw process
+            </span>
+          </div>
+          <GatewayCell gateway={gatewayCard.row} action={gatewayAction} compact={false} />
+          <dl className="text-xs grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 mt-3">
+            <dt className="text-[hsl(var(--fc-fg-muted))]">State directory</dt>
+            <dd><code className="font-mono break-all">{gatewayCard.stateDir}</code></dd>
+            <dt className="text-[hsl(var(--fc-fg-muted))]">Runs as</dt>
+            <dd>
+              {gatewayCard.row.unixUser ? (
+                <code className="font-mono">{gatewayCard.row.unixUser}</code>
+              ) : (
+                <span className="text-amber-600">the portal&apos;s own user (no OS isolation)</span>
+              )}
+            </dd>
+            {gatewayCard.row.pid !== null && (
+              <>
+                <dt className="text-[hsl(var(--fc-fg-muted))]">PID</dt>
+                <dd><code className="font-mono">{gatewayCard.row.pid}</code></dd>
+              </>
+            )}
+          </dl>
+          {gatewayCard.logTail && (
+            <details className="mt-3">
+              <summary className="text-xs cursor-pointer text-[hsl(var(--fc-fg-secondary))]">Last log lines</summary>
+              <pre className="mt-2 max-h-64 overflow-auto rounded bg-[hsl(var(--fc-bg-primary))] p-2 text-[10px] leading-snug font-mono whitespace-pre-wrap break-all">
+                {gatewayCard.logTail}
+              </pre>
+            </details>
+          )}
+        </div>
+      )}
+
+      <div className="fc-card p-4">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-medium">Service connections</h2>
+          <h2 className="fc-card-title">Service connections</h2>
           <span className="text-[10px] text-[hsl(var(--fc-fg-muted))]">
             per-user vault + capability bridge
           </span>
@@ -261,9 +378,9 @@ export default async function UserDetailPage({
       {user.agentId && agentLive && <ToolAccessPanel userId={user.id} />}
 
       {user.agentId && agentLive && (
-        <div className="rounded-lg bg-[hsl(var(--fc-bg-surface))] ring-1 ring-[hsl(var(--fc-bg-tertiary))] p-4">
+        <div className="fc-card p-4">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-medium">
+            <h2 className="fc-card-title">
               Scheduled tasks{" "}
               <span className="text-[hsl(var(--fc-fg-muted))] font-normal">
                 (acting as {user.identityName ?? user.email})
@@ -278,7 +395,7 @@ export default async function UserDetailPage({
       )}
 
       <div>
-        <h2 className="text-sm font-medium mb-2">Chat as {user.identityName ?? user.email}</h2>
+        <h2 className="fc-card-title mb-2">Chat as {user.identityName ?? user.email}</h2>
         {user.agentId && agentLive ? (
           (() => {
             const requestedSession = typeof sp.session === "string" ? sp.session : undefined;
@@ -301,7 +418,7 @@ export default async function UserDetailPage({
             );
           })()
         ) : (
-          <div className="rounded-lg bg-[hsl(var(--fc-bg-surface))] ring-1 ring-[hsl(var(--fc-bg-tertiary))] p-4 text-sm text-[hsl(var(--fc-fg-secondary))] flex items-center justify-between">
+          <div className="fc-card p-4 text-sm text-[hsl(var(--fc-fg-secondary))] flex items-center justify-between">
             <span>
               {user.agentId
                 ? "Agent record exists on portal but is missing on the gateway. Repair will re-create it."
@@ -311,7 +428,7 @@ export default async function UserDetailPage({
               <input type="hidden" name="userId" value={user.id} />
               <button
                 type="submit"
-                className="rounded bg-[hsl(var(--brand-accent))] px-4 py-1.5 text-sm font-semibold text-[hsl(var(--brand-accent-fg))]"
+                className="fc-btn fc-btn-primary"
               >
                 {user.agentId ? "Repair agent" : "Provision agent"}
               </button>
@@ -319,6 +436,7 @@ export default async function UserDetailPage({
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </>
   );
 }

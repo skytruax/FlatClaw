@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
+import { scheduleSessionTitle } from "@/lib/openclaw/session-titles";
 import { auth } from "@/lib/auth/config";
 import { db, schema } from "@/lib/db/client";
 import { eq } from "drizzle-orm";
-import { getGatewayClient } from "@/lib/openclaw/adapter";
+import { gatewayClientFor } from "@/lib/gateways/registry";
+import { sessionBelongsToAgent } from "@/lib/openclaw/stream-events";
+import { isAllowedChatCommand } from "@/lib/openclaw/chat-commands";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -70,20 +73,36 @@ export async function POST(req: Request) {
     );
 
   const sessionKey = body.sessionKey ?? `agent:${target.agentId}:main`;
+  // Authz: a non-admin can only send into sessions of their own agent — the
+  // same rule the session read routes apply. Without it a signed-in user could
+  // post into another user's session by naming its key.
+  if (
+    session.user.role !== "admin" &&
+    !sessionBelongsToAgent(sessionKey, target.agentId)
+  ) {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  }
   const message = String(body.message ?? "").trim();
   const attachments = Array.isArray(body.attachments) ? body.attachments : [];
   if (!message && attachments.length === 0)
     return NextResponse.json({ error: "empty message" }, { status: 400 });
 
   try {
-    const client = getGatewayClient();
+    const client = await gatewayClientFor(target.agentId);
     const result = await client.call("chat.send", {
       sessionKey,
       message,
       idempotencyKey: body.idempotencyKey ?? randomUUID(),
+      // The gateway would otherwise run slash commands in this text with
+      // owner rights — /restart, /model <id> -g and the rest. See
+      // lib/openclaw/chat-commands.ts.
+      suppressCommandInterpretation: !isAllowedChatCommand(message),
       ...(thinking ? { thinking } : {}),
       ...(attachments.length ? { attachments } : {}),
     });
+    // Name the session from its content once the reply lands (1st, 2nd, 4th,
+    // 8th… turn); fire-and-forget, same private model, never blocks the send.
+    scheduleSessionTitle(target.agentId, sessionKey);
     return NextResponse.json({ ok: true, result });
   } catch (err) {
     return NextResponse.json(

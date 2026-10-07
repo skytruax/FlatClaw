@@ -18,7 +18,6 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { getGatewayClient } from "./adapter";
 import { db, schema } from "@/lib/db/client";
 import { eq } from "drizzle-orm";
 import {
@@ -28,34 +27,21 @@ import {
 } from "@/lib/oauth/capability-tokens";
 import {
   applyManagedToolPolicies,
-  safeAgentId,
+  gatewayToolName,
+  legacyManagedServerName,
+  legacyManagedServerNames,
+  managedServerName,
   registerManagedPrefix,
 } from "./agent-tool-policy";
-
-interface McpServerEntry {
-  command?: string;
-  args?: string[];
-  env?: Record<string, string>;
-  [k: string]: unknown;
-}
-
-interface ConfigBlob {
-  agents?: { list?: Array<{ id?: string; [k: string]: unknown }>; [k: string]: unknown };
-  mcp?: { servers?: Record<string, McpServerEntry>; [k: string]: unknown };
-  [k: string]: unknown;
-}
-
-interface ConfigGetResult {
-  config: ConfigBlob | string;
-  hash?: string;
-  baseHash?: string;
-  raw?: string;
-}
-
-function readBlob(value: unknown): ConfigBlob {
-  if (typeof value === "string") return JSON.parse(value) as ConfigBlob;
-  return (value as ConfigBlob) ?? {};
-}
+import type { McpServerEntry } from "./agent-roster";
+import {
+  readGatewayConfig,
+  storedMcpServerEntryEquals,
+  writeGatewayConfig,
+} from "./gateway-config";
+import { gatewayMode, workspacePathFor } from "@/lib/gateways/paths";
+import { adoptIntoWorkspace } from "@/lib/gateways/ownership";
+import { gatewayClientFor, listGatewayHandles } from "@/lib/gateways/registry";
 
 /**
  * A named set of MCP tools a service exposes. Used purely as a tool inventory:
@@ -194,8 +180,21 @@ export interface ManagedMcpService {
   prefix: string;
   /** Capability-token scope name: e.g. `cpanel.token`. */
   capabilityScope: CapabilityScope;
-  /** Env var pointing at the built MCP entrypoint (`node <path>`). */
-  entryEnvVar: string;
+  /** Env var pointing at the built MCP entrypoint (`node <path>`). Required
+   *  for stdio services; omit when `remote` is set. */
+  entryEnvVar?: string;
+  /**
+   * Remote MCP endpoint (openclaw's native url transport) instead of a local
+   * stdio spawn. The gateway connects straight to the URL; `tokenEnvVar` (if
+   * set and present in env) is sent as an Authorization: Bearer header.
+   * Network-level allowlisting (e.g. the peer accepting only the tenant's
+   * egress IP) is the baseline auth for demo integrations.
+   */
+  remote?: {
+    urlEnvVar: string;
+    tokenEnvVar?: string;
+    transport?: "streamable-http" | "sse";
+  };
   /** One-line description used in admin UI / audit. */
   description: string;
   /** How the user authenticates to this service. */
@@ -226,7 +225,7 @@ export interface ManagedMcpService {
   /**
    * Optional per-service prompt sections. When the user has this service
    * connected, `sync-skills` calls these to fold a service-specific bullet
-   * into the agent's AGENTS.md / TOOLS.md — so a private add-on service can
+   * into the agent's AGENTS.md (context and tool guide) — so a private add-on service can
    * describe its own tools without the upstream prompt builder naming it.
    * Return null to contribute nothing (e.g. not connected). Skipped in
    * subagent mode (each subagent gets its own service's schemas directly).
@@ -257,6 +256,8 @@ export interface ManagedMcpService {
      * with per-user credentials use this to act as the requesting user.
      */
     requestedByAgentId?: string;
+    /** Display name (or email) of the person who clicked Approve, for write-backs that record who signed off. */
+    approverName?: string;
   }) => Promise<{ summary: string } | null>;
   /**
    * Persist a credential payload to the vault. Required only for
@@ -306,16 +307,17 @@ export function listManagedMcpServices(): ManagedMcpService[] {
 
 /**
  * Compose the per-user MCP server name for a given service + agent. Single
- * source of truth — same shape used by `agent-tool-policy.ts`.
+ * source of truth — `managedServerName` in `agent-tool-policy.ts`, which keeps
+ * the name within the 30 characters the gateway uses for tool names.
  */
 export function managedMcpServerName(svc: ManagedMcpService, agentId: string): string {
-  return `${svc.prefix}${safeAgentId(agentId)}`;
+  return managedServerName(svc.prefix, agentId);
 }
 
 export interface ManagedMcpProvisionResult {
   service: string;
   serverName: string;
-  capabilityToken: string;
+  capabilityToken: string | null;
 }
 
 /**
@@ -341,66 +343,92 @@ export async function provisionManagedMcpForUser(
   if (userRows.length === 0 || !userRows[0].agentId) return null;
   const u = userRows[0];
 
-  const mcpEntry = process.env[svc.entryEnvVar];
-  if (!mcpEntry) {
-    throw new Error(
-      `${svc.entryEnvVar} missing — point it at the built ${svc.service} MCP entrypoint`,
-    );
-  }
-  const portalBase = process.env.FLATCLAW_PORTAL_BASE_URL ?? "http://127.0.0.1:3000";
-
-  const capToken = await ensureCapabilityToken(userId, svc.capabilityScope);
   const serverName = managedMcpServerName(svc, u.agentId!);
 
   // Seed any bundled workspace skills into the agent's workspace (idempotent).
   if (typeof svc.workspaceSkills === "function") {
-    const workspaceRoot = `${process.env.HOME ?? "/home/sky"}/.openclaw/workspace-${u.agentId!}`;
+    const workspaceRoot = workspacePathFor(u.agentId!);
     for (const sourceDir of svc.workspaceSkills()) {
       try {
         if (!fs.existsSync(sourceDir)) continue;
         const dest = path.join(workspaceRoot, "skills", path.basename(sourceDir));
         fs.mkdirSync(path.dirname(dest), { recursive: true });
         fs.cpSync(sourceDir, dest, { recursive: true });
+        // Written by the portal; the agent's own account must be able to change it.
+        await adoptIntoWorkspace(u.agentId!, path.dirname(dest), { recursive: true });
       } catch (err) {
         console.warn(`[managed-mcp] skill seed ${sourceDir} → ${u.agentId} failed:`, err);
       }
     }
   }
 
-  const extraEnv = svc.buildExtraEnv ? svc.buildExtraEnv() : {};
-  // Tools that need to write directly into the agent's workspace
-  // (e.g. cpanel download_file, drive_download) read these to derive the
-  // path without round-tripping the file content through the model.
-  const workspacePath = `${process.env.HOME ?? "/home/sky"}/.openclaw/workspace-${u.agentId!}`;
-  const desired: McpServerEntry = {
-    command: "node",
-    args: [mcpEntry],
-    env: {
-      CAPABILITY_TOKEN: capToken,
-      PORTAL_BASE_URL: portalBase,
-      OPENCLAW_AGENT_ID: u.agentId!,
-      OPENCLAW_WORKSPACE_PATH: workspacePath,
-      ...extraEnv,
-    },
-  };
+  let desired: McpServerEntry;
+  let capToken: string | null = null;
+  if (svc.remote) {
+    const url = process.env[svc.remote.urlEnvVar];
+    if (!url) {
+      throw new Error(
+        `${svc.remote.urlEnvVar} missing — set the ${svc.service} remote MCP endpoint URL`,
+      );
+    }
+    const token = svc.remote.tokenEnvVar ? process.env[svc.remote.tokenEnvVar] : undefined;
+    desired = {
+      url,
+      transport: svc.remote.transport ?? "streamable-http",
+      ...(token ? { headers: { Authorization: `Bearer ${token}` } } : {}),
+    };
+  } else {
+    const mcpEntry = svc.entryEnvVar ? process.env[svc.entryEnvVar] : undefined;
+    if (!mcpEntry) {
+      throw new Error(
+        `${svc.entryEnvVar ?? "(entryEnvVar unset)"} missing — point it at the built ${svc.service} MCP entrypoint`,
+      );
+    }
+    const portalBase = process.env.FLATCLAW_PORTAL_BASE_URL ?? "http://127.0.0.1:3000";
+    capToken = await ensureCapabilityToken(userId, svc.capabilityScope);
+    const extraEnv = svc.buildExtraEnv ? svc.buildExtraEnv() : {};
+    // Tools that need to write directly into the agent's workspace
+    // (e.g. cpanel download_file, drive_download) read these to derive the
+    // path without round-tripping the file content through the model.
+    const workspacePath = workspacePathFor(u.agentId!);
+    desired = {
+      command: "node",
+      args: [mcpEntry],
+      env: {
+        CAPABILITY_TOKEN: capToken,
+        PORTAL_BASE_URL: portalBase,
+        OPENCLAW_AGENT_ID: u.agentId!,
+        OPENCLAW_WORKSPACE_PATH: workspacePath,
+        ...extraEnv,
+      },
+    };
+  }
 
-  const client = getGatewayClient();
-  const cur = (await client.call("config.get", {})) as ConfigGetResult;
-  const blob = readBlob(cur.config ?? cur.raw);
-  const before = JSON.stringify(blob);
+  const client = await gatewayClientFor(u.agentId!);
+  const snapshot = await readGatewayConfig(client);
+  const { blob } = snapshot;
 
   blob.mcp = blob.mcp ?? {};
   blob.mcp.servers = blob.mcp.servers ?? {};
-  blob.mcp.servers[serverName] = desired;
+  // An entry registered before server names were capped at 30 characters
+  // lives under the agent's full-length name; this registration replaces it.
+  const legacyName = legacyManagedServerName(svc.prefix, u.agentId!);
+  if (legacyName !== serverName) delete blob.mcp.servers[legacyName];
+  // The entry read back from the gateway has its `env` / `headers` values
+  // redacted, so it never compares equal to `desired` even when nothing
+  // changed. Leave an already-correct entry untouched (the gateway restores
+  // the redacted values on write) — otherwise every sync would rewrite the
+  // config and reload the gateway, aborting whatever runs are in flight.
+  if (
+    !blob.mcp.servers[serverName] ||
+    !storedMcpServerEntryEquals(serverName, desired)
+  ) {
+    blob.mcp.servers[serverName] = desired;
+  }
 
   applyManagedToolPolicies(blob);
 
-  const after = JSON.stringify(blob);
-  if (after === before) {
-    return { service: svc.service, serverName, capabilityToken: capToken };
-  }
-  await client.call("config.set", { raw: after, baseHash: cur.hash ?? cur.baseHash });
-  await client.waitUntilReady();
+  await writeGatewayConfig(snapshot, client);
   return { service: svc.service, serverName, capabilityToken: capToken };
 }
 
@@ -417,24 +445,21 @@ export async function deprovisionManagedMcpForUser(
     .limit(1);
   if (userRows.length === 0 || !userRows[0].agentId) return;
   const serverName = managedMcpServerName(svc, userRows[0].agentId!);
+  const legacyName = legacyManagedServerName(svc.prefix, userRows[0].agentId!);
 
-  const client = getGatewayClient();
-  const cur = (await client.call("config.get", {})) as ConfigGetResult;
-  const blob = readBlob(cur.config ?? cur.raw);
-  const before = JSON.stringify(blob);
+  const client = await gatewayClientFor(userRows[0].agentId!);
+  const snapshot = await readGatewayConfig(client);
+  const { blob } = snapshot;
 
-  if (blob.mcp?.servers?.[serverName]) {
+  if (blob.mcp?.servers) {
     delete blob.mcp.servers[serverName];
+    delete blob.mcp.servers[legacyName];
     if (Object.keys(blob.mcp.servers).length === 0) delete blob.mcp.servers;
-    if (blob.mcp && Object.keys(blob.mcp).length === 0) delete blob.mcp;
+    if (Object.keys(blob.mcp).length === 0) delete blob.mcp;
   }
   applyManagedToolPolicies(blob);
 
-  const after = JSON.stringify(blob);
-  if (after !== before) {
-    await client.call("config.set", { raw: after, baseHash: cur.hash ?? cur.baseHash });
-    await client.waitUntilReady();
-  }
+  await writeGatewayConfig(snapshot, client);
   await revokeCapabilityToken(userId, svc.capabilityScope);
 }
 
@@ -446,16 +471,14 @@ export async function deprovisionManagedMcpForUser(
 export async function recomputeAgentToolPolicies(): Promise<{
   changedAgents: string[];
 }> {
-  const client = getGatewayClient();
-  const cur = (await client.call("config.get", {})) as ConfigGetResult;
-  const blob = readBlob(cur.config ?? cur.raw);
-  const before = JSON.stringify(blob);
-  const result = applyManagedToolPolicies(blob);
-  const after = JSON.stringify(blob);
-  if (after === before) return result;
-  await client.call("config.set", { raw: after, baseHash: cur.hash ?? cur.baseHash });
-  await client.waitUntilReady();
-  return result;
+  const changedAgents: string[] = [];
+  for (const handle of await listGatewayHandles()) {
+    const snapshot = await readGatewayConfig(handle.client);
+    const result = applyManagedToolPolicies(snapshot.blob);
+    await writeGatewayConfig(snapshot, handle.client);
+    changedAgents.push(...result.changedAgents);
+  }
+  return { changedAgents };
 }
 
 /**
@@ -665,7 +688,7 @@ export async function seedRoleToolAccessForUser(
     const serverName = managedMcpServerName(svc, agentId);
     const groups = svc.toolGroups ?? [];
     for (const g of groups)
-      for (const t of g.tools) ownedToolIds.add(`${serverName}__${t}`);
+      for (const t of g.tools) ownedToolIds.add(gatewayToolName(serverName, t));
 
     let connected = false;
     try {
@@ -685,7 +708,7 @@ export async function seedRoleToolAccessForUser(
     const denySet = new Set(deniedGroups);
     for (const g of groups)
       if (denySet.has(g.id))
-        for (const t of g.tools) roleDenyIds.add(`${serverName}__${t}`);
+        for (const t of g.tools) roleDenyIds.add(gatewayToolName(serverName, t));
   }
 
   const { readAgentToolAccess, setAgentToolDeny } = await import("./tool-access");
@@ -744,6 +767,53 @@ export async function syncAllManagedMcpsForUser(
     console.error(`[managed-mcp] seedRoleToolAccessForUser(${userId}) failed:`, err);
   }
   return out;
+}
+
+/**
+ * One-time repair for tenants provisioned before server names were capped at
+ * the gateway's 30 characters. A longer name is exposed to every agent under
+ * its truncated form (the deny globs never matched it), so each user who still
+ * has one gets their managed MCPs re-registered under the short name. Costs a
+ * single config read when there is nothing to repair. Returns the repaired
+ * users' ids.
+ */
+export async function repairLegacyServerNames(): Promise<string[]> {
+  // Per-user gateways were all created after the cap and hold one agent each;
+  // there is nothing another agent could see.
+  if (gatewayMode() === "per-user") return [];
+  const { blob } = await readGatewayConfig();
+  const users = await db.select().from(schema.users);
+  const repaired: string[] = [];
+  for (const u of users) {
+    if (!u.agentId) continue;
+    const stale = legacyManagedServerNames(blob, u.agentId);
+    if (stale.length === 0) continue;
+    console.warn(
+      `[managed-mcp] ${u.email}: re-registering MCP server(s) with over-long names (${stale.join(", ")}) — other agents could see their tools`,
+    );
+    await syncAllManagedMcpsForUser(u.id);
+    // The agent's AGENTS.md names its tools by server name; rewrite it too.
+    // Dynamic import: sync-skills imports this module.
+    const { syncSkillsForUser } = await import("./sync-skills");
+    await syncSkillsForUser(u.id);
+    repaired.push(u.id);
+  }
+  // A service that is no longer enabled/connected never re-registers, so its
+  // legacy entry would survive the loop above. Drop whatever is left.
+  const snapshot = await readGatewayConfig();
+  let dropped = false;
+  for (const u of users) {
+    if (!u.agentId) continue;
+    for (const name of legacyManagedServerNames(snapshot.blob, u.agentId)) {
+      delete snapshot.blob.mcp!.servers![name];
+      dropped = true;
+    }
+  }
+  if (dropped) {
+    applyManagedToolPolicies(snapshot.blob);
+    await writeGatewayConfig(snapshot);
+  }
+  return repaired;
 }
 
 /**

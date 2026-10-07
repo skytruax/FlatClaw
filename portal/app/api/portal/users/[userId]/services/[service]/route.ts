@@ -6,6 +6,7 @@ import {
   provisionManagedMcpForUser,
   deprovisionManagedMcpForUser,
   isServiceEnabled,
+  seedRoleToolAccessForUser,
 } from "@/lib/openclaw/managed-mcp";
 import { db, schema } from "@/lib/db/client";
 import { randomUUID } from "node:crypto";
@@ -174,6 +175,11 @@ export async function POST(
     if (serviceEnabled) {
       const r = await provisionManagedMcpForUser(svc.service, userId);
       if (r) provisioned = { serverName: r.serverName };
+      // The role on the form may have changed (read-only → read-write):
+      // rewrite this user's role-derived tool denies from the new role now,
+      // not only on the next tenant-wide sync. (2026-10-07: a user connected
+      // read-only then re-connected read-write kept every write tool denied.)
+      if (typeof svc.roleDeniedGroups === "function") await seedRoleToolAccessForUser(userId);
     }
   } catch (err) {
     // Save the error so the admin sees "Credentials saved but provisioning
@@ -231,6 +237,7 @@ export async function DELETE(
   // Tear down gateway-side wiring first; vault delete is best-effort.
   try {
     await deprovisionManagedMcpForUser(svc.service, userId);
+  if (typeof svc.roleDeniedGroups === "function") await seedRoleToolAccessForUser(userId); // drops the stale role denies
   } catch (err) {
     console.warn(
       `[services/${svc.service}] deprovision failed (continuing):`,

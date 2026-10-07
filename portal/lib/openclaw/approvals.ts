@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
+import { unwrapToolCall, unwrapToolResult } from "./tool-call-wrapper";
 import { eq, inArray } from "drizzle-orm";
-import { getGatewayClient } from "./adapter";
+import { gatewayClientFor } from "@/lib/gateways/registry";
 import { listManagedMcpServices } from "./managed-mcp";
 import { db, schema } from "@/lib/db/client";
 
@@ -46,6 +47,8 @@ export interface PendingApproval {
   approverPolicy: ApproverPolicy;
   amountUsd?: number;
   composedRequest?: unknown;
+  /** Why the tool did not execute on its own (the envelope's `whyNotAutomatic`), for the approver. */
+  reasons?: string[];
   composedAt: number;
   /** Why this is in the viewer's queue: their own action, or routed to their role. */
   routedToYou?: "self" | "role";
@@ -157,7 +160,7 @@ function agentIdFromSessionKey(sessionKey: string): string {
 
 /** Scan one session's transcript for any action awaiting approval. */
 async function scanSession(sessionKey: string): Promise<PendingApproval[]> {
-  const client = getGatewayClient();
+  const client = await gatewayClientFor(agentIdFromSessionKey(sessionKey));
   let messages: RawMsg[] = [];
   try {
     const r = (await client.call("chat.history", { sessionKey })) as {
@@ -168,13 +171,19 @@ async function scanSession(sessionKey: string): Promise<PendingApproval[]> {
     return [];
   }
 
+  // Arguments by tool-call id. Under Tool Search the block is
+  // `tool_call {id, args}`; unwrapToolCall gives the target's name and args.
   const argsById = new Map<string, Record<string, unknown>>();
+  const nameById = new Map<string, string>();
   for (const m of messages) {
+    if (String(m.role ?? "").toLowerCase() === "custom") continue; // display-only copies of target calls
     const blocks = Array.isArray(m.content) ? (m.content as unknown[]) : [];
     for (const raw of blocks) {
       const b = raw as Record<string, unknown>;
       if (b && typeof b === "object" && /tool_?call/i.test(String(b.type)) && typeof b.id === "string") {
-        argsById.set(b.id as string, (b.arguments ?? b.input ?? {}) as Record<string, unknown>);
+        const call = unwrapToolCall(String(b.name ?? ""), b.arguments ?? b.input ?? {});
+        argsById.set(b.id as string, (call.args && typeof call.args === "object" ? call.args : {}) as Record<string, unknown>);
+        nameById.set(b.id as string, call.name);
       }
     }
   }
@@ -197,9 +206,13 @@ async function scanSession(sessionKey: string): Promise<PendingApproval[]> {
       };
       composedRequest?: unknown;
       composedTransfer?: unknown;
+      whyNotAutomatic?: unknown;
     };
+    // A tool_call result carries the target's text inside an envelope.
+    const unwrapped = unwrapToolResult(String(m.toolName ?? ""), blockText(m.content));
+    if (unwrapped.error !== undefined) continue; // the target never ran
     try {
-      parsed = JSON.parse(blockText(m.content));
+      parsed = JSON.parse(unwrapped.text);
     } catch {
       continue;
     }
@@ -207,20 +220,24 @@ async function scanSession(sessionKey: string): Promise<PendingApproval[]> {
 
     const env = parsed.approval;
     const args = argsById.get(id) ?? {};
+    const toolName = unwrapped.targetName ?? nameById.get(id) ?? String(m.toolName ?? "");
     const kind = env?.kind ?? parsed.action ?? "approval";
     const amountUsd = typeof args.amountUsd === "number" ? args.amountUsd : undefined;
     out.push({
       toolCallId: id,
       sessionKey,
-      service: serviceForToolName(String(m.toolName ?? "")) ?? env?.service ?? "unknown",
+      service: serviceForToolName(toolName) ?? env?.service ?? "unknown",
       kind,
       title: env?.title ?? defaultTitle(kind, amountUsd),
-      toolName: String(m.toolName ?? ""),
+      toolName,
       requestedByAgentId: env?.requestedByAgentId ?? agentIdFromSessionKey(sessionKey),
       requestedByRole: env?.requestedByRole,
       approverPolicy: env?.approverPolicy ?? { mode: "self" },
       amountUsd,
       composedRequest: parsed.composedRequest ?? parsed.composedTransfer,
+      reasons: Array.isArray(parsed.whyNotAutomatic)
+        ? parsed.whyNotAutomatic.filter((x): x is string => typeof x === "string" && x.trim().length > 0)
+        : undefined,
       composedAt: typeof m.timestamp === "number" ? m.timestamp : Date.now(),
     });
   }
@@ -240,7 +257,7 @@ interface SessionRow {
 }
 
 async function recentSessionKeys(agentId: string, cap = 8): Promise<string[]> {
-  const client = getGatewayClient();
+  const client = await gatewayClientFor(agentId);
   let sessions: SessionRow[] = [];
   try {
     const r = (await client.call("sessions.list", { agentId, limit: 30 })) as {
@@ -413,6 +430,14 @@ export async function resolveApproval(opts: {
   if (opts.decision === "approved") {
     const svc = listManagedMcpServices().find((s) => s.service === opts.pending.service);
     if (svc?.executeApproval) {
+      // Who clicked Approve, for executors that write the sign-off back into
+      // the service's own record (e.g. the review note on a Dynamics case).
+      const approver = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.id, opts.approverUserId))
+        .limit(1);
+      const approverName = approver[0]?.identityName ?? approver[0]?.email ?? undefined;
       const res = await svc.executeApproval({
         kind: opts.pending.kind,
         composedRequest: opts.pending.composedRequest,
@@ -422,6 +447,7 @@ export async function resolveApproval(opts: {
         requestedByAgentId:
           agentIdFromSessionKey(opts.pending.sessionKey) ||
           opts.pending.requestedByAgentId,
+        approverName,
       });
       executionSummary = res?.summary;
     }

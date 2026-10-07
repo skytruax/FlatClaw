@@ -2,14 +2,14 @@ import { auth } from "@/lib/auth/config";
 import { db, schema } from "@/lib/db/client";
 import { eq } from "drizzle-orm";
 import { readFile, stat } from "node:fs/promises";
-import { homedir } from "node:os";
 import { basename, resolve, sep } from "node:path";
+import { workspacePathFor } from "@/lib/gateways/paths";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 function workspaceRoot(agentId: string) {
-  return resolve(homedir(), ".openclaw", `workspace-${agentId}`);
+  return resolve(workspacePathFor(agentId));
 }
 
 function safeJoin(root: string, relPath: string): string | null {

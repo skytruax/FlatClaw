@@ -5,10 +5,9 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Send, Square, Sparkles, MessageSquarePlus, Paperclip, X, FileText, Upload } from "lucide-react";
-import CompactionControls, {
-  CompactionMarker,
-  type CompactionCheckpoint,
-} from "./CompactionControls";
+import CompactionControls from "./CompactionControls";
+import { RELAYED_GATEWAY_EVENTS } from "@/lib/openclaw/stream-events";
+import { unwrapToolCall, unwrapToolResult } from "@/lib/openclaw/tool-call-wrapper";
 
 interface ToolEvent {
   id: string;
@@ -68,6 +67,10 @@ interface ChatPanelProps {
    * `chat.history`. Defaults to the agent's main session.
    */
   sessionKey?: string;
+  /** Height and sizing; defaults to the 75vh the admin's "Chat as" view uses. */
+  className?: string;
+  /** True on the signed-in user's own page: the wording speaks to them, not about them. */
+  own?: boolean;
 }
 
 function uuid(): string {
@@ -76,16 +79,6 @@ function uuid(): string {
     : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-/**
- * Interleave compaction markers into a sorted bubble list. A checkpoint is
- * inserted between bubble[i] and bubble[i+1] when its `createdAt` falls in
- * the interval (bubble[i].timestamp, bubble[i+1].timestamp]. Checkpoints
- * older than the first bubble are dropped (the corresponding history was
- * compacted away — no point pointing at a void). Checkpoints newer than
- * the last bubble are pinned at the end.
- *
- * Multiple checkpoints in the same slot stack chronologically.
- */
 /**
  * Estimate tokens consumed by the live transcript using openclaw's own
  * chars/4 heuristic (see openclaw/src/agents/pi-embedded-runner/
@@ -123,7 +116,6 @@ const composeLiveUsage = (
     totalTokens: number | null;
     totalTokensFresh: boolean;
     contextTokens: number | null;
-    compactionCheckpointCount: number;
   },
   staticPromptTokens: number | null,
   bubbles: ChatBubble[],
@@ -152,47 +144,26 @@ const composeLiveUsage = (
   };
 };
 
-type TranscriptItem =
-  | { kind: "bubble"; bubble: ChatBubble }
-  | { kind: "marker"; checkpoint: CompactionCheckpoint };
+/** Synthetic system-notice bubble (session-restart divider, run-interrupted
+ * note). Rendered as a slim inline divider, never sent anywhere. */
+function sysMarkerBubble(text: string): ChatBubble {
+  return {
+    id: `sysmark-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    role: "assistant",
+    text,
+    tools: [],
+    timestamp: Date.now(),
+  };
+}
 
-function interleaveBubblesAndMarkers(
-  bubbles: ChatBubble[],
-  checkpoints: CompactionCheckpoint[],
-): TranscriptItem[] {
-  if (checkpoints.length === 0)
-    return bubbles.map((b) => ({ kind: "bubble" as const, bubble: b }));
-  const sortedCheckpoints = [...checkpoints].sort((a, b) => a.createdAt - b.createdAt);
-  const out: TranscriptItem[] = [];
-  let cpIdx = 0;
-  // Skip checkpoints older than the first bubble.
-  if (bubbles.length > 0) {
-    while (
-      cpIdx < sortedCheckpoints.length &&
-      sortedCheckpoints[cpIdx].createdAt < bubbles[0].timestamp
-    ) {
-      cpIdx++;
-    }
-  }
-  for (let i = 0; i < bubbles.length; i++) {
-    out.push({ kind: "bubble", bubble: bubbles[i] });
-    const nextTs = i < bubbles.length - 1 ? bubbles[i + 1].timestamp : Infinity;
-    while (
-      cpIdx < sortedCheckpoints.length &&
-      sortedCheckpoints[cpIdx].createdAt <= nextTs
-    ) {
-      out.push({ kind: "marker", checkpoint: sortedCheckpoints[cpIdx] });
-      cpIdx++;
-    }
-  }
-  // If there were no bubbles but checkpoints exist (rare — fresh restore),
-  // surface them at the top.
-  if (bubbles.length === 0) {
-    for (const cp of sortedCheckpoints) {
-      out.push({ kind: "marker", checkpoint: cp });
-    }
-  }
-  return out;
+/**
+ * Defensive ordering: when a user message lands while a run is mid-stream
+ * (the embedded-prompt-lock race), the session can interleave entries
+ * non-chronologically. Render in timestamp order; the sort is stable, so
+ * same-timestamp entries keep their original relative order.
+ */
+function inTimestampOrder(rawBubbles: ChatBubble[]): ChatBubble[] {
+  return [...rawBubbles].sort((a, b) => a.timestamp - b.timestamp);
 }
 
 /**
@@ -239,10 +210,72 @@ export default function ChatPanel({
   agentId,
   identityName,
   sessionKey: sessionKeyProp,
+  className,
+  own = false,
 }: ChatPanelProps) {
-  const sessionKey = sessionKeyProp ?? `agent:${agentId}:main`;
   const router = useRouter();
   const searchParams = useSearchParams();
+  // Pin-to-concrete: with no explicit session selected, view/send the most
+  // recently active CONCRETE session rather than the `agent:<id>:main` alias.
+  // The alias re-points to a fresh empty file on every gateway restart, which
+  // is what made open chats "disappear" — a concrete key survives restarts,
+  // so a session starts once and stays. The alias remains the fallback for
+  // fresh agents with no history, and whenever main itself is the most
+  // recently active conversation.
+  const [autoKey, setAutoKey] = useState<string | null>(null);
+  const sessionKey = sessionKeyProp ?? autoKey ?? `agent:${agentId}:main`;
+  useEffect(() => {
+    if (sessionKeyProp) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const u = new URL("/api/portal/sessions", window.location.origin);
+        u.searchParams.set("agent", agentId);
+        const r = await fetch(u, { cache: "no-store" });
+        if (!r.ok) return;
+        const d = (await r.json()) as {
+          sessions?: {
+            sessionKey: string;
+            isMain?: boolean;
+            lastMessageAt?: number | null;
+          }[];
+        };
+        const all = d.sessions ?? [];
+        const main = all.find((s) => s.isMain);
+        const concrete = all
+          .filter((s) => !s.isMain)
+          .sort((a, b) => (b.lastMessageAt ?? 0) - (a.lastMessageAt ?? 0));
+        const best = concrete[0];
+        if (
+          !cancelled &&
+          best &&
+          (best.lastMessageAt ?? 0) > 0 &&
+          (best.lastMessageAt ?? 0) > (main?.lastMessageAt ?? 0)
+        ) {
+          setAutoKey(best.sessionKey);
+          // Make the pinned choice explicit in the URL so the sidebar
+          // highlights the session actually shown — a silently-pinned pane
+          // reads as "a copy of main" instead of an addressable session.
+          try {
+            const here = new URL(window.location.href);
+            if (!here.searchParams.get("session")) {
+              here.searchParams.set("session", best.sessionKey);
+              router.replace(`${here.pathname}?${here.searchParams.toString()}`, {
+                scroll: false,
+              });
+            }
+          } catch {
+            // URL sync is cosmetic; the pane still pins correctly
+          }
+        }
+      } catch {
+        // alias fallback is fine
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionKeyProp, agentId]);
   const [input, setInput] = useState("");
   const [bubbles, setBubbles] = useState<ChatBubble[]>([]);
   const [hydrating, setHydrating] = useState(false);
@@ -253,6 +286,14 @@ export default function ChatPanel({
   const [streamError, setStreamError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [activeRunId, setActiveRunId] = useState<string | null>(null);
+  // Continuity across gateway restarts: when the main session rotates to a
+  // fresh (empty) file, we show the previous conversation above a divider
+  // instead of a silently blank pane, and stale-run recovery announces the
+  // interruption instead of just clearing the thinking indicator.
+  const [priorBubbles, setPriorBubbles] = useState<ChatBubble[]>([]);
+  const [sysMarkers, setSysMarkers] = useState<ChatBubble[]>([]);
+  const priorTriedRef = useRef(false);
+  const lastInterruptAtRef = useRef(0);
   // (The per-turn thinking-level picker is hidden for now — every turn runs
   // at the agent's configured default, "medium" on prod. The `thinking` param
   // is still wired through `/api/runtime/chat-send` if we re-add the dropdown.)
@@ -268,9 +309,14 @@ export default function ChatPanel({
   // (gateway restart mid-turn, dropped SSE final frame) and recover, instead
   // of pinning a streaming bubble — and the "thinking…" indicator — forever.
   const lastStreamActivityRef = useRef(0);
+  // Consecutive heartbeat ticks that judged the run stale. Death is only
+  // declared on the SECOND consecutive stale tick — a single quiet stretch
+  // (a long tool execution, or the model prefilling a large context between
+  // events) must not tear down the run: that both posts a false "interrupted"
+  // banner AND flushes the mid-run send queue into a still-live run.
+  const staleStrikesRef = useRef(0);
 
-  // ── compaction state ──────────────────────────────────────────────────
-  const [checkpoints, setCheckpoints] = useState<CompactionCheckpoint[]>([]);
+  // ── context usage ─────────────────────────────────────────────────────
   // Static prompt cost (system + tools + workspace files), char-based.
   // Refreshed by the usage route. Cached by openclaw for 30 s but the
   // numbers it reports don't change between turns anyway — these
@@ -282,27 +328,13 @@ export default function ChatPanel({
     totalTokens: number | null;
     totalTokensFresh: boolean;
     contextTokens: number | null;
-    compactionCheckpointCount: number;
   }>({
     totalTokens: null,
     totalTokensFresh: false,
     contextTokens: null,
-    compactionCheckpointCount: 0,
   });
 
-  const refreshCompaction = useCallback(async () => {
-    try {
-      const r = await fetch(
-        `/api/portal/sessions/${encodeURIComponent(sessionKey)}/compaction`,
-        { cache: "no-store" },
-      );
-      if (r.ok) {
-        const data = (await r.json()) as { checkpoints?: CompactionCheckpoint[] };
-        setCheckpoints(data.checkpoints ?? []);
-      }
-    } catch {
-      /* best effort */
-    }
+  const refreshUsage = useCallback(async () => {
     // Pull live token usage + context-weight from the per-session usage
     // route. The gateway's sessions.list doesn't expose totalTokens — that
     // lives behind sessions.usage with includeContextWeight=true.
@@ -320,14 +352,12 @@ export default function ChatPanel({
           totalTokens: number | null;
           contextTokens: number | null;
           estimatedPromptTokens: number | null;
-          checkpointCount: number;
         };
         setStaticPromptTokens(u.estimatedPromptTokens);
         setUsage({
           totalTokens: u.totalTokens, // null on free providers; transcript counted client-side
           totalTokensFresh: u.totalTokens != null,
           contextTokens: u.contextTokens,
-          compactionCheckpointCount: u.checkpointCount,
         });
       }
     } catch {
@@ -336,20 +366,24 @@ export default function ChatPanel({
   }, [sessionKey]);
 
   // Ref so the SSE event handler (created in a useEffect that only re-runs
-  // on agentId) can call the latest refreshCompaction without retaking the
+  // on agentId) can call the latest refreshUsage without retaking the
   // EventSource connection on every sessionKey change.
-  const refreshCompactionRef = useRef<(() => Promise<void>) | null>(null);
+  const refreshUsageRef = useRef<(() => Promise<void>) | null>(null);
   useEffect(() => {
-    refreshCompactionRef.current = refreshCompaction;
-  }, [refreshCompaction]);
+    refreshUsageRef.current = refreshUsage;
+  }, [refreshUsage]);
 
   useEffect(() => {
-    void refreshCompaction();
-  }, [refreshCompaction]);
+    void refreshUsage();
+  }, [refreshUsage]);
 
   // ── hydrate from history on session change + heartbeat poll ────────────
   useEffect(() => {
     let cancelled = false;
+    // Fresh continuity state per viewed session.
+    setPriorBubbles([]);
+    setSysMarkers([]);
+    priorTriedRef.current = false;
     const load = async (force: boolean) => {
       try {
         const r = await fetch(
@@ -374,18 +408,101 @@ export default function ChatPanel({
         // Covers BOTH: a pinned streaming bubble, AND an `activeRunId` with no
         // streaming bubble (an all-tool-call turn whose final frame dropped).
         // Only active-generation events refresh lastStreamActivity (see
-        // applyEvent), so legitimately long, chatty tool calls keep this fresh
-        // and this only trips on a genuinely dead run.
+        // applyEvent). The window must survive the legitimately silent
+        // stretches of a healthy run — a single long tool execution emits
+        // nothing between its start and result, and the model prefilling a
+        // large context after a fat tool result can sit quiet well past 15 s
+        // — so it is 60 s, and death is only declared after a second
+        // consecutive stale tick (see staleStrikesRef below).
         const runActive = isStreaming || activeRunIdRef.current != null;
         const runStale =
-          runActive && Date.now() - lastStreamActivityRef.current > 15_000;
+          runActive && Date.now() - lastStreamActivityRef.current > 60_000;
         if (!force && !runStale) {
           if (isStreaming) return;
           if ((data.messageCount ?? 0) === hydratedCountRef.current) return;
         }
+        // Session rotated under us (gateway restart while viewing): the file
+        // we were rendering is gone and "main" now points at an empty one.
+        // Preserve what was on screen above a divider instead of blanking.
+        if (
+          (data.messageCount ?? 0) === 0 &&
+          hydratedCountRef.current > 0 &&
+          bubblesRef.current.length > 0
+        ) {
+          const kept = bubblesRef.current.filter(
+            (b) => !b.streaming && !b.id.startsWith("sysmark-"),
+          );
+          setPriorBubbles((p) => (p.length > 0 ? p : kept));
+          setSysMarkers((m) => [
+            ...m,
+            sysMarkerBubble(
+              "Session restarted by the server — the conversation above is preserved for reference. Continue here.",
+            ),
+          ]);
+        }
         hydratedCountRef.current = data.messageCount ?? 0;
         setBubbles((data.bubbles ?? []) as ChatBubble[]);
-        if (runStale) setActiveRunId(null);
+        if (runStale) {
+          staleStrikesRef.current += 1;
+          if (staleStrikesRef.current >= 2) {
+            staleStrikesRef.current = 0;
+            setActiveRunId(null);
+            // Announce the interruption instead of silently dropping "thinking…".
+            if (Date.now() - lastInterruptAtRef.current > 10_000) {
+              lastInterruptAtRef.current = Date.now();
+              setSysMarkers((m) => [
+                ...m,
+                sysMarkerBubble(
+                  "The run was interrupted before it finished (server restart or dropped connection). Resend your last message or ask the agent to continue.",
+                ),
+              ]);
+            }
+          }
+        } else {
+          staleStrikesRef.current = 0;
+        }
+        // First load of an empty main session: surface the previous
+        // conversation above a divider so a restart never reads as data loss.
+        if (
+          (data.messageCount ?? 0) === 0 &&
+          sessionKey.endsWith(":main") &&
+          !priorTriedRef.current
+        ) {
+          priorTriedRef.current = true;
+          void (async () => {
+            try {
+              const listUrl = new URL("/api/portal/sessions", window.location.origin);
+              listUrl.searchParams.set("agent", agentId);
+              const lr = await fetch(listUrl, { cache: "no-store" });
+              if (!lr.ok) return;
+              const ld = (await lr.json()) as {
+                sessions?: { sessionKey: string; isMain?: boolean }[];
+              };
+              const prev = (ld.sessions ?? []).find((s) => !s.isMain);
+              if (!prev) return;
+              const hr = await fetch(
+                `/api/portal/sessions/${encodeURIComponent(prev.sessionKey)}/history`,
+                { cache: "no-store" },
+              );
+              if (!hr.ok) return;
+              const hd = (await hr.json()) as { bubbles?: ChatBubble[] };
+              const prevBubbles = (hd.bubbles ?? []).filter((b) => !b.streaming);
+              if (cancelled || prevBubbles.length === 0) return;
+              setPriorBubbles((p) => (p.length > 0 ? p : prevBubbles));
+              setSysMarkers((m) =>
+                m.length > 0
+                  ? m
+                  : [
+                      sysMarkerBubble(
+                        "New session — your previous conversation is shown above for context.",
+                      ),
+                    ],
+              );
+            } catch {
+              // continuity is best-effort; a blank new session is the fallback
+            }
+          })();
+        }
       } catch {
         // best-effort — heartbeat will try again
       }
@@ -403,7 +520,7 @@ export default function ChatPanel({
     let tick = 0;
     const t = setInterval(() => {
       void load(false);
-      if (++tick % 2 === 0) void refreshCompactionRef.current?.();
+      if (++tick % 2 === 0) void refreshUsageRef.current?.();
     }, 6_000);
     return () => {
       cancelled = true;
@@ -426,6 +543,14 @@ export default function ChatPanel({
   // So the heartbeat's stale-run recovery can see whether a run is still
   // "active" (the thinking indicator) without retaking the EventSource.
   const activeRunIdRef = useRef<string | null>(null);
+  // Runs whose `agent` lifecycle `end` (or error) has arrived. Only that
+  // signal ends a run: a `chat` "final" frame, a finalized `session.message`
+  // and a `sessions.changed` carrying the previous run's endedAt all fire
+  // mid-run between tool steps, and treating them as "run over" let a
+  // message typed meanwhile bypass the queue and steer the gateway, which
+  // then skipped its pending tool calls ("Skipped to process an incoming
+  // message.", 2026-10-07).
+  const runEndedRef = useRef<Set<string>>(new Set());
   useEffect(() => {
     activeRunIdRef.current = activeRunId;
   }, [activeRunId]);
@@ -456,8 +581,8 @@ export default function ChatPanel({
     //  - "sessions.changed": session metadata changes (compaction, label,
     //                        message count, etc.). Our compaction handler
     //                        reacts to reason="compact".
-    ["chat", "agent", "session.tool", "session.message", "sessions.changed"].forEach(
-      (name) => es.addEventListener(name, onAny(name)),
+    RELAYED_GATEWAY_EVENTS.forEach((name) =>
+      es.addEventListener(name, onAny(name)),
     );
 
     return () => es.close();
@@ -468,10 +593,10 @@ export default function ChatPanel({
     if (!evt || typeof evt !== "object") return;
     const e = evt as Record<string, unknown>;
 
-    // The SSE stream forwards every event for this agent — including events
-    // for *other* sessions of the same agent. Ignore anything that isn't
-    // for the session we're currently rendering. (Events without a
-    // sessionKey are connection-level — let those through.)
+    // The SSE stream forwards every relayed event for this agent — including
+    // events for *other* sessions of the same agent. Ignore anything that
+    // isn't for the session we're currently rendering. (The relay only sends
+    // events that carry a session key; see lib/openclaw/stream-events.ts.)
     const evtSessionKey = typeof e.sessionKey === "string" ? e.sessionKey : null;
     if (evtSessionKey && evtSessionKey !== sessionKeyRef.current) return;
 
@@ -489,6 +614,7 @@ export default function ChatPanel({
         eventName === "session.tool")
     ) {
       lastStreamActivityRef.current = Date.now();
+      staleStrikesRef.current = 0;
     }
 
     // The "chat" event carries assistant text. Payload shape:
@@ -510,13 +636,15 @@ export default function ChatPanel({
       if (textBlock?.text) replaceAssistantText(textBlock.text, false);
       if (reasoningBlock?.text) replaceAssistantText(reasoningBlock.text, true);
       if (state === "final" || state === "aborted" || state === "error") {
-        finalizeAssistant();
+        const chatRunId = String(e.runId ?? "");
+        if (state !== "final" || !chatRunId || runEndedRef.current.has(chatRunId)) finalizeAssistant();
+        else settleAssistantText();
         // A completed turn means openclaw has (re)generated this session's
         // contextWeight — refresh the usage snapshot so the token meter
         // shows real numbers. The `sessions.changed` event *should* also
         // do this, but it doesn't always arrive before the run ends, so
         // we belt-and-braces it here.
-        void refreshCompactionRef.current?.();
+        void refreshUsageRef.current?.();
         // A turn often composes a held action (transfer/loan origination) or
         // writes files (reports, exports). Nudge the approvals and files tabs
         // to refetch immediately so their badge/queue/tree update the moment
@@ -567,36 +695,24 @@ export default function ChatPanel({
             return prev;
           });
         }
-        finalizeAssistant();
+        // A finalized transcript message ends the bubble, not the run: tool
+        // steps follow it inside the same run.
+        settleAssistantText();
       }
       return;
     }
 
-    // sessions.changed fires when any session metadata mutates; we care
-    // about compaction completion (reason="compact") and metadata refreshes
-    // that include compactionCheckpointCount or totalTokens. Refresh both
-    // checkpoint list + usage snapshot. notifyUser=true on the gateway side
-    // makes the compaction reasons surface here.
+    // sessions.changed fires when any session metadata mutates — a finished
+    // compaction (reason="compact"), a send, an abort, a rename. All of them
+    // can move the token meter, so refresh the usage snapshot.
     if (eventName === "sessions.changed") {
       const reason = String(e.reason ?? "");
       const evtKey = typeof e.sessionKey === "string" ? e.sessionKey : null;
       if (evtKey && evtKey !== sessionKeyRef.current) return;
-      // A finished run carries endedAt (status done/timeout/error). Use it as
-      // a secondary finalize signal in case the terminal `chat` frame was
-      // missed (e.g. dropped during an SSE reconnect).
-      if (e.endedAt != null) finalizeAssistant();
-      // For non-compact reasons we don't need to refresh checkpoints, but we
-      // do want to keep the token meter current — usage refresh is cheap.
-      if (
-        reason === "compact" ||
-        reason === "checkpoint-restore" ||
-        reason === "checkpoint-branch"
-      ) {
-        void refreshCompactionRef.current?.();
-      } else {
-        // Throttled token-meter refresh for other reasons (send/abort/patch).
-        void refreshCompactionRef.current?.();
-      }
+      // `endedAt` here is the session's LAST finished run — it is present
+      // throughout the next run too, so it must not end the current one. The
+      // lifecycle `end` event does that; staleness recovery is the backstop.
+      void refreshUsageRef.current?.();
       return;
     }
 
@@ -604,35 +720,50 @@ export default function ChatPanel({
     if (eventName === "agent" || eventName === "session.tool") {
       const stream = String(e.stream ?? "");
       const data = (e.data as Record<string, unknown> | undefined) ?? {};
+      if (stream === "lifecycle") {
+        // Observed order: start → model → (tool start/result)* → finishing → end.
+        const phase = String(data.phase ?? "");
+        if (phase === "end" || phase === "error" || phase === "aborted") {
+          runEndedRef.current.add(String(e.runId ?? ""));
+          finalizeAssistant();
+        }
+        return;
+      }
       if (stream === "tool" || stream === "exec") {
+        // With Tool Search on, a target tool's events arrive under a
+        // `tool_call` wrapper AND again for the target itself (with
+        // parentToolCallId). One card: the wrapper's, shown as the target.
+        if (data.parentToolCallId !== undefined) return;
         const phase = String(data.phase ?? "");
         const toolId = String(data.toolCallId ?? data.id ?? data.callId ?? uuid());
-        const name = String(data.name ?? data.tool ?? "tool");
+        const rawName = String(data.name ?? data.tool ?? "tool");
         if (phase === "start" || phase === "started") {
+          const call = unwrapToolCall(rawName, data.args ?? data.params ?? data.arguments ?? data.input);
           attachTool({
             id: toolId,
-            name,
-            args: data.params ?? data.arguments ?? data.input,
+            name: call.name,
+            args: call.args,
             status: "pending",
           });
         } else if (phase === "end" || phase === "result" || phase === "complete") {
           const raw = data.output ?? data.result;
-          const result =
+          const resultText =
             typeof raw === "string"
               ? raw
               : raw === undefined
                 ? undefined
                 : JSON.stringify(raw, null, 2);
+          const unwrapped = resultText === undefined ? undefined : unwrapToolResult(rawName, resultText);
           const errRaw = data.error;
           const errStr =
             typeof errRaw === "string"
               ? errRaw
               : errRaw == null
-                ? undefined
+                ? unwrapped?.error
                 : JSON.stringify(errRaw, null, 2);
           updateTool(toolId, {
             status: errStr ? "failed" : "done",
-            result,
+            result: unwrapped?.text,
             error: errStr,
           });
         }
@@ -720,6 +851,15 @@ export default function ChatPanel({
     );
   }, []);
 
+  /** Mark the tail assistant bubble as no longer streaming (the run may continue with tools). */
+  const settleAssistantText = useCallback(() => {
+    setBubbles((prev) =>
+      prev.map((b, i) =>
+        i === prev.length - 1 && b.role === "assistant" ? { ...b, streaming: false } : b,
+      ),
+    );
+  }, []);
+
   const finalizeAssistant = useCallback(() => {
     setActiveRunId(null);
     setBubbles((prev) =>
@@ -785,14 +925,79 @@ export default function ChatPanel({
   }, []);
 
   // ── send / abort ──────────────────────────────────────────────────────
+  // Messages typed while a run is streaming are QUEUED and auto-sent when the
+  // run finishes. Sending mid-run into the same session makes the gateway
+  // abort the in-flight turn ("session file changed while embedded prompt
+  // lock was released") — steering messages are normal chat behavior, so they
+  // must wait their turn instead of killing the current one.
+  type QueuedSend = {
+    message: string;
+    apiAttachments: {
+      type: string;
+      mimeType: string;
+      fileName: string;
+      content: string;
+    }[];
+  };
+  const sendQueueRef = useRef<QueuedSend[]>([]);
+  const [queuedCount, setQueuedCount] = useState(0);
+
+  const postSend = useCallback(
+    async (payload: QueuedSend) => {
+      const idempotencyKey = uuid();
+      setActiveRunId(idempotencyKey);
+      lastStreamActivityRef.current = Date.now();
+      staleStrikesRef.current = 0;
+      try {
+        const r = await fetch("/api/runtime/chat-send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            targetUserId,
+            message: payload.message,
+            idempotencyKey,
+            sessionKey,
+            ...(payload.apiAttachments.length
+              ? { attachments: payload.apiAttachments }
+              : {}),
+          }),
+        });
+        const json = await r.json();
+        if (!r.ok || json.ok === false) {
+          setBubbles((prev) => [
+            ...prev,
+            {
+              id: uuid(),
+              role: "assistant",
+              text: `[error: ${json.error ?? r.status}]`,
+              tools: [],
+              timestamp: Date.now(),
+            },
+          ]);
+          setActiveRunId(null);
+        }
+      } catch (err) {
+        setBubbles((prev) => [
+          ...prev,
+          {
+            id: uuid(),
+            role: "assistant",
+            text: `[error: ${err instanceof Error ? err.message : String(err)}]`,
+            tools: [],
+            timestamp: Date.now(),
+          },
+        ]);
+        setActiveRunId(null);
+      }
+    },
+    [targetUserId, sessionKey],
+  );
+
   const send = useCallback(async () => {
     const message = input.trim();
     const staged = attachments;
     if ((!message && staged.length === 0) || sending) return;
-    const idempotencyKey = uuid();
     setSending(true);
-    setActiveRunId(idempotencyKey);
-    lastStreamActivityRef.current = Date.now();
     setBubbles((prev) => [
       ...prev,
       {
@@ -825,48 +1030,34 @@ export default function ChatPanel({
       })
       .filter((x): x is NonNullable<typeof x> => x !== null);
 
-    try {
-      const r = await fetch("/api/runtime/chat-send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          targetUserId,
-          message,
-          idempotencyKey,
-          sessionKey,
-          ...(apiAttachments.length ? { attachments: apiAttachments } : {}),
-        }),
-      });
-      const json = await r.json();
-      if (!r.ok || json.ok === false) {
-        setBubbles((prev) => [
-          ...prev,
-          {
-            id: uuid(),
-            role: "assistant",
-            text: `[error: ${json.error ?? r.status}]`,
-            tools: [],
-            timestamp: Date.now(),
-          },
-        ]);
-        setActiveRunId(null);
-      }
-    } catch (err) {
-      setBubbles((prev) => [
-        ...prev,
-        {
-          id: uuid(),
-          role: "assistant",
-          text: `[error: ${err instanceof Error ? err.message : String(err)}]`,
-          tools: [],
-          timestamp: Date.now(),
-        },
+    const payload: QueuedSend = { message, apiAttachments };
+    if (activeRunIdRef.current != null) {
+      sendQueueRef.current.push(payload);
+      setQueuedCount(sendQueueRef.current.length);
+      setSysMarkers((m) => [
+        ...m,
+        sysMarkerBubble(
+          "Message queued — it will be sent as soon as the current run finishes.",
+        ),
       ]);
-      setActiveRunId(null);
+      setSending(false);
+      return;
+    }
+    try {
+      await postSend(payload);
     } finally {
       setSending(false);
     }
-  }, [input, attachments, sending, targetUserId, sessionKey]);
+  }, [input, attachments, sending, postSend]);
+
+  // Flush the queue whenever the active run ends (terminal event, error, or
+  // stale-run recovery). One message per run so each gets a clean turn.
+  useEffect(() => {
+    if (activeRunId !== null) return;
+    const next = sendQueueRef.current.shift();
+    setQueuedCount(sendQueueRef.current.length);
+    if (next) void postSend(next);
+  }, [activeRunId, postSend]);
 
   const abort = useCallback(async () => {
     if (!activeRunId) return;
@@ -880,7 +1071,10 @@ export default function ChatPanel({
 
   return (
     <div
-      className="relative flex flex-col h-[75vh] rounded-xl bg-[hsl(var(--fc-bg-surface))] ring-1 ring-[hsl(var(--fc-bg-tertiary))] overflow-hidden shadow-sm"
+      className={
+        "relative flex flex-col rounded-xl bg-[hsl(var(--fc-bg-surface))] ring-1 ring-[hsl(var(--fc-bg-tertiary))] overflow-hidden shadow-sm " +
+        (className ?? "h-[75vh]")
+      }
       onDragEnter={(e) => {
         if (!dragHasFiles(e)) return;
         e.preventDefault();
@@ -937,8 +1131,7 @@ export default function ChatPanel({
           <CompactionControls
             sessionKey={sessionKey}
             usage={composeLiveUsage(usage, staticPromptTokens, bubbles)}
-            checkpoints={checkpoints}
-            onRefresh={() => void refreshCompaction()}
+            onRefresh={() => void refreshUsage()}
           />
           <span
             className={
@@ -960,27 +1153,32 @@ export default function ChatPanel({
       </header>
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-5 space-y-5">
-        {bubbles.length === 0 ? (
+        {priorBubbles.length + sysMarkers.length + bubbles.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center text-sm text-[hsl(var(--fc-fg-muted))]">
             <Sparkles className="w-6 h-6 text-[hsl(var(--brand-accent))/0.6] mb-2" />
             <p className="font-medium text-[hsl(var(--fc-fg-secondary))]">
-              Chatting as {identityName}
+              {own ? "What should we work on?" : `Chatting as ${identityName}`}
             </p>
             <p className="text-[11px] mt-1 max-w-xs">
-              Files in the workspace on the left are accessible to the agent.
+              {own
+                ? "Your agent can read and write the files in your workspace, on the left."
+                : "Files in the workspace on the left are accessible to the agent."}
             </p>
           </div>
         ) : (
-          interleaveBubblesAndMarkers(bubbles, checkpoints).map((item) =>
-            item.kind === "marker" ? (
-              <CompactionMarker
-                key={`cp:${item.checkpoint.checkpointId}`}
-                checkpoint={item.checkpoint}
-              />
+          inTimestampOrder([...priorBubbles, ...sysMarkers, ...bubbles]).map((bubble) =>
+            bubble.id.startsWith("sysmark-") ? (
+              <div key={bubble.id} className="flex items-center gap-3 py-1">
+                <div className="flex-1 h-px bg-[hsl(var(--fc-bg-tertiary))]" />
+                <span className="max-w-md text-center text-[11px] leading-snug text-[hsl(var(--fc-fg-muted))]">
+                  {bubble.text}
+                </span>
+                <div className="flex-1 h-px bg-[hsl(var(--fc-bg-tertiary))]" />
+              </div>
             ) : (
               <Bubble
-                key={item.bubble.id}
-                bubble={item.bubble}
+                key={bubble.id}
+                bubble={bubble}
                 identityName={identityName}
               />
             ),
@@ -990,6 +1188,11 @@ export default function ChatPanel({
           <div className="flex items-center gap-2 text-xs text-[hsl(var(--fc-fg-muted))] pl-11">
             <TypingDots />
             <span>thinking…</span>
+            {queuedCount > 0 && (
+              <span className="rounded-full bg-[hsl(var(--fc-bg-tertiary))] px-2 py-0.5 text-[10px]">
+                {queuedCount} queued
+              </span>
+            )}
             <button
               type="button"
               onClick={abort}
@@ -1075,7 +1278,7 @@ export default function ChatPanel({
               }
             }}
             rows={1}
-            placeholder={`Send as ${identityName}…  ·  drop or paste files`}
+            placeholder={own ? "Message your agent…  ·  drop or paste files" : `Send as ${identityName}…  ·  drop or paste files`}
             className="flex-1 resize-none rounded-lg border border-[hsl(var(--fc-bg-tertiary))] bg-[hsl(var(--fc-bg-surface))] px-3 py-2 text-sm leading-6 max-h-[200px] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--brand-accent))/0.4] focus:border-[hsl(var(--brand-accent))]"
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
