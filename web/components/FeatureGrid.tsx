@@ -28,7 +28,7 @@ const features = [
   {
     Icon: Database,
     title: "Per-agent memory",
-    body: "The harness's built-in per-agent SQLite memory — keyword (BM25) search over each agent's MEMORY.md and memory/ files, seeded automatically for every agent. The agent maintains it across sessions. Semantic recall via bge-m3 lands in v0.5.",
+    body: "The harness's built-in per-agent SQLite memory — keyword (BM25) search over each agent's MEMORY.md and memory/ files, seeded automatically for every agent. The agent maintains it across sessions. Semantic recall arrives with knowledge search (v0.6).",
   },
   {
     Icon: Boxes,

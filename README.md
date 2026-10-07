@@ -15,10 +15,10 @@
   </a>
 </p>
 <p align="center">
-  <em>▶ <a href="https://flatclaw.org/branding/RawDemoFlatClaw.mp4">Watch the 4-minute demo</a> · <a href="https://flatclaw.org">flatclaw.org</a></em>
+  <em>▶ <a href="https://flatclaw.org/branding/RawDemoFlatClaw.mp4">Watch the 4-minute demo</a> · <a href="https://flatclaw.org">flatclaw.org</a> · <a href="https://flatclaw.org/builds/">Build recipes</a></em>
 </p>
 
-**The open-source private-cloud AI coworker.** Chat, agent fleet, approvals, scheduled automation, document search, persistent agent memory, role-based access, voice, image, and a library of per-user OAuth tool integrations — packaged as a single-tenant appliance that deploys into the customer's own cloud tenancy — Microsoft Azure, AWS, Google Cloud, Northflank, or their own hardware. Everything — control plane and GPU — runs inside that tenancy, starting at 1× NVIDIA H100-class GPU (80 GB) and scaling horizontally as the tenant grows (bigger GPU plans, additional nodes — same architecture). Nothing leaves their tenancy. Every line of code is auditable. Data locality is mechanically verifiable, not marketed.
+**The open-source Private AI Platform.** Chat, agents, approvals, scheduled automation, connectors to the systems you already run, persistent agent memory, role-based access, and the families of work that go with them (estimating, voice agents, documents in, reporting, knowledge search, approval-gated operations, content) — packaged as a single-tenant appliance that deploys into the customer's own cloud tenancy — Microsoft Azure, AWS, Google Cloud, Northflank, or their own hardware. Everything — control plane and GPU — runs inside that tenancy, starting at 1× NVIDIA H100-class GPU (80 GB) and scaling horizontally as the tenant grows (bigger GPU plans, additional nodes — same architecture). Nothing leaves their tenancy. Every line of code is auditable. Data locality is mechanically verifiable, not marketed.
 
 ---
 
@@ -57,7 +57,7 @@ v0.1.0 shipped the architecture and the published inference image; v0.2.0 made i
 - **FlatClaw Portal** — Next.js 16 + React 19 product surface: SSE-streamed chat with live token-usage + compaction markers (a message sent while the agent is still working is queued for the next turn, never injected mid-run), sessions the model names itself after the first turns, a workspace file explorer with upload, an MCP services panel, per-user OAuth credential management, scheduled tasks, an inference-endpoint setting (model URL and id live in the Portal, not in a platform secret and a redeploy), and an Admin panel for user + RBAC management that shows each user's gateway status.
 - **MCP service integrations** — first-party Model Context Protocol servers shipping in [`mcp/public/`](mcp/public/): **Google** (Gmail / Calendar / Drive / Docs / Sheets / Contacts, OAuth) and **Jira** (Atlassian Cloud). Per-user credentials, scoped per `(tenant, user, service)`, never tenant-wide. Private add-on services (CRM, banking-core, host-panel connectors) follow the same plugin contract from `mcp/private/`, which stays out of the public repo by design.
 - **Human approval engine** — consequential tools (`gmail_send`, `gmail_send_draft`, `drive_delete`, `drive_share`, Jira `delete_attachment`; operator-configurable) are never executed by the agent. The MCP composes the exact REST call and pauses it as a pending approval; a human signs off in the Portal queue and the portal replays the request with that user's own credentials. Deny records the rejection; every decision lands in the audit log. The approvals card shows the request's facts (what, how much, for whom, how to reach the person affected), the tool's own reasons for not acting alone, and, when a replay fails, the error under the card while the item stays pending. The owning service's executor receives the approver's name, so it can write the sign-off back into its own record.
-- **Per-agent memory** via the OpenClaw runtime — built-in per-agent SQLite engine with keyword (BM25) search over each agent's `MEMORY.md` + `memory/*.md`; a starter `MEMORY.md` is seeded into every agent on creation / sync / backfill. No separate memory service to deploy or babysit. (Semantic recall via bge-m3 is v0.3.)
+- **Per-agent memory** via the OpenClaw runtime — built-in per-agent SQLite engine with keyword (BM25) search over each agent's `MEMORY.md` + `memory/*.md`; a starter `MEMORY.md` is seeded into every agent on creation / sync / backfill. No separate memory service to deploy or babysit. (Semantic recall arrives with knowledge search, v0.6.)
 - **RBAC / tool access** — OpenClaw's built-in tool policy, surfaced from the portal: always-on per-agent cross-user isolation (deny-globs) **plus** an admin per-user *Tool Access* panel that toggles built-in + MCP tools on/off (writing the agent's native `tools.deny`). The gateway filters denied tools from the roster before the model sees them; per-user capability tokens scope data access underneath.
 - **One gateway per user (opt-in)** — `FLATCLAW_GATEWAY_MODE=per-user` runs one OpenClaw gateway per Portal user, each under its own operating-system account, state directory, port and token: created when the admin adds the user, supervised by the Portal (started at boot, restarted with backoff, stopped and removed cleanly), with the Portal's own secrets and anything credential-shaped filtered out of the gateway's environment. Another user's workspace, agent state and gateway token are denied by the operating system, not hidden by policy. A migration carries a shared-gateway install over (and back). Budget 1 to 1.2 GB of RAM per user.
 - **Public inference image** at [`ghcr.io/skytruax/flatclaw-inference:latest`](https://github.com/skytruax/FlatClaw/pkgs/container/flatclaw-inference) — SGLang base + entrypoint, lightweight, GHCR-published, GitHub Actions rebuilds on every Dockerfile/entrypoint change. Public — pull it and audit it.
@@ -65,10 +65,10 @@ v0.1.0 shipped the architecture and the published inference image; v0.2.0 made i
 - Apache 2.0 license, OSI-approved.
 
 **Not in v0.4.0 — see [Roadmap](#roadmap)**
-- **One-command tenant provisioning** — `provision-tenant.sh` / `destroy-tenant.sh` are honest stubs today; the working `{dev,prod}-up.sh` / `{dev,prod}-down.sh` lane scripts cover inference bring-up, and full net-new-tenant orchestration is the next deliverable.
-- RAGFlow service manifest and ingest watcher (design shipped; deploy manifest is next).
-- Additional skills (Scrapling web fetch, a first CRM connector).
-- Voice (VoxCPM2), image (SDXL), TurboQuant 1M-context kernels, cascade routing.
+- **Rule books as files and approvals by role** — the pattern proven on a customer-service agent this quarter (limits and escalation rules the business edits, applied as code; decisions written back to the system of record) generalized to every connector, with approvers routed by role (v0.5).
+- **First-party connectors beyond Google and Jira** — commerce and CRM, mailbox and calendar, hosting panels, estimating from drawings — through the plugin contract, and the contract documented for partners (v0.5).
+- **Channels** — a chat widget on the storefront, email in and out, Slack or Teams for internal agents (v0.5); **scheduled agents and reports** (v0.5); **model classes per tenant** (v0.5).
+- **Voice agents on the customer's own lines, knowledge search with walls in it, managed provisioning on the Azure / AWS / Google Cloud lanes, enterprise sign-in, a developer agent** (v0.6 and later).
 
 ---
 
@@ -81,11 +81,11 @@ A complete coworker stack, not a framework. Every component is included and pre-
 | **FlatClaw Portal** | Next.js 16 + React 19 product surface — chat, agent fleet, approvals, cron scheduling, skills management, SSE-streamed tool use, plus FlatClaw-specific Docs and Memory panels and an Admin panel for owner-only RBAC management. |
 | **OpenClaw runtime** | Self-hosted agent loop. Session management, tool use, multi-step planning, cron, approval gates, sandboxed tool execution. Enforces RBAC at every tool call. |
 | **Inference service** | Patched SGLang + Gemma 4 31B Dense on a single NVIDIA H100-class GPU (80 GB, sm_90, native FP8) inside the customer's tenancy, served at the model's native 256K context. Model weights live on a tenancy-local volume served internally by the weights-server pod; new inference pods cold-boot in 60-90 seconds. |
-| **Per-agent memory** | OpenClaw's built-in per-agent SQLite memory engine. Keyword (BM25) search over each agent's `MEMORY.md` and `memory/*.md`, indexed to `~/.openclaw/memory/<agentId>.sqlite`. A starter `MEMORY.md` is seeded into every agent on creation / sync / backfill; the agent maintains it across sessions. No separate memory service. Semantic (vector) recall via bge-m3 lands in v0.5. |
+| **Per-agent memory** | OpenClaw's built-in per-agent SQLite memory engine. Keyword (BM25) search over each agent's `MEMORY.md` and `memory/*.md`, indexed to `~/.openclaw/memory/<agentId>.sqlite`. A starter `MEMORY.md` is seeded into every agent on creation / sync / backfill; the agent maintains it across sessions. No separate memory service. Semantic recall arrives with knowledge search (v0.6). |
 | **MCP service integrations** | First-party Model Context Protocol servers in [`mcp/public/`](mcp/public/): **Google** (Gmail / Calendar / Drive / Docs / Sheets / Contacts, OAuth) and **Jira** (Atlassian Cloud). Each is a self-contained package the agent calls over MCP. Per-user credentials, scoped per `(tenant, user, service)`, never tenant-wide. Consequential tools are composed (never executed) by the agent, pause in the Portal approvals queue for human sign-off, and are replayed with the user's own credentials on approve. Private add-on connectors plug into the same registry from `mcp/private/`. |
-| **RAGFlow integration** *(roadmap, v0.5)* | Private document ingest and retrieval with cited sources. PDF, Docx, Excel, PPT, markdown, email, OCR'd scans, web pages. v0.2.0 ships the design; the deploy manifest + ingest watcher land next. |
+| **Knowledge search with walls in it** *(roadmap, v0.6)* | Cited answers over the tenant's own documents, where a user's search only ever sees what their role may read. Built on the same plugin contract as every other connector, so the approval and audit machinery applies to it unchanged. |
 | **RBAC + per-user credentials** | Multiple users per tenant, each a distinct agent — and, in per-user mode, each in its own gateway under its own operating-system account. Tool access is OpenClaw's native per-agent `tools.deny`, surfaced as an admin **Tool Access** panel (per-user allow/deny over built-in + connected-MCP tools) on top of always-on cross-user roster isolation. Per-user credentials live in a per-tenant vault scoped `(tenant, user, service)`, brokered to each MCP via short-lived capability tokens. |
-| **One-command tenant provisioning** *(roadmap, v0.5)* | The working `{dev,prod}-up.sh` / `{dev,prod}-down.sh` lane scripts cover inference bring-up today. `provision-tenant.sh` / `destroy-tenant.sh` — full net-new tenant lifecycle on the target cloud (project → weights volume → stager job → services → RBAC seed → Portal URL, and clean teardown; Northflank lane first) — are honest stubs; full orchestration is the next deliverable. |
+| **Managed provisioning** *(roadmap, v0.6)* | Tenant lifecycle as a delivered service: the `{dev,prod}-up.sh` / `{dev,prod}-down.sh` lane scripts bring inference up and down on the Northflank lane today; Azure, AWS and Google Cloud lanes follow with implementation partners. `provision-tenant.sh` / `destroy-tenant.sh` are honest stubs until then. |
 | **One public inference image, every tenant** | [`ghcr.io/skytruax/flatclaw-inference:latest`](https://github.com/skytruax/FlatClaw/pkgs/container/flatclaw-inference) — public on GHCR, ~18 GB, SGLang base + entrypoint, no baked weights. Every FlatClaw deployment pulls this same image. Per-tenant differences live on the weights volume (model files, tenant data) and in the tenancy's secrets, never in the image. Auditable, reproducible, single source of truth. |
 
 ---
@@ -96,38 +96,29 @@ A complete coworker stack, not a framework. Every component is included and pre-
            ┌───────────────── Customer's cloud tenancy (one per tenant) ──────────────────┐
            │                                                                              │
  Browser ──► FlatClaw Portal (Next.js + React + SQLite)                                   │
-           │    └─ Chat • Agents • Approvals • Cron • Skills • Docs • Memory              │
-           │       • SSE /api/runtime/stream, intent routes /api/intents/*                │
+           │    └─ Chat • Sessions • Files • Approvals • Scheduled tasks                  │
+           │       • Admin: users, tool access, services, inference setting, audit        │
            │                    │                                                         │
-           │                    │  server-owned WebSocket                                 │
+           │                    │  server-owned WebSocket, device identity                │
            │                    ▼                                                         │
-           │              OpenClaw Gateway (ws://:18789)                                  │
+           │       OpenClaw gateway(s) — one shared gateway, or one per user under its    │
+           │       own operating-system account (v0.4.0), supervised by the Portal        │
            │                    │                                                         │
-           │                    │  skills bus (local IPC / HTTP)                          │
-           │                    │                                                         │
-           │          ┌─────────┼─────────────┬──────────┐                                │
-           │          ▼         ▼             ▼          ▼                                │
-           │     Postgres   RAGFlow      Skills:     Sandbox                              │
-           │    (optional   (docs in,    gmail •    (podman per                           │
-           │     — only if  cited        gdrive •   tool exec)                            │
-           │     we need    answers      scrapling  ↓                                     │
-           │     extra      out)         voxcpm2    bash / filesys                        │
-           │     projection │            sdxl       / network egress                      │
-           │     state)     │            fs-paths   with review gates                     │
-           │                │            rag-search                                       │
-           │                ▼                                                             │
-           │             /v1/embeddings                                                   │
+           │                    │  per-user MCP servers (stdio) + capability tokens       │
+           │          ┌─────────┼─────────────┬──────────────────┐                        │
+           │          ▼         ▼             ▼                  ▼                        │
+           │       Google      Jira      Add-on connectors    Sandbox                     │
+           │      (Gmail,   (Atlassian   (CRM, commerce,     (bash / filesystem /         │
+           │       Drive,    Cloud)      mailbox, hosting,    network egress, with        │
+           │      Calendar…)             estimating…)         approval gates)             │
            │                                                                              │
-           │   Per-agent memory lives inside each agent's workspace                       │
-           │   (~/.openclaw/workspace-<id>/memory/) — managed by OpenClaw itself.         │
-           │                              ↓                                               │
+           │   Approvals queue · audit log · per-agent memory in each agent's workspace   │
+           │                              ↓  OpenAI-compatible HTTP, internal network     │
            │                    ┌──────── Inference service (GPU) ────────┐               │
-           │                    │  Lightweight image (SGLang base) +      │               │
-           │                    │  Tenancy weights volume holding         │               │
-           │                    │  Gemma 4 31B + bge-m3 (+ later voice    │               │
-           │                    │  / image / TurboQuant 1M ctx)           │               │
-           │                    │                                         │               │
-           │                    │  GPU node, cloud or metal:              │               │
+           │                    │  Public SGLang image + the tenancy's    │               │
+           │                    │  weights volume. Gemma 4 31B FP8 at     │               │
+           │                    │  256K today; the model class is a       │               │
+           │                    │  per-tenant choice (see Roadmap).       │               │
            │                    │  1× NVIDIA H100 (80 GB, sm_90, FP8)     │               │
            │                    └─────────────────────────────────────────┘               │
            │                                  ▲                                           │
@@ -136,25 +127,22 @@ A complete coworker stack, not a framework. Every component is included and pre-
            │                          (HTTP file server over the                          │
            │                           tenancy weights volume)                            │
            │                                                                              │
-           │   Tenancy secrets (per-tenant OAuth tokens, per-user RBAC vault)             │
-           │                                                                              │
+           │   Tenancy secrets (per-user credential vault, gateway tokens)                │
            └──────────────────────────────────────────────────────────────────────────────┘
                                                │
                                                │  Provisioning lane deploys everything:
-                                               │  Portal, Gateway, Inference (H100),
-                                               │  RAGFlow, weights-server.
+                                               │  Portal (+ gateways), Inference (GPU),
+                                               │  weights-server.
                                                ▼
                           Cloud provisioning API (Northflank today;
                           Azure / AWS / GCP lanes on the roadmap)
 ```
 
-**Four services per tenant**, all in the customer's cloud tenancy:
+**Three services per tenant**, all in the customer's cloud tenancy:
 
 1. **Portal** — 4 vCPU / 8 GB (`nf-compute-400` on the reference lane). FlatClaw-branded Next.js 16 + React 19 UI with Docs, Memory, and Admin panels.
 2. **OpenClaw Gateway** — 4 vCPU / 8 GB. The agent runtime; enforces RBAC at every tool call. Owns per-agent memory under each agent's workspace. Two modes: one shared gateway with every user's agent on it (the default), or — since v0.4.0 — one gateway per user, each under its own operating-system account; in that mode the Portal supervises the gateways inside its own service, so this line folds into the Portal's plan plus 1 to 1.2 GB of RAM per user.
 3. **Inference service** — one GPU node: a managed H100 plan on the reference lane, NC H100 v5 / p5 / A3 class on Azure / AWS / Google Cloud, or bare metal on-prem. 1× NVIDIA H100-class GPU (80 GB, sm_90, native FP8). Held warm 24/7 in prod. Fetches weights at boot from `weights-server`.
-4. **RAGFlow** — 2 vCPU / 8 GB + persistent volume. Tenant document corpus.
-
 Plus a small **weights-server** pod (HTTP file server over a tenancy-local volume) that the inference pod fetches model weights from at boot. Not user-facing; not counted as a "service" in the four above.
 
 The substrate — Northflank, AKS, EKS, GKE, or your own Kubernetes — provides ingress, TLS, DNS, observability, secrets, GPU scheduling, and tenancy lifecycle. OpenClaw manages sessions / cron / approvals / RBAC / memory. Portal owns the UI and an SQLite projection of relevant state. **Customer holds the cloud account directly** — the cloud bills the customer, never us.
@@ -187,26 +175,32 @@ The economic case is structural, and it gets *stronger* at scale. Running Gemma 
 
 The honest trade-offs (where self-hosting is *wrong* — low volume, low utilization, the hardest reasoning tasks) and the full cost-stack walkthrough are on the **[Tokenomics page](https://flatclaw.org/tokenomics)**.
 
+### Build recipes: what we actually run, and what it costs
+
+**[flatclaw.org/builds](https://flatclaw.org/builds/)** is the hardware companion to this section. For each model class it puts a local build you can order today next to the cloud node that runs the same checkpoint:
+
+- **Standard class — Gemma 4 31B at FP8, 256K context.** One 96 GB card locally (an RTX PRO 6000 Blackwell workstation bought in three phases), or the ~$2,000/month H100 plan above.
+- **Frontier class — GLM-5.2, 744B parameters as a mixture of experts.** A two-card CUDA hybrid workstation that holds the model in 512 GB of system memory, the all-GPU 4U server it would take to serve it at full precision, and the eight-H200 cloud node.
+
+Every part carries a live Newegg street price (refreshed hourly by a scheduled job; the page re-reads them every ten minutes), the quantization ladder shows what fits where, and each class has a printable build sheet with the local and cloud versions side by side. The recipes tab is the configuration behind every FlatClaw tenant — the standard tenant, the control plane, the second H100, the frontier class, a local box — and the dead ends we hit along the way.
+
 ---
 
 ## Technology choices
 
 - **Inference runtime: patched SGLang + Gemma 4 31B Dense.** The best open-weight dense model in its class; SGLang is the fastest production runtime for it. Weights published by Google, pulled from Kaggle once onto a tenancy-local weights volume, served to the inference pod at boot via the in-project `weights-server`. New pods cold-boot in 60–90 seconds because they only pull the ~18 GB SGLang image and stream weights over the project's internal network; weights don't move per boot.
 - **Silicon: NVIDIA H100 (80 GB, sm_90).** Native FP8 hardware on Hopper — no Marlin kernel fallback that breaks Gemma 4 31B's projection dims on Ampere. Sizes for Gemma 4 31B FP8 (~33 GB) + KV cache with comfortable headroom.
-- **Scalable by design.** A single tenant starts on 1× H100. The same architecture scales horizontally — bigger tenants step up to higher GPU plans (more vCPU/RAM around the same GPU) or multi-GPU nodes (multiple H100s in the same tenancy), and the entire Portal/Gateway/RAGFlow layer scales independently of inference. Nothing in the design assumes single-GPU; that's just where each tenant starts.
+- **Scalable by design.** A single tenant starts on 1× H100. The same architecture scales horizontally — bigger tenants step up to higher GPU plans (more vCPU/RAM around the same GPU) or multi-GPU nodes (multiple H100s in the same tenancy), and the Portal and gateway layer scales independently of inference. Nothing in the design assumes single-GPU; that's just where each tenant starts.
 - **Substrate: the customer's cloud.** The reference lane is Northflank's managed H100 fleet, scripted end-to-end today; the same containers run on Azure (AKS, NC H100 v5), AWS (EKS, p5 / g6e), Google Cloud (GKE, A3) and on bare metal. The substrate schedules the GPU node and handles ingress, secrets and lifecycle. Customer signs up with the cloud directly; we never sit between them and the substrate.
-- **Context: TurboQuant turbo4 KV compression.** Custom CUDA kernels targeting Gemma 4 head dimensions on Hopper. Enables 1M-token context on a single card — "read your whole codebase / year of email" becomes real. Roadmap deliverable; shippable fallback is stock-SGLang FP8 at 128k context.
+- **Context: 256K native.** Gemma 4 31B serves its full native window on one H100 at FP8, with SGLang's RadixAttention prefix cache doing most of the work on conversational reuse. Longer windows are not on the roadmap until a customer's work needs them.
 - **Agent runtime: OpenClaw.** Self-hosted, tool-use native, actively maintained, comfortable with multi-step planning and long-running sessions. Enforces RBAC at every tool invocation.
-- **Frontend: FlatClaw Portal.** Next.js 16 + React 19 + TypeScript + SQLite, with Docs (RAGFlow), Memory (admin view onto each agent's `<workspace>/memory/`), and Admin (owner-only RBAC) panels wired into the OpenClaw gateway's SSE + intent routes.
-- **Auth: `better-auth` for v1/v1.1 (email + Google/Microsoft OAuth login), WorkOS for v2 enterprise SSO** (per-tenant Okta / Azure AD / Google Workspace SAML configuration). Two distinct OAuth flows kept strictly separate: login OAuth identifies the user to FlatClaw (short-lived); tool OAuth grants the agent access to the user's connected services (long-lived, encrypted, scoped per `(tenant, user, service)`).
-- **Retrieval: RAGFlow.** Wrapped as an OpenClaw skill behind a stable interface. Swappable without touching agent or UI.
+- **Frontend: FlatClaw Portal.** Next.js 16 + React 19 + TypeScript + SQLite: Chat, Sessions, Files, Approvals, Scheduled tasks and Admin (users, tool access, services, inference setting, audit) over the gateway's WebSocket and the Portal's own API routes.
+- **Auth: Auth.js credentials sign-in** (email + password) with the Portal's own roles; enterprise single sign-on when a tenant needs it (roadmap). Two distinct credential flows kept strictly separate: the sign-in identifies the user to FlatClaw; tool OAuth grants the agent access to the user's connected services (long-lived, encrypted, scoped per `(tenant, user, service)`).
+- **Connectors: one MCP server per service, one process per user,** registered through the managed-MCP plugin contract (tool groups, role-denied groups, workspace skills, prompt sections, an approval executor). First-party servers live in `mcp/public/`; add-ons plug in from `mcp/private/` without touching the public tree.
 - **Memory: OpenClaw's built-in per-agent memory engine.** Per-agent SQLite index (`~/.openclaw/memory/<agentId>.sqlite`) over each agent's `MEMORY.md` + `memory/*.md`. Keyword (BM25) search ships today and needs no external dependency; a starter `MEMORY.md` is seeded for every agent. No separate database to deploy, no separate failure domain.
-- **Embeddings: bge-m3** *(roadmap, v0.5).* Multilingual, long-context. Powers semantic memory recall + RAG retrieval, served on its own GPU card (not co-resident with the 31B). v0.2.0 memory is keyword-only; bge-m3 adds the vector layer.
-- **Deploy: one tenancy, any cloud.** One tenancy per customer — a Northflank project, an Azure resource group, an AWS account, a Google Cloud project, or an on-prem cluster — holds Portal, Gateway, Inference (GPU), RAGFlow, and the weights-server. The substrate handles ingress, TLS, DNS, observability, secrets, GPU scheduling, and lifecycle. No second cloud, no cross-cloud plumbing.
-- **One image, every tenant.** [`ghcr.io/skytruax/flatclaw-inference:latest`](https://github.com/skytruax/FlatClaw/pkgs/container/flatclaw-inference) is public on GHCR. Every FlatClaw deployment — every customer's tenant project — pulls this same ~18 GB image. The SGLang base + entrypoint is universal; per-tenant differences live entirely on the weights volume (model files, tenant state) and in the tenancy's secrets. Anyone can pull and audit it directly. Pattern is reusable for VoxCPM2, SDXL, bge-m3, and any future model — same image, additional model directories on the volume.
-- **Voice: VoxCPM2** *(roadmap, v0.5).* Open-weight voice cloning + TTS. Will be staged onto the weights volume and loaded co-resident on the H100 alongside Gemma.
-- **Image: ComfyUI + SDXL** *(roadmap, v0.5).* Standard open-weight image generation. Same disk-staging pattern as Gemma.
-- **Web fetching: Scrapling** *(roadmap, v0.5).* Private-internet retrieval with robots respected, as an MCP service under `mcp/`.
+- **Deploy: one tenancy, any cloud.** One tenancy per customer — a Northflank project, an Azure resource group, an AWS account, a Google Cloud project, or an on-prem cluster — holds Portal, gateway(s), Inference (GPU) and the weights-server. The substrate handles ingress, TLS, DNS, observability, secrets, GPU scheduling, and lifecycle. No second cloud, no cross-cloud plumbing.
+- **One image, every tenant.** [`ghcr.io/skytruax/flatclaw-inference:latest`](https://github.com/skytruax/FlatClaw/pkgs/container/flatclaw-inference) is public on GHCR. Every FlatClaw deployment — every customer's tenant project — pulls this same ~18 GB image. The SGLang base + entrypoint is universal; per-tenant differences live entirely on the weights volume (model files, tenant state) and in the tenancy's secrets. Anyone can pull and audit it directly. The pattern is reusable for every model class and for the voice and retrieval models that come later — same image, additional model directories on the volume.
+- **Voice and knowledge search** *(roadmap, v0.6).* Voice agents on the customer's own lines and cited search over the tenant's documents are the next two families; both ride on the same rule books, approvals and audit trail as everything else, and both stage their models onto the tenancy weights volume like Gemma.
 
 Every dependency is MIT / Apache / BSD compatible.
 
@@ -217,7 +211,7 @@ Every dependency is MIT / Apache / BSD compatible.
 The privacy story is not a marketing claim. It is a test you can run yourself.
 
 1. Provision a tenant in your own cloud tenancy — Azure, AWS, Google Cloud, Northflank, or your own hardware.
-2. Exercise the shipped features end-to-end (chat, per-agent memory, MCP services — Google / Jira — approval-gated actions, scheduled-task fire, GPU cold-boot). As more land (RAG, Scrapling, voice, image), each is added to this test loop.
+2. Exercise the shipped features end-to-end (chat, per-agent memory, MCP services — Google / Jira — approval-gated actions, scheduled-task fire, GPU cold-boot). As more land (channels, voice agents, knowledge search), each is added to this test loop.
 3. Run `tcpdump` on the tenancy's egress for the full session.
 4. Confirm zero packets to Anthropic, OpenAI, Google AI (the hosted Gemini/Vertex APIs), Hugging Face at runtime, ElevenLabs, Chroma Cloud, or any third-party inference endpoint. Only expected egress: services the user explicitly connected via OAuth (Gmail, Drive, scrape targets). Inference traffic stays inside the tenancy — Portal → Gateway → Inference (GPU) is all internal network. Kaggle is accessed only at the one-time weight-staging step, never at runtime.
 
@@ -258,9 +252,9 @@ It is the SGLang base plus a single `entrypoint.sh` layer, built registry-to-reg
 |---|---|
 | [`portal/`](portal/) | FlatClaw Portal — Next.js 16 + React 19 admin + user surface, chat + fleet + approvals + cron + MCP services + Docs + Memory. |
 | [`mcp/public/`](mcp/public/) | First-party Model Context Protocol servers — `google`, `jira`. One self-contained package per service; per-user, per-`(tenant, user, service)` credentials. Private add-on services live in `mcp/private/` (gitignored) and self-register through the same plugin contract. |
-| [`web/`](web/) | flatclaw.org informational site — Next.js static export. |
+| [`web/`](web/) | flatclaw.org informational site — Next.js static export. `web/data/builds.json` is the source of the [Build recipes](https://flatclaw.org/builds/) section; `web/scripts/price-watch.mjs` reads the Newegg prices it links, `web/scripts/build-sheets.mjs` renders the PDF build sheets. |
 | [`infra/inference/`](infra/inference/) | Inference service — Dockerfile (SGLang base), entrypoint, the reference-lane (Northflank) service manifest, and the stager-job recipe for one-time per-tenant weight staging onto the weights volume. |
-| [`infra/scripts/`](infra/scripts/) | Inference + tenant lifecycle — the working `{dev,prod}-up.sh` / `{dev,prod}-down.sh` inference lane scripts and `install-openclaw.sh`; `provision-tenant.sh` / `destroy-tenant.sh` are v0.3 stubs (full net-new tenant orchestration). |
+| [`infra/scripts/`](infra/scripts/) | Inference + tenant lifecycle — the working `{dev,prod}-up.sh` / `{dev,prod}-down.sh` inference lane scripts and `install-openclaw.sh`; `provision-tenant.sh` / `destroy-tenant.sh` are stubs until managed provisioning lands (see Roadmap). |
 | [`branding/`](branding/) | FlatClaw brand kit: `BRAND.md` (child-brand guide), `flatclaw-brand.css` (tokens + classes), the wordmark (`wordmark.svg`, `wordmark-white.svg`), the Kirk \| FlatClaw lockup (`kirk-flatclaw-lockup.svg`, `-white.svg`), the demo poster, and attribution (`NOTICE.md`). |
 | [`.github/workflows/publish-inference.yml`](.github/workflows/publish-inference.yml) | GitHub Actions pipeline that republishes `ghcr.io/skytruax/flatclaw-inference:latest` on changes to `Dockerfile` or `entrypoint.sh`. |
 | [`SECURITY.md`](SECURITY.md) | Vulnerability reporting policy. |
@@ -282,10 +276,10 @@ Every release ships with end-to-end tests for the features in scope. Tests grow 
 - Chat run lifecycle: a message sent mid-run is queued and delivered after the run ends; no tool call is dropped (browser-driven check)
 
 **Roadmap (added as features land):**
-- `provision-tenant.sh` → working tenant with TLS, and `destroy-tenant.sh` leaves no orphaned cloud resources (v0.5)
-- RAG query with citation (v0.5)
-- Scrapling fetch + first CRM connector (v0.5)
-- Voice clone, image gen (v0.5)
+- Rule books: a limit changed in the file changes the agent's decision on the next turn; a request routed by role reaches the right approver and nowhere else (v0.5)
+- Connectors: every first-party connector's consequential action composes and parks, never executes, and its approval replays with the user's own credentials (v0.5)
+- Channels: a storefront chat conversation ends as a case in the CRM with the transcript attached (v0.5)
+- Voice: a call on the customer's own line ends the same way, with the recording reference (v0.6)
 - GPU cold-boot timing under 90s
 
 ---
@@ -310,22 +304,25 @@ Every release ships with end-to-end tests for the features in scope. Tests grow 
 - **Portal** — approvals card with the request's facts, the tool's reasons and replay errors in place; the approver's name passed to the service executor; sessions named by the model; mid-run messages queued instead of injected (no dropped tool calls); the agent's skills folder hidden from the Files tab; one public-origin helper for every redirect behind a reverse proxy.
 - **Managed-MCP plugin contract** — a service plugin declares its tool groups, which groups a role may not use, the skills it seeds into a connected workspace, the prompt sections it contributes, extra environment for its server, and the executor the approvals queue calls on approve; the Portal re-seeds role-derived tool denies on every connect and disconnect.
 
-### v0.5 (next)
+### v0.5 (next) — agents that run a process, with people in the loop
 
-- **One-command tenant provisioning** — `provision-tenant.sh` / `destroy-tenant.sh`: full net-new tenant lifecycle on the target cloud — Northflank lane first, Azure / AWS / Google Cloud lanes following (currently honest stubs; the `{dev,prod}-up.sh` lane scripts cover bring-up today).
-- **RAGFlow service** — service manifest + per-tenant namespace template + ingest watcher daemon + `destroy-hook.sh`. Wrapped behind a stable retrieval interface.
-- **Scrapling web fetch**, as an MCP service under `mcp/public/`; additional CRM/ERP connectors continue to ship as add-on services through the plugin registry.
-- **Voice — VoxCPM2** open-weight cloning + TTS, co-resident on the H100.
-- **Image — ComfyUI + SDXL**, same disk-staging pattern.
-- **Cascade routing — multi-process serving on the same H100.** Small Gemma 4 4B FP8 (~4 GB) on `:8001` for simple chat / fast turns, Gemma 4 31B FP8 (~33 GB) on `:8000` for complex agent runs, voice on `:8002`, image on `:8003` — all co-resident under `--mem-fraction-static`, with ~25 GB headroom on the 80 GB card. OpenClaw routes by skill / agent.
-- **TurboQuant turbo4** KV compression — custom CUDA kernels for Gemma 4 head dimensions on Hopper. Unlocks 1M-token context on a single card.
+- **Rule books as files.** Limits, escalation rules and audit requirements written by the business in a file the agent reads, applied as code by any connector: inside the limits the agent acts, above them it composes the exact action and parks it. Proven this quarter on a customer-service agent that refunds inside limits, escalates with the customer's callback details, and writes every conversation back to the CRM with the transcript. v0.5 makes the rule-book format and its evaluator a platform feature every connector can declare.
+- **Approvals as the operating console.** Requests routed to approvers by role, not only to the requester; each card shows the facts, the tool's reasons and how to reach the person affected; decisions and the approver's identity written back into the system of record; a weekly view of what the agents handled, resolved alone, or escalated.
+- **First-party connectors through the plugin contract.** Commerce and CRM (Shopify, Dynamics 365), mailbox and calendar (IMAP, SMTP, CalDAV), hosting panels (cPanel), estimating from marked-up drawings, alongside Google and Jira. The contract (tool groups, role-denied groups, workspace skills, prompt sections, approval executor) documented so partners ship their own add-ons without touching the public tree.
+- **Channels.** The agent where the customer already is: a chat widget on the storefront that runs the same rule book, email in and out, Slack or Teams for internal agents. Every channel ends in the same case record.
+- **Scheduled agents and reports.** Daily and weekly digests, the report that writes itself across several ERPs, exceptions raised to a person; run by the gateway's own scheduler and shown in the Portal.
+- **Model classes per tenant.** Standard (one H100-class card: Gemma 4 31B at FP8), large (two cards) and frontier (eight cards, a mixture-of-experts model) served by the same platform, chosen per tenant and swappable without touching agents; Tool Search for tenants with large tool rosters. Build sheets for the local and cloud versions of each class live on [flatclaw.org/builds](https://flatclaw.org/builds/).
 
-### v0.6+
+### v0.6 and later
 
-- WorkOS SSO for v2 enterprise tenants (per-tenant Okta / Azure AD / Google Workspace SAML).
-- Optional multi-tenancy on a shared GPU node for an entry tier (with strict K8s namespace + per-tenant volume isolation) — for tenants below the dedicated-GPU utilization threshold.
-- Audio/video transcription ingest in RAGFlow.
-- A "studio" for users to author their own skills.
+- **Voice agents on the customer's own lines** (intake, booking, after hours), built on the same rule books, approvals and case records.
+- **Knowledge search with walls in it**: cited answers over the tenant's documents, each user seeing only what their role may read.
+- **Managed provisioning** on the Azure, AWS and Google Cloud lanes with implementation partners; backup and restore of agent state; rehearsed upgrades gated by the contract probe.
+- **Enterprise sign-in** (Okta, Entra ID, Google Workspace) when a tenant needs it.
+- **A developer agent on the same platform** for the teams that build connectors.
+
+- **Retired from the roadmap:** the April component list (RAGFlow as a named service, bge-m3, Scrapling, VoxCPM2, ComfyUI + SDXL, cascade routing, TurboQuant 1M-token context, shared-GPU tiers, a skills studio). The families they served are above, described by what customers get rather than by component; the components come back only when a family needs them.
+
 
 ---
 

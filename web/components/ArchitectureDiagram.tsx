@@ -69,8 +69,8 @@ export function ArchitectureDiagram() {
           <code className="font-mono text-[hsl(var(--fc-fg-secondary))]">
             MEMORY.md
           </code>{" "}
-          + memory/ files. Semantic recall via bge-m3 (on its own GPU card) and
-          RAGFlow cited-document retrieval land in v0.5.
+          + memory/ files. Knowledge search with cited sources, and the semantic
+          recall that comes with it, is a v0.6 family (see the roadmap).
         </div>
 
         <Arrow label="internal tenancy network · TLS · bearer-authenticated" />

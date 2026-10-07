@@ -58,6 +58,7 @@ export function SiteFooter() {
             <FooterLink href="/#architecture">Architecture</FooterLink>
             <FooterLink href="/#privacy">Data locality</FooterLink>
             <FooterLink href="/tokenomics">Tokenomics</FooterLink>
+            <FooterLink href="/builds">Build recipes</FooterLink>
             <FooterLink href="/#roadmap">Roadmap</FooterLink>
           </FooterCol>
 

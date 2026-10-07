@@ -128,7 +128,6 @@ export default function HomePage() {
                   ["Inference (H100 80GB, held warm)", "~$1,800"],
                   ["Portal — small compute (4 vCPU / 8 GB)", "~$50"],
                   ["Agent harness — small compute", "~$50"],
-                  ["RAGFlow + corpus volume", "~$30"],
                   ["weights-server + 200 GB nvme", "~$30"],
                   ["Egress · TLS · observability", "included"],
                 ].map(([k, v]) => (
@@ -176,8 +175,8 @@ export default function HomePage() {
                 v: "Memory recall, RAG retrieval, file reads, OAuth tool invocations — all gateway- or skill-side. The LLM is invoked for chat turns and tool-call planning. A typical session is a handful of LLM calls, not hundreds.",
               },
               {
-                k: "Headroom for bursts, then a cascade.",
-                v: "Gemma 4 31B FP8 (~33 GB) + KV cache + bge-m3 fits in 80 GB with ~25 GB free. The v0.5 cascade lands a co-resident smaller Gemma in that headroom for fast-turn / planning traffic — same hardware, ~2× concurrent capacity.",
+                k: "Headroom for bursts, then a bigger class.",
+                v: "Gemma 4 31B FP8 (~33 GB) plus KV cache fits in 80 GB with headroom for long contexts. When a tenant's work needs a smarter model, the step is a class, not a redesign: two cards, or an eight-card node serving a mixture-of-experts model — same platform, same agents, same front door. The local and cloud builds for each class are on the Builds page.",
               },
               {
                 k: "Tenants scale the GPU plan, not the architecture.",
@@ -241,15 +240,15 @@ export default function HomePage() {
             ["Inference", "Patched SGLang + Gemma 4 31B Dense"],
             ["Silicon", "NVIDIA H100-class · 80 GB · native FP8"],
             ["Substrate", "Your cloud — Azure, AWS, Google Cloud, Northflank, or bare metal — one tenancy per customer"],
-            ["Context", "TurboQuant turbo4 KV — 1M tokens on a single card (roadmap)"],
+            ["Context", "256K native on Gemma 4 31B · RadixAttention prefix cache"],
             ["Agent harness", "Built on the minimal open Pi agent core — RBAC at every tool call · per-agent memory built in · gateway layer swappable behind the session API"],
             ["Frontend", "Next.js 16 + React 19 + TypeScript + SQLite"],
-            ["Auth", "better-auth (v1) · WorkOS SSO (v2)"],
+            ["Auth", "Auth.js sign-in with Portal roles · enterprise SSO on the roadmap"],
             ["Memory", "Harness-native per-agent SQLite — keyword search, seeded per agent"],
-            ["Retrieval", "RAGFlow — cited document answers (v0.5)"],
-            ["Embeddings (v0.5)", "bge-m3 — semantic memory + RAG, on its own GPU card"],
-            ["Voice (v0.5)", "VoxCPM2 — open-weight cloning + TTS"],
-            ["Image (v0.5)", "ComfyUI + SDXL"],
+            ["Connectors", "One MCP server per service, per user · capability tokens · approval gates"],
+            ["Channels (v0.5)", "Storefront chat widget · email · Slack / Teams"],
+            ["Voice agents (v0.6)", "On your own lines, same rule books and case records"],
+            ["Knowledge search (v0.6)", "Cited answers over your documents, with access walls"],
           ].map(([k, v]) => (
             <div
               key={k}

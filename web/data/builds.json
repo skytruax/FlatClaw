@@ -1,0 +1,805 @@
+{
+  "updated": "2026-10-07",
+  "priceNote": "Street prices are read from newegg.com by a scheduled job (web/scripts/price-watch.mjs) and refreshed hourly; the page re-reads them every ten minutes. Parts Newegg does not list today carry a reference price and a link to the search instead.",
+  "builds": [
+    {
+      "id": "gemma-4-31b",
+      "klass": "Standard class",
+      "title": "Gemma 4 31B at FP8, 256K context",
+      "subtitle": "One 96 GB card locally, one H100 in the cloud. The model every FlatClaw tenant runs today.",
+      "model": {
+        "name": "Gemma 4 31B-IT",
+        "params": "31B dense",
+        "license": "Apache 2.0",
+        "context": "256K native",
+        "footprint": "~33 GB at FP8 + KV cache",
+        "engine": "SGLang, --quantization fp8 --tp 1, tool-call and reasoning parsers gemma4"
+      },
+      "glance": [
+        {
+          "v": "96 GB",
+          "l": "VRAM, one card"
+        },
+        {
+          "v": "FP8",
+          "l": "native on Blackwell / Hopper"
+        },
+        {
+          "v": "256K",
+          "l": "context served"
+        },
+        {
+          "v": "8–12",
+          "l": "concurrent streams"
+        },
+        {
+          "v": "1",
+          "l": "process per card"
+        }
+      ],
+      "local": {
+        "variants": [
+          {
+            "id": "workstation",
+            "title": "The inference workstation",
+            "summary": "A tower that is a daily desktop, the internal FlatClaw node and a demo server, bought in three phases so nothing is rebought: the platform first, a used 48 GB card for real CUDA serving, the 96 GB card when the memory market allows.",
+            "parts": [
+              {
+                "id": "gpu-main",
+                "role": "GPU · main",
+                "pick": "NVIDIA RTX PRO 6000 Blackwell, 96 GB (Workstation Edition)",
+                "why": "96 GB of GDDR7 holds the 31B at FP8 with the full 256K window on one card, exactly how the hosted tenant runs it. Blower, display out, 600 W. The passive Server Edition is wrong for a tower.",
+                "qty": 1,
+                "newegg": "N82E16814132106",
+                "phase": 3,
+                "tag": "chosen"
+              },
+              {
+                "id": "gpu-maxq",
+                "role": "GPU · alt",
+                "pick": "NVIDIA RTX PRO 6000 Blackwell Max-Q, 96 GB",
+                "why": "Same 96 GB at 300 W with a quieter blower; a few percent slower. The right card when two must sit side by side (see the frontier build).",
+                "qty": 1,
+                "newegg": "N82E16814132105",
+                "optional": true,
+                "tag": "alternative"
+              },
+              {
+                "id": "gpu-second",
+                "role": "GPU · 2nd",
+                "pick": "NVIDIA RTX A6000, 48 GB (used)",
+                "why": "Phase-2 serving card: the 31B at 4-bit runs ~35–40 tok/s. End state, the utility lane: image, voice, embeddings and a small LLM resident with room to spare. Ampere has no FP8, so anything on it is quantized.",
+                "qty": 1,
+                "newegg": null,
+                "referencePrice": 3250,
+                "referenceNote": "used market (eBay), $3,000–3,500 in August 2026; Newegg does not list it",
+                "searchUrl": "https://www.newegg.com/p/pl?d=NVIDIA+RTX+A6000+48GB",
+                "phase": 2,
+                "tag": "used"
+              },
+              {
+                "id": "gpu-boot",
+                "role": "GPU · boot",
+                "pick": "AMD Radeon RX 5700 XT, 8 GB (on hand)",
+                "why": "Free bootstrap and permanent display card: amdgpu drives the desktop so the NVIDIA cards stay headless with every byte of VRAM free.",
+                "qty": 1,
+                "newegg": null,
+                "referencePrice": 0,
+                "referenceNote": "already owned",
+                "phase": 1
+              },
+              {
+                "id": "cpu",
+                "role": "CPU",
+                "pick": "AMD Ryzen 9 9900X, 12 cores",
+                "why": "Feeds both cards over PCIe 5.0 and runs the OS, SGLang and the desktop. Twelve cores is plenty; the 9950X only pays off for CPU-heavy ingestion.",
+                "qty": 1,
+                "newegg": "N82E16819113842",
+                "phase": 1
+              },
+              {
+                "id": "board",
+                "role": "Mainboard",
+                "pick": "ASUS ProArt X870E-Creator WiFi",
+                "why": "Two PCIe 5.0 x16 slots (x8/x8), 10 GbE + 2.5 GbE, four M.2, USB4: workstation-grade AM5.",
+                "qty": 1,
+                "newegg": "N82E16813119688",
+                "phase": 1
+              },
+              {
+                "id": "ram",
+                "role": "Memory",
+                "pick": "Corsair Vengeance 96 GB (2 × 48 GB) DDR5",
+                "why": "Two DIMMs keep AM5 at full speed; 96 GB carries desktop, Docker, gateway and ingestion with headroom. Models live in VRAM. Newegg lists the 5600 kit today; take the 6000 CL30 kit when it is back.",
+                "qty": 1,
+                "newegg": "N82E16820236976",
+                "phase": 1
+              },
+              {
+                "id": "psu",
+                "role": "Power",
+                "pick": "Corsair RM1200x Shift, 1200 W, 80+ Gold, ATX 3.1",
+                "why": "Native 12V-2x6 for the Pro 6000, 8-pin PCIe for the second card; right-sized for two big cards at ~1.1 kW peak.",
+                "qty": 1,
+                "newegg": null,
+                "referencePrice": 160,
+                "referenceNote": "not listed on Newegg today; $160 street",
+                "searchUrl": "https://www.newegg.com/p/pl?d=Corsair+RM1200x+Shift",
+                "phase": 1,
+                "tag": "chosen"
+              },
+              {
+                "id": "psu-alt",
+                "role": "Power · alt",
+                "pick": "Seasonic PRIME TX-1600, 1600 W, 80+ Titanium",
+                "why": "In stock on Newegg today and enough for any two-card configuration; the same unit the frontier hybrid uses.",
+                "qty": 1,
+                "newegg": "N82E16817151255",
+                "optional": true,
+                "tag": "alternative"
+              },
+              {
+                "id": "cooler",
+                "role": "CPU cooler",
+                "pick": "Arctic Liquid Freezer III Pro 360",
+                "why": "Holds the 120 W 9900X while the GPUs dump heat into the case; best-value 360 mm.",
+                "qty": 1,
+                "newegg": null,
+                "referencePrice": 106,
+                "referenceNote": "not listed on Newegg today; $106 street",
+                "searchUrl": "https://www.newegg.com/p/pl?d=Arctic+Liquid+Freezer+III+Pro+360",
+                "phase": 1,
+                "tag": "chosen"
+              },
+              {
+                "id": "cooler-alt",
+                "role": "Cooler · alt",
+                "pick": "Arctic Liquid Freezer III 420 A-RGB",
+                "why": "The 420 mm sibling Newegg has in stock; check the radiator fit for your case before swapping.",
+                "qty": 1,
+                "newegg": "N82E16835186279",
+                "optional": true,
+                "tag": "alternative"
+              },
+              {
+                "id": "case",
+                "role": "Case",
+                "pick": "Fractal Design North XL, Mesh, charcoal and walnut",
+                "why": "A tower that looks like furniture: 413 mm of GPU room, a 360 mm top radiator, mesh side feeding the blowers. Mesh, not glass.",
+                "qty": 1,
+                "newegg": "N82E16811352215",
+                "phase": 1
+              },
+              {
+                "id": "ssd",
+                "role": "Storage",
+                "pick": "Samsung 9100 PRO 4 TB, NVMe Gen5",
+                "why": "OS plus the model library (~1 TB system, ~3 TB weights); the board takes Gen5 natively.",
+                "qty": 1,
+                "newegg": "N82E16820147904",
+                "phase": 1
+              }
+            ],
+            "phases": [
+              {
+                "n": 1,
+                "title": "Platform + the card on hand",
+                "note": "Desktop, portal, a 7B model through Vulkan. Buy RAM and the SSD first; DDR5 is still rising."
+              },
+              {
+                "n": 2,
+                "title": "+ used A6000",
+                "note": "The 31B at 4-bit around 35–40 tok/s: demo-able, plus the whole utility lane on one card."
+              },
+              {
+                "n": 3,
+                "title": "+ RTX PRO 6000",
+                "note": "Production-identical FP8 at 256K; 144 GB of NVIDIA VRAM across the two cards."
+              }
+            ],
+            "notes": [
+              "Both cards flat out: Pro 6000 600 W + A6000 300 W + platform ~200 W ≈ 1.1 kW, about 9 A at 120 V. Fine on a 15 A circuit; a dedicated 20 A circuit leaves room for a second A6000.",
+              "Ubuntu 24.04 Desktop: amdgpu drives the display card and Wayland; NVIDIA R570+ / CUDA 12.8+ (sm_120) runs compute headless. Serve from containers and hold driver updates before demo days.",
+              "One process per card, each pinned with CUDA_VISIBLE_DEVICES, behind one OpenAI-compatible front door. The flagship never reloads; the utility card hosts image, voice, embeddings and a small LLM.",
+              "Run the OpenClaw gateway and the Portal on the same box for a fully local demo, or point a separate control machine at its endpoint; both work."
+            ],
+            "software": [
+              {
+                "label": "Card 0",
+                "value": "CUDA_VISIBLE_DEVICES=0 python -m sglang.launch_server --model-path google/gemma-4-31b-it --quantization fp8 --tp 1 --context-length 262144 --tool-call-parser gemma4 --reasoning-parser gemma4 --port 30000 --mem-fraction-static 0.90"
+              },
+              {
+                "label": "Card 1",
+                "value": "ComfyUI :8188 · voice :8001 · text-embeddings-router :8080 · optional 7–8B at 4-bit on its own port"
+              }
+            ]
+          }
+        ]
+      },
+      "cloud": {
+        "options": [
+          {
+            "provider": "Northflank",
+            "plan": "nf-gpu-h100-80-1g",
+            "gpus": "1 × H100 80 GB",
+            "vram": "80 GB",
+            "hourly": 2.74,
+            "monthlyWarm": 2000,
+            "notes": [
+              "26 vCPU and 234 GB RAM bundled with the GPU; ~$2,000/month held warm 24/7 including the bundled compute.",
+              "Cold boot ~10 minutes: image pull, weights fetched from the weights-server pod over the internal network, SGLang load."
+            ],
+            "recommended": true
+          },
+          {
+            "provider": "Northflank",
+            "plan": "nf-compute-400-16 (control)",
+            "gpus": "none",
+            "vram": "—",
+            "hourly": 0.2,
+            "monthlyWarm": 144,
+            "notes": [
+              "Portal plus one OpenClaw gateway per user: 4 vCPU / 16 GB carries two or three users at 0.6–1.2 GB each with room to spare."
+            ]
+          },
+          {
+            "provider": "Northflank",
+            "plan": "nf-compute-50 + 200 GB volume",
+            "gpus": "none",
+            "vram": "—",
+            "hourly": 0.02,
+            "monthlyWarm": 30,
+            "notes": [
+              "weights-server: a CPU pod serving the tenancy's weights volume over HTTP, because GPU plans cannot mount the volume directly."
+            ]
+          }
+        ],
+        "elsewhere": [
+          {
+            "cloud": "Azure",
+            "sku": "NC H100 v5",
+            "note": "AKS node pool or a single GPU VM in the customer's subscription; same containers, same weights-volume pattern (Blob + blobfuse)."
+          },
+          {
+            "cloud": "AWS",
+            "sku": "p5 / g6e class",
+            "note": "EKS or a single GPU instance in an account the customer owns; IAM + KMS, private VPC egress only."
+          },
+          {
+            "cloud": "Google Cloud",
+            "sku": "A3 (H100)",
+            "note": "GKE with an A3 node or a single GPU VM; Workload Identity, VPC Service Controls."
+          }
+        ],
+        "notes": [
+          "Flat per-tenant rate, not per-token metering: the GPU line dominates and everything else is under $200.",
+          "Capacity is peak concurrent sessions, not head count: one H100 sustains 8–12 concurrent streaming chats at FP8 with first tokens in 1–2 s."
+        ],
+        "allInNote": "About $2,000–2,200 a month per tenant, held warm. List prices; committed-use terms on any cloud cut the GPU line."
+      },
+      "sheetPdf": "/builds/FlatClaw-Gemma-4-31B-Local-vs-Cloud.pdf"
+    },
+    {
+      "id": "glm-5-2",
+      "klass": "Frontier class",
+      "title": "GLM-5.2: a 744B mixture-of-experts, quantized on a workstation, FP8 on an 8-GPU node",
+      "subtitle": "Only ~40B parameters are active per token, so the weights have to be held, not computed: a big-memory workstation at 4-bit locally, eight H200s at FP8 in the cloud.",
+      "model": {
+        "name": "GLM-5.2",
+        "params": "744B MoE, ~40B active per token",
+        "license": "MIT",
+        "context": "1M tokens",
+        "footprint": "FP8 ≈ 744 GB · 4-bit GGUF 372–475 GB · 2-bit 239 GB",
+        "engine": "SGLang / vLLM at FP8 in the cloud; llama.cpp or KTransformers for the GPU + RAM hybrid"
+      },
+      "glance": [
+        {
+          "v": "744B",
+          "l": "total params, MoE"
+        },
+        {
+          "v": "40B",
+          "l": "active per token"
+        },
+        {
+          "v": "192 GB",
+          "l": "VRAM, 2 × Pro 6000"
+        },
+        {
+          "v": "512 GB",
+          "l": "system RAM, 8-channel"
+        },
+        {
+          "v": "1M",
+          "l": "context tokens"
+        }
+      ],
+      "quantLadder": [
+        {
+          "tier": "BF16 full precision",
+          "footprint": "~1,500 GB",
+          "fits": "cloud only, multi-node"
+        },
+        {
+          "tier": "FP8 (the prod checkpoint)",
+          "footprint": "~744 GB",
+          "fits": "8 × H200 cloud node"
+        },
+        {
+          "tier": "8-bit",
+          "footprint": "810 GB",
+          "fits": "GPU server or cloud"
+        },
+        {
+          "tier": "5-bit",
+          "footprint": "570 GB",
+          "fits": "512 GB RAM + 192 GB VRAM, tight"
+        },
+        {
+          "tier": "4-bit (UD-Q4_K_XL), chosen locally",
+          "footprint": "372–475 GB",
+          "fits": "the 512 GB hybrid box, near-lossless"
+        },
+        {
+          "tier": "3-bit",
+          "footprint": "290–360 GB",
+          "fits": "a 384 GB box"
+        },
+        {
+          "tier": "2-bit (UD-IQ2_M)",
+          "footprint": "239 GB",
+          "fits": "a 256 GB box; ~82% top-1 at 84% smaller"
+        },
+        {
+          "tier": "1-bit",
+          "footprint": "223 GB",
+          "fits": "tight budgets; the biggest quality hit"
+        }
+      ],
+      "local": {
+        "variants": [
+          {
+            "id": "hybrid",
+            "title": "The CUDA hybrid workstation (chosen)",
+            "summary": "Two Blackwell cards hold attention, the shared layers and the KV cache at CUDA speed with native FP8; 512 GB of 8-channel DDR5 holds the cold experts. Decode lands around 10–18 tok/s at 4-bit, prefill is CUDA-fast.",
+            "parts": [
+              {
+                "id": "gpu",
+                "role": "GPU × 2",
+                "pick": "NVIDIA RTX PRO 6000 Blackwell Max-Q, 96 GB",
+                "why": "Attention, dense layers, the FP8 KV cache and as many hot expert tensors as fit, split across both cards. Two Max-Q blowers at 300 W each sit side by side and run off a 1,600 W supply; the 600 W Workstation Edition pair would want 2,000 W and more airflow.",
+                "qty": 2,
+                "newegg": "N82E16814132105",
+                "tag": "chosen"
+              },
+              {
+                "id": "cpu",
+                "role": "CPU",
+                "pick": "AMD Ryzen Threadripper PRO 7975WX, 32 cores",
+                "why": "Eight DDR5 channels (~325 GB/s) feed the experts, which is the real bottleneck, plus 128 PCIe 5.0 lanes for two x16 cards and the offload engine.",
+                "qty": 1,
+                "newegg": "N82E16819113807"
+              },
+              {
+                "id": "board",
+                "role": "Mainboard",
+                "pick": "ASUS Pro WS WRX90E-SAGE SE",
+                "why": "sTR5 / WRX90: seven PCIe 5.0 x16 slots, eight DDR5 RDIMM slots, 10 GbE. The only desktop platform with both the lanes and the memory channels.",
+                "qty": 1,
+                "newegg": "N82E16813119667"
+              },
+              {
+                "id": "ram",
+                "role": "Memory",
+                "pick": "Kingston Server Premier 64 GB DDR5-5600 ECC RDIMM × 8 = 512 GB",
+                "why": "Holds the whole 4-bit GGUF (≈475 GB) in RAM; experts stream to the GPUs per token. All eight channels populated: bandwidth sets decode speed. Memory prices roughly quadrupled since the June 2026 sheet; this line is where the money went.",
+                "qty": 8,
+                "newegg": "N82E16820242894",
+                "tag": "chosen"
+              },
+              {
+                "id": "ram-alt",
+                "role": "Memory · alt",
+                "pick": "Kingston FURY Renegade Pro 128 GB (4 × 32 GB) DDR5-5600 RDIMM × 2 = 256 GB",
+                "why": "Half the capacity for the 2-bit and 3-bit tiers (239–360 GB with the VRAM); the cheaper way to stand it up and judge quality first.",
+                "qty": 2,
+                "newegg": "N82E16820242850",
+                "optional": true,
+                "tag": "alternative"
+              },
+              {
+                "id": "psu",
+                "role": "Power",
+                "pick": "Seasonic PRIME TX-1600, 1600 W, 80+ Titanium",
+                "why": "2 × 300 W Max-Q + 350 W CPU + platform ≈ 1.25 kW continuous. Native 12V-2x6 cables for both cards.",
+                "qty": 1,
+                "newegg": "N82E16817151255"
+              },
+              {
+                "id": "cooler",
+                "role": "CPU cooler",
+                "pick": "SilverStone XE360-TR5-V2, 360 mm AIO",
+                "why": "Full sTR5 cold-plate coverage for the 350 W Threadripper while two GPUs dump heat into the case.",
+                "qty": 1,
+                "newegg": "N82E16835220161"
+              },
+              {
+                "id": "case",
+                "role": "Case",
+                "pick": "Fractal Design Meshify 2 XL",
+                "why": "Mesh airflow and room for two long cards and an E-ATX / SSI-EEB board. Alternative: a 4U rack chassis if it lives in a closet.",
+                "qty": 1,
+                "newegg": "N82E16811352137"
+              },
+              {
+                "id": "ssd",
+                "role": "Storage",
+                "pick": "Samsung 9100 PRO 4 TB, NVMe Gen5 × 2",
+                "why": "GGUF tiers run 223–810 GB each; Gen5 keeps mmap and load fast. Two 4 TB drives hold several quant levels side by side (the 8 TB model is not listed).",
+                "qty": 2,
+                "newegg": "N82E16820147904"
+              }
+            ],
+            "notes": [
+              "The engine keeps attention and KV on the cards and routes cold experts to RAM: llama.cpp (-ngl 99 -n-cpu-moe 999 -ts 50,50 --flash-attn --cache-type-k q8_0 --cache-type-v q8_0) or KTransformers for more expert throughput. OpenClaw points at the single OpenAI endpoint, exactly like the 31B box.",
+              "A 744B MoE owns all the memory: no room for image or voice on this box; run modality on a second machine as the standard build does.",
+              "Honest line: locally you run a quantized GLM-5.2 (4-bit is excellent); FP8 production parity is the 8-GPU node's job."
+            ],
+            "software": [
+              {
+                "label": "Launch",
+                "value": "./llama-server -m GLM-5.2-UD-Q4_K_XL.gguf -ngl 99 -n-cpu-moe 999 -ts 50,50 -c 131072 --flash-attn --cache-type-k q8_0 --cache-type-v q8_0 --host 0.0.0.0 --port 8000"
+              },
+              {
+                "label": "Alternative",
+                "value": "ktransformers --model zai-org/GLM-5.2 --gguf_path ./GLM-5.2-UD-Q4 --cpu_infer 32 --max_new_tokens 131072 --port 8000"
+              }
+            ]
+          },
+          {
+            "id": "server",
+            "title": "The all-GPU 4U server (the cloud node, bought)",
+            "summary": "Eight 96 GB cards in a 4U chassis: 768 GB of VRAM, the full SGLang stack, 240 V in the closet. FP8's 744 GB fits with almost no KV room, so run 8-bit or 4-bit with headroom, or FP8 at short context.",
+            "parts": [
+              {
+                "id": "chassis",
+                "role": "Chassis",
+                "pick": "ASUS ESC8000A-E12, 4U 8-GPU barebone (dual EPYC 9004)",
+                "why": "Eight double-width GPU bays with the airflow and the redundant 3 kW power to match; the barebone includes board, backplane and supplies.",
+                "qty": 1,
+                "newegg": "N82E16816110214",
+                "tag": "chosen"
+              },
+              {
+                "id": "cpu",
+                "role": "CPU × 2",
+                "pick": "AMD EPYC 9354, 32 cores",
+                "why": "Two sockets for 24 memory channels and 256 PCIe 5.0 lanes; the GPUs do the work.",
+                "qty": 2,
+                "newegg": null,
+                "referencePrice": 3000,
+                "referenceNote": "not sold as a part on Newegg; ~$3,000 each street",
+                "searchUrl": "https://www.newegg.com/p/pl?d=AMD+EPYC+9354"
+              },
+              {
+                "id": "ram",
+                "role": "Memory",
+                "pick": "Kingston Server Premier 64 GB DDR5-5600 ECC RDIMM × 12 = 768 GB",
+                "why": "Matches the VRAM so a full checkpoint can stage through RAM; one DIMM per channel across both sockets.",
+                "qty": 12,
+                "newegg": "N82E16820242894"
+              },
+              {
+                "id": "gpu",
+                "role": "GPU × 8",
+                "pick": "NVIDIA RTX PRO 6000 Blackwell Max-Q, 96 GB",
+                "why": "300 W blowers were made for dense multi-GPU boxes; 8 × 96 GB = 768 GB. The passive Server Edition is the other option when it is in stock at a sane price.",
+                "qty": 8,
+                "newegg": "N82E16814132105",
+                "tag": "chosen"
+              },
+              {
+                "id": "ssd",
+                "role": "Storage",
+                "pick": "Samsung 9100 PRO 4 TB, NVMe Gen5 × 4",
+                "why": "The FP8 checkpoint alone is 744 GB; keep two quant tiers and the BF16 shards for conversion.",
+                "qty": 4,
+                "newegg": "N82E16820147904"
+              }
+            ],
+            "notes": [
+              "8 × 300 W + platform ≈ 3 kW: a dedicated 240 V circuit and a room that can shed the heat.",
+              "This is the same shape as the cloud node, which is the point: the launch line (sglang --tp 8 --quantization fp8) is identical, only the owner changes."
+            ],
+            "software": [
+              {
+                "label": "Launch",
+                "value": "python -m sglang.launch_server --model-path zai-org/GLM-5.2 --tp 8 --quantization fp8 --enable-moe-ep --kv-cache-dtype fp8_e5m2 --context-length 262144 --port 8000"
+              }
+            ]
+          }
+        ]
+      },
+      "cloud": {
+        "options": [
+          {
+            "provider": "Northflank",
+            "plan": "nf-gpu-h200-141-8g",
+            "gpus": "8 × H200 141 GB",
+            "vram": "1,128 GB",
+            "hourly": 25,
+            "monthlyWarm": 18300,
+            "spotHourly": 14.6,
+            "monthlySpot": 10500,
+            "notes": [
+              "Full-precision FP8 with KV room: production parity. SGLang --tp 8 --enable-moe-ep, context ≤256K.",
+              "One service spanning eight GPUs; the weights-server + customEntrypoint pattern from the 31B box, with a ≥1.5 TB volume and a 20–40 minute cold boot (744 GB fetched)."
+            ],
+            "recommended": true
+          },
+          {
+            "provider": "Northflank",
+            "plan": "nf-gpu-b200-180-8g",
+            "gpus": "8 × B200 180 GB",
+            "vram": "1,536 GB",
+            "hourly": 47,
+            "monthlyWarm": 34000,
+            "notes": [
+              "FP8 KV cache for the full 1M-token context."
+            ]
+          },
+          {
+            "provider": "Northflank",
+            "plan": "weights-server (CPU) + ≥1.5 TB volume",
+            "gpus": "none",
+            "vram": "—",
+            "hourly": 0.05,
+            "monthlyWarm": 60,
+            "notes": [
+              "nginx autoindex over the checkpoint directory; the GPU node fetches it at boot."
+            ]
+          }
+        ],
+        "elsewhere": [
+          {
+            "cloud": "Azure",
+            "sku": "ND H200 v5 (8 × H200) · ND GB200 v6 for 1M context",
+            "note": "One 8-GPU deployment on AKS (NVIDIA device plugin, --tp 8) behind an internal ingress, or an Azure ML online endpoint; weights in Blob, fetched on boot; no public egress."
+          },
+          {
+            "cloud": "Azure, cheaper",
+            "sku": "NC A100 v4 × N",
+            "note": "Ampere has no FP8: a quantized GLM-5.2 only, the same caveat as the local box."
+          }
+        ],
+        "notes": [
+          "Cost reality: this is a different tier. Eight H200s are about ten times the 31B box held warm, so the frontier class is scheduled for live load and scaled to zero between demos.",
+          "Per GPU-hour on Northflank: H100 $2.74 · RTX PRO 6000 96 GB $3.00 · H200 ~$3.14 · B200 ~$5.87.",
+          "Routing is unchanged: OpenClaw points at one endpoint; a LiteLLM or vLLM router in the same tenancy adds failover to a quantized fallback or a second region."
+        ],
+        "allInNote": "~$18,300 a month held warm on eight H200s, ~$10,500 on spot; scale to zero between sessions."
+      },
+      "sheetPdf": "/builds/FlatClaw-GLM-5.2-Local-vs-Cloud.pdf"
+    }
+  ],
+  "recipes": [
+    {
+      "id": "standard-tenant",
+      "eyebrow": "Recipe 01 · the standard tenant",
+      "title": "One H100, Gemma 4 31B at FP8, 256K context",
+      "summary": "What every FlatClaw tenant runs today, on the Northflank reference lane: a public SGLang image with no weights baked in, a weights volume served over the internal network, and a cold boot you can time with a watch.",
+      "facts": [
+        {
+          "k": "GPU plan",
+          "v": "nf-gpu-h100-80-1g · 26 vCPU · 234 GB · 1 × H100 80 GB · $2.74/GPU-hr"
+        },
+        {
+          "k": "Image",
+          "v": "ghcr.io/skytruax/flatclaw-inference (SGLang base + entrypoint, ~18 GB, no weights)"
+        },
+        {
+          "k": "Weights",
+          "v": "Gemma 4 31B FP8 on a 200 GB tenancy volume, staged once from Kaggle, served by a CPU pod over HTTP"
+        },
+        {
+          "k": "Serve",
+          "v": "--quantization fp8 --tp 1 --context-length 262144 --tool-call-parser gemma4 --reasoning-parser gemma4 --cuda-graph-max-bs-decode 1"
+        },
+        {
+          "k": "Cold boot",
+          "v": "~10 minutes: image pull, weights fetch, model load"
+        },
+        {
+          "k": "Capacity",
+          "v": "8–12 concurrent streaming chats; first token in 1–2 s; RadixAttention prefix cache does most of the work on reuse"
+        },
+        {
+          "k": "All-in",
+          "v": "~$2,000 a month per tenant held warm, GPU line dominant"
+        }
+      ],
+      "bullets": [
+        "GPU plans bundle CPU, RAM and GPU; a GPU attached to a CPU plan is silently dropped.",
+        "Managed GPU services cannot mount the read-write-once volume, so a CPU pod serves it and the GPU pod fetches at boot.",
+        "Override the image's entrypoint with customEntrypoint, not customCommand, and ship multi-line scripts base64-encoded.",
+        "GPU nodes need 500 GB of ephemeral storage declared, or the deployment is refused.",
+        "A moving `sglang:dev` tag renamed a flag under us once; pin what you depend on."
+      ]
+    },
+    {
+      "id": "control-plane",
+      "eyebrow": "Recipe 02 · the control plane",
+      "title": "Portal plus one OpenClaw gateway per user on a 16 GB plan",
+      "summary": "The v0.4.0 per-user mode in production: the Portal supervises a gateway per user under its own operating-system account, inside one small service next to the GPU.",
+      "facts": [
+        {
+          "k": "Plan",
+          "v": "nf-compute-400-16 · 4 vCPU · 16 GB · ~$144/month"
+        },
+        {
+          "k": "Per user",
+          "v": "0.6–1.2 GB RSS per gateway; three users leave ~14 GB free; budget 1–1.2 GB each"
+        },
+        {
+          "k": "Boot",
+          "v": "gateways up ~13 s after the container starts; seeded users' prompts re-synced on every boot"
+        },
+        {
+          "k": "Runtime",
+          "v": "OpenClaw 2026.9.8 on Node 24, pinned; a live contract probe on every pin bump"
+        },
+        {
+          "k": "Rollouts",
+          "v": "a redeploy restarts every gateway and aborts live runs: treat demos as a config freeze"
+        }
+      ],
+      "bullets": [
+        "Inference is a Portal setting pushed to every gateway, not a platform secret and a redeploy.",
+        "The gateway's environment carries none of the Portal's secrets or anything credential-shaped.",
+        "A build on the demo branch is a live rollout; abort a superseded build rather than let two roll out in sequence."
+      ]
+    },
+    {
+      "id": "second-h100",
+      "eyebrow": "Recipe 03 · the second card",
+      "title": "A second H100 buys capacity and lanes, not a smarter model",
+      "summary": "October 2026 desk research, index v4.3.2: nothing from a non-Chinese lab that fits two H100s beats Gemma 4 31B. The real steps up are GPU-count steps: four cards, then eight.",
+      "facts": [
+        {
+          "k": "Gemma 4 31B",
+          "v": "index 15 · 1 card · the baseline; tensor-parallel across two cards for throughput"
+        },
+        {
+          "k": "Muse Glimmer 30B",
+          "v": "index 17 · 1 card · worth a time-boxed bake-off as a second lane"
+        },
+        {
+          "k": "Mistral Medium 3.5",
+          "v": "index 14 · FP8-only 133.6 GB leaves no KV room on two cards; licence void above $20M monthly revenue"
+        },
+        {
+          "k": "Nemotron 3 Super",
+          "v": "index 13 · FP8 128.4 GB · the only vendor-verified 2 × H100 SGLang recipe (--tp 2); text-only"
+        },
+        {
+          "k": "Command A+ · gpt-oss-120b · Mistral Small 4",
+          "v": "index 13 · 12 · 11; NVFP4 emulation or vLLM-only paths"
+        },
+        {
+          "k": "Inkling-Small",
+          "v": "index 26 · 4 × H100 · Apache 2.0 · NVFP4 170.7 GB"
+        },
+        {
+          "k": "Mistral Large 4",
+          "v": "index 38 · 8 × H100 · ~500 GB at 4-bit · licence unpublished at writing"
+        }
+      ],
+      "bullets": [
+        "Recommendation order: Gemma at --tp 2 → Gemma plus a second lane → Nemotron 3 Super for text-only tenants → Medium 3.5 as a lab test only.",
+        "Northflank offers 1, 2, 4 or 8 GPUs per instance; H100 $2.74/GPU-hr, RTX PRO 6000 96 GB $3.00/hr; NVLink and SXM are not documented, so do not plan on them.",
+        "Index rebases make older scores incomparable: re-read the leaderboard, do not reuse a number."
+      ]
+    },
+    {
+      "id": "frontier",
+      "eyebrow": "Recipe 04 · the frontier class",
+      "title": "GLM-5.2 on eight H200s, or quantized on a 512 GB workstation",
+      "summary": "A 744B mixture-of-experts with ~40B active per token is capacity-bound, not compute-bound: hold the weights, stream the experts. FP8 parity is an 8-GPU cloud node; a 4-bit copy runs on two Blackwell cards plus 512 GB of RAM.",
+      "facts": [
+        {
+          "k": "Cloud",
+          "v": "nf-gpu-h200-141-8g · 1,128 GB · $25/hr · ~$18.3k/month warm · spot ~$14.6/hr"
+        },
+        {
+          "k": "1M context",
+          "v": "nf-gpu-b200-180-8g · 1,536 GB · $47/hr"
+        },
+        {
+          "k": "Local",
+          "v": "2 × RTX PRO 6000 Max-Q + Threadripper PRO + 512 GB DDR5-5600: 10–18 tok/s decode at 4-bit"
+        },
+        {
+          "k": "Quant ladder",
+          "v": "FP8 744 GB · 8-bit 810 · 5-bit 570 · 4-bit 372–475 (chosen) · 3-bit 290–360 · 2-bit 239 · 1-bit 223"
+        },
+        {
+          "k": "Weights",
+          "v": "zai-org/GLM-5.2 on Hugging Face, MIT; a ≥1.5 TB volume and a 20–40 minute cold boot in the cloud"
+        }
+      ],
+      "bullets": [
+        "One model across cards and RAM: llama.cpp or KTransformers keep attention and KV on the GPUs and route cold experts to system memory; SGLang or vLLM serve FP8 all-VRAM.",
+        "Scale is coarse: each replica is another 8-GPU node. Schedule the flagship for live load, keep a quantized replica as the floor.",
+        "The front door does not change: OpenClaw points at one endpoint; a router adds failover across replicas, regions or a smaller fallback."
+      ]
+    },
+    {
+      "id": "local-box",
+      "eyebrow": "Recipe 05 · the local box",
+      "title": "The inference workstation, bought in three phases",
+      "summary": "Platform first with the display card you already own, a used 48 GB card for real CUDA serving, then the 96 GB card when the memory market allows. Nothing is rebought along the way.",
+      "facts": [
+        {
+          "k": "Phase 1",
+          "v": "Ryzen 9 9900X · ProArt X870E · 96 GB DDR5 · 1,200 W · 360 mm AIO · North XL Mesh · 4 TB Gen5 · your old display card"
+        },
+        {
+          "k": "Phase 2",
+          "v": "+ a used RTX A6000 48 GB: the 31B at 4-bit around 35–40 tok/s, and the whole utility lane"
+        },
+        {
+          "k": "Phase 3",
+          "v": "+ RTX PRO 6000 Blackwell 96 GB: production-identical FP8 at 256K"
+        },
+        {
+          "k": "Power",
+          "v": "~1.1 kW with both cards flat out, ~9 A at 120 V"
+        }
+      ],
+      "bullets": [
+        "96 GB on one card is the whole point: a 30B-class model at FP8 with a long window and no tensor-parallel split, exactly how the hosted tenant runs.",
+        "One process per card behind one router; the flagship never reloads.",
+        "Ampere (A6000) has no FP8, so its models run INT8 or 4-bit; the Pro 6000 does FP8 natively. The live parts table below carries today's prices."
+      ],
+      "links": [
+        {
+          "label": "Live parts and prices",
+          "href": "#references"
+        }
+      ]
+    },
+    {
+      "id": "dead-ends",
+      "eyebrow": "Recipe 06 · dead ends",
+      "title": "What we tried and will not try again",
+      "summary": "Kept so nobody repeats them.",
+      "facts": [
+        {
+          "k": "A100 / Ampere",
+          "v": "the Marlin FP8 kernel rejects Gemma 4 31B's 8,608-wide projection; no flag disables it. Hopper or Blackwell for FP8."
+        },
+        {
+          "k": "Scale-to-zero in production",
+          "v": "GPU scheduling queues stretch from minutes to a day; a warm GPU is the floor of the unit economics."
+        },
+        {
+          "k": "8-GPU-only clouds for one tenant",
+          "v": "wrong unit economics for a single 31B tenant; the right shape for the frontier class only."
+        },
+        {
+          "k": "Bring-your-own-cloud for a compliance story",
+          "v": "quota friction with nothing the customer cared about; the managed lane's own attestations covered it."
+        },
+        {
+          "k": "Read-write-once volumes on GPU services",
+          "v": "refused by the platform; a CPU pod serves the weights instead."
+        },
+        {
+          "k": "Moving image tags",
+          "v": "a `dev` tag split one flag into two overnight and put the pod in a restart loop while billing."
+        }
+      ],
+      "bullets": []
+    }
+  ]
+}

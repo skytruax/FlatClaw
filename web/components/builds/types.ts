@@ -1,0 +1,62 @@
+export interface Part {
+  id: string;
+  role: string;
+  pick: string;
+  why: string;
+  qty: number;
+  newegg?: string | null;
+  referencePrice?: number;
+  referenceNote?: string;
+  searchUrl?: string;
+  phase?: number;
+  optional?: boolean;
+  tag?: string;
+}
+export interface Variant {
+  id: string;
+  title: string;
+  summary: string;
+  parts: Part[];
+  phases?: { n: number; title: string; note: string }[];
+  notes: string[];
+  software?: { label: string; value: string }[];
+}
+export interface CloudOption {
+  provider: string;
+  plan: string;
+  gpus: string;
+  vram: string;
+  hourly: number;
+  monthlyWarm: number;
+  spotHourly?: number;
+  monthlySpot?: number;
+  notes: string[];
+  recommended?: boolean;
+}
+export interface Build {
+  id: string;
+  klass: string;
+  title: string;
+  subtitle: string;
+  model: Record<string, string>;
+  glance: { v: string; l: string }[];
+  quantLadder?: { tier: string; footprint: string; fits: string }[];
+  local: { variants: Variant[] };
+  cloud: { options: CloudOption[]; elsewhere: { cloud: string; sku: string; note: string }[]; notes: string[]; allInNote: string };
+  sheetPdf?: string;
+}
+export interface Recipe {
+  id: string;
+  eyebrow: string;
+  title: string;
+  summary: string;
+  facts: { k: string; v: string }[];
+  bullets: string[];
+  links?: { label: string; href: string }[];
+}
+export interface BuildsData {
+  updated: string;
+  priceNote: string;
+  builds: Build[];
+  recipes: Recipe[];
+}

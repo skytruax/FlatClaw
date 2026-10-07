@@ -48,8 +48,6 @@ const builtOn: [string, string, string][] = [
   ["OpenClaw", "Gateway and agent runtime, grown out of the Pi core — channels, sessions, model routing. Swappable behind FlatClaw's session API.", "MIT"],
   ["SGLang", "Production inference runtime — FP8, RadixAttention prefix caching.", "Apache 2.0"],
   ["Gemma 4 (Google)", "Open-weight LLM — 31B-IT dense, 256K context.", "Apache 2.0"],
-  ["RAGFlow", "Document ingest & retrieval with cited answers.", "Apache 2.0"],
-  ["bge-m3 (BAAI)", "Multilingual long-context embeddings, co-resident on the GPU.", "MIT"],
   ["Next.js + React", "Portal and marketing site.", "MIT"],
   ["Northflank", "Reference managed-GPU substrate — the first scripted deployment lane; every release is verified here.", "—"],
   ["Azure · AWS · Google Cloud", "Customer-owned tenancies for the same containers — resource group, account, or project per customer.", "—"],

@@ -12,7 +12,7 @@ const links = [
   { href: "/services", label: "Services" },
   { href: "/#architecture", label: "Architecture" },
   { href: "/tokenomics", label: "Tokenomics" },
-  { href: "/#roadmap", label: "Roadmap" },
+  { href: "/builds", label: "Build Recipes" },
 ];
 
 export function SiteNav() {
