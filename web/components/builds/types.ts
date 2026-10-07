@@ -50,8 +50,11 @@ export interface Recipe {
   eyebrow: string;
   title: string;
   summary: string;
-  facts: { k: string; v: string }[];
-  bullets: string[];
+  /** spec tiles; `backticks` in a value render as code chips */
+  specs: { k: string; v: string }[];
+  /** launch lines, shown as a code block; lines starting with # are comments */
+  launch?: string;
+  sections: { title: string; items: string[] }[];
   links?: { label: string; href: string }[];
 }
 export interface BuildsData {

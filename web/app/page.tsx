@@ -117,7 +117,7 @@ export default function HomePage() {
         title="≈ $2,000 / month per tenant. Every use case, one flat rate."
         lede="One GPU carries a tenant's whole workload: voice, intake, reporting, search and agents share it. Indicative monthly cost for a single tenant held warm 24/7 on a managed H100 plan, at the reference lane's published list pricing. Azure and AWS H100 classes land in the same band on reserved terms; bare metal amortizes lower. The H100 dominates; everything else combined is under $200. The rate is per tenant and scales with the tenant — not metered per token or per seat."
       >
-        <div className="grid lg:grid-cols-2 gap-8">
+        <div className="grid lg:grid-cols-2 gap-8 items-start">
           <div className="bg-[hsl(var(--fc-bg-surface))] rounded-xl ring-1 ring-[hsl(var(--fc-bg-tertiary))] p-6 shadow-sm">
             <h3 className="font-semibold text-base mb-4 text-[hsl(var(--fc-fg-primary))]">
               Monthly cost breakdown
@@ -235,7 +235,7 @@ export default function HomePage() {
         title="Best-in-class open-source, end to end."
         lede="Every dependency is MIT / Apache / BSD compatible. Nothing here is a vendor lock-in — including the cloud."
       >
-        <div className="grid md:grid-cols-2 gap-4">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[
             ["Inference", "Patched SGLang + Gemma 4 31B Dense"],
             ["Silicon", "NVIDIA H100-class · 80 GB · native FP8"],
@@ -246,20 +246,27 @@ export default function HomePage() {
             ["Auth", "Auth.js sign-in with Portal roles · enterprise SSO on the roadmap"],
             ["Memory", "Harness-native per-agent SQLite — keyword search, seeded per agent"],
             ["Connectors", "One MCP server per service, per user · capability tokens · approval gates"],
-            ["Channels (v0.5)", "Storefront chat widget · email · Slack / Teams"],
-            ["Voice agents (v0.6)", "On your own lines, same rule books and case records"],
-            ["Knowledge search (v0.6)", "Cited answers over your documents, with access walls"],
-          ].map(([k, v]) => (
+            ["Channels", "Storefront chat widget · email · Slack / Teams", "v0.5"],
+            ["Voice agents", "On your own lines, same rule books and case records", "v0.6"],
+            ["Knowledge search", "Cited answers over your documents, with access walls", "v0.6"],
+          ].map(([k, v, when]) => (
             <div
               key={k}
-              className="flex justify-between gap-4 bg-[hsl(var(--fc-bg-surface))] ring-1 ring-[hsl(var(--fc-bg-tertiary))] rounded-md px-4 py-3"
+              className="bg-[hsl(var(--fc-bg-surface))] ring-1 ring-[hsl(var(--fc-bg-tertiary))] rounded-md px-4 py-3.5"
             >
-              <span className="font-medium text-[hsl(var(--fc-fg-primary))]">
-                {k}
-              </span>
-              <span className="text-sm text-[hsl(var(--fc-fg-secondary))] text-right">
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-[hsl(var(--fc-fg-muted))]">
+                  {k}
+                </span>
+                {when ? (
+                  <span className="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide bg-[hsl(var(--brand-accent))/0.12] text-[hsl(var(--brand-primary))]">
+                    {when}
+                  </span>
+                ) : null}
+              </div>
+              <p className="mt-1.5 text-sm leading-relaxed text-[hsl(var(--fc-fg-primary))]">
                 {v}
-              </span>
+              </p>
             </div>
           ))}
         </div>

@@ -182,7 +182,7 @@ The honest trade-offs (where self-hosting is *wrong* — low volume, low utiliza
 - **Standard class — Gemma 4 31B at FP8, 256K context.** One 96 GB card locally (an RTX PRO 6000 Blackwell workstation bought in three phases), or the ~$2,000/month H100 plan above.
 - **Frontier class — GLM-5.2, 744B parameters as a mixture of experts.** A two-card CUDA hybrid workstation that holds the model in 512 GB of system memory, the all-GPU 4U server it would take to serve it at full precision, and the eight-H200 cloud node.
 
-Every part carries a live Newegg street price (refreshed hourly by a scheduled job; the page re-reads them every ten minutes), the quantization ladder shows what fits where, and each class has a printable build sheet with the local and cloud versions side by side. The recipes tab is the configuration behind every FlatClaw tenant — the standard tenant, the control plane, the second H100, the frontier class, a local box — and the dead ends we hit along the way.
+Every part carries a live Newegg street price (refreshed hourly by a scheduled job; the page re-reads them every ten minutes), the quantization ladder shows what fits where, and each class has a printable build sheet with the local and cloud versions side by side. The recipes tab holds the two configurations behind it: the standard tenant (one H100, with its control plane and what cost us time) and the frontier class (GLM-5.2 on eight H200s, or quantized on a workstation).
 
 ---
 

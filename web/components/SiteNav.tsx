@@ -33,7 +33,7 @@ export function SiteNav() {
 
   return (
     <header className="sticky top-0 z-50 bg-[hsl(var(--brand-primary))] text-[hsl(var(--brand-accent-fg))] shadow-md">
-      <div className="mx-auto max-w-6xl px-5 py-3 flex items-center gap-6">
+      <div className="mx-auto max-w-6xl px-5 h-[72px] flex items-center gap-6">
         <Link
           href="/"
           className="flex items-center gap-2.5 shrink-0"
@@ -45,17 +45,17 @@ export function SiteNav() {
             width={187}
             height={56}
             priority
-            className="h-12 lg:h-14 w-auto"
+            className="h-12 w-auto"
           />
         </Link>
 
-        {/* Desktop nav — hidden on mobile, shown lg+ */}
-        <nav className="hidden lg:flex items-center gap-1 ml-auto text-[15.5px]">
+        {/* Desktop nav — shown xl+; below that the drawer, because eight items wrap at 1024–1279 */}
+        <nav className="hidden xl:flex items-center gap-0.5 ml-auto text-[15px] whitespace-nowrap">
           {links.map((l) => (
             <Link
               key={l.href}
               href={l.href}
-              className="px-3.5 py-2 rounded hover:bg-[hsl(var(--brand-accent))/0.18] transition"
+              className="px-3 py-2 rounded hover:bg-[hsl(var(--brand-accent))/0.18] transition"
             >
               {l.label}
             </Link>
@@ -64,7 +64,7 @@ export function SiteNav() {
             href={GITHUB_URL}
             target="_blank"
             rel="noreferrer"
-            className="ml-2 px-3 py-1.5 rounded ring-1 ring-[hsl(var(--brand-accent-fg))/0.3] font-medium hover:bg-[hsl(var(--brand-accent-fg))/0.08] transition"
+            className="ml-3 px-3 py-1.5 rounded ring-1 ring-[hsl(var(--brand-accent-fg))/0.3] font-medium hover:bg-[hsl(var(--brand-accent-fg))/0.08] transition"
           >
             GitHub
           </a>
@@ -72,20 +72,20 @@ export function SiteNav() {
             href={SCHEDULE_DEMO_URL}
             target="_blank"
             rel="noreferrer"
-            className="px-3 py-1.5 rounded bg-[hsl(var(--brand-accent))] text-[hsl(var(--brand-accent-fg))] font-medium hover:brightness-110 transition"
+            className="ml-2 px-3.5 py-1.5 rounded bg-[hsl(var(--brand-accent))] text-[hsl(var(--brand-accent-fg))] font-medium hover:brightness-110 transition"
           >
             Schedule Demo
           </a>
         </nav>
 
-        {/* Mobile hamburger — shown below lg */}
+        {/* Hamburger — shown below xl */}
         <button
           type="button"
           aria-label={open ? "Close menu" : "Open menu"}
           aria-expanded={open}
           aria-controls="mobile-nav"
           onClick={() => setOpen((o) => !o)}
-          className="lg:hidden ml-auto inline-flex items-center justify-center rounded p-2 hover:bg-[hsl(var(--brand-accent))/0.18] transition"
+          className="xl:hidden ml-auto inline-flex items-center justify-center rounded p-2 hover:bg-[hsl(var(--brand-accent))/0.18] transition"
         >
           {open ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
@@ -97,12 +97,12 @@ export function SiteNav() {
         <>
           <div
             aria-hidden="true"
-            className="lg:hidden fixed inset-0 top-[60px] bg-[hsl(var(--brand-primary))/0.55] backdrop-blur-sm z-40"
+            className="xl:hidden fixed inset-0 top-[72px] bg-[hsl(var(--brand-primary))/0.55] backdrop-blur-sm z-40"
             onClick={() => setOpen(false)}
           />
           <nav
             id="mobile-nav"
-            className="lg:hidden fixed inset-x-0 top-[60px] z-50 bg-[hsl(var(--brand-primary))] shadow-lg border-t border-[hsl(var(--brand-accent))/0.15]"
+            className="xl:hidden fixed inset-x-0 top-[72px] z-50 bg-[hsl(var(--brand-primary))] shadow-lg border-t border-[hsl(var(--brand-accent))/0.15]"
           >
             <div className="mx-auto max-w-6xl px-5 py-3 flex flex-col gap-1 text-base">
               {links.map((l) => (

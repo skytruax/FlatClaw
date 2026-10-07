@@ -85,49 +85,91 @@ function PriceStatus({ live }: { live: LivePrices }) {
 
 /* ───────────────────────────── Tab 1: recipes ───────────────────────────── */
 
+function Rich({ text }: { text: string }) {
+  const parts = text.split("`");
+  return (
+    <>
+      {parts.map((part, i) =>
+        i % 2 ? (
+          <code key={i} className="font-mono text-[12px] px-1.5 py-px rounded bg-[hsl(var(--fc-bg-tertiary))/0.7] text-[hsl(var(--fc-fg-primary))] break-all">
+            {part}
+          </code>
+        ) : (
+          <span key={i}>{part}</span>
+        ),
+      )}
+    </>
+  );
+}
+
 function RecipesTab({ recipes }: { recipes: Recipe[] }) {
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <p className="max-w-3xl text-[hsl(var(--fc-fg-secondary))] leading-relaxed">
-        These are the configurations FlatClaw actually runs or has measured, with the numbers that mattered and the lessons that cost
-        time. Cloud figures are list prices on the reference lane; local figures come from the live parts tables on the other tab.
+        The two configurations FlatClaw runs or has measured end to end, with the numbers that mattered and what cost us time.
+        Cloud figures are list prices on the reference lane. Local figures come from the live parts tables on the other tab.
       </p>
-      <div className="grid md:grid-cols-2 gap-5">
-        {recipes.map((r) => (
-          <article key={r.id} id={r.id} className="bg-[hsl(var(--fc-bg-surface))] rounded-xl ring-1 ring-[hsl(var(--fc-bg-tertiary))] p-6 flex flex-col">
-            <div className="text-[11px] font-semibold uppercase tracking-widest text-[hsl(var(--brand-primary))]">{r.eyebrow}</div>
-            <h3 className="mt-1 text-xl font-bold tracking-tight text-[hsl(var(--fc-fg-primary))]">{r.title}</h3>
-            <p className="mt-2 text-sm leading-relaxed text-[hsl(var(--fc-fg-secondary))]">{r.summary}</p>
-            <dl className="mt-4 grid grid-cols-[minmax(7rem,auto)_1fr] gap-x-3 gap-y-1.5 text-sm">
-              {r.facts.map((f) => (
-                <div key={f.k} className="contents">
-                  <dt className="text-[11px] font-semibold uppercase tracking-wide text-[hsl(var(--fc-fg-muted))] pt-0.5">{f.k}</dt>
-                  <dd className="text-[hsl(var(--fc-fg-primary))] font-mono text-[12.5px] leading-snug break-words">{f.v}</dd>
+      {recipes.map((r) => (
+        <article key={r.id} id={r.id} className="rounded-2xl ring-1 ring-[hsl(var(--fc-bg-tertiary))] bg-[hsl(var(--fc-bg-surface))] overflow-hidden">
+          <header className="px-6 md:px-8 pt-7 pb-7 bg-[hsl(var(--brand-primary))] text-white">
+            <div className="text-[11px] font-semibold uppercase tracking-widest text-sky-300">{r.eyebrow}</div>
+            <h3 className="mt-2 text-2xl md:text-3xl font-bold tracking-tight">{r.title}</h3>
+            <p className="mt-3 max-w-3xl text-[15px] leading-relaxed text-white/80">{r.summary}</p>
+          </header>
+
+          <div className={"px-6 md:px-8 pt-6 grid sm:grid-cols-2 gap-3 " + (r.specs.length % 4 === 0 ? "lg:grid-cols-4" : "lg:grid-cols-3")}>
+            {r.specs.map((f) => (
+              <div key={f.k} className="rounded-lg ring-1 ring-[hsl(var(--fc-bg-tertiary))] px-4 py-3.5">
+                <div className="text-[10.5px] font-semibold uppercase tracking-wider text-[hsl(var(--fc-fg-muted))]">{f.k}</div>
+                <div className="mt-1.5 text-sm leading-relaxed text-[hsl(var(--fc-fg-primary))]">
+                  <Rich text={f.v} />
                 </div>
-              ))}
-            </dl>
-            {r.bullets.length > 0 && (
-              <ul className="mt-4 space-y-1.5 text-sm text-[hsl(var(--fc-fg-secondary))]">
-                {r.bullets.map((b) => (
-                  <li key={b} className="flex gap-2">
-                    <span className="text-[hsl(var(--brand-accent))] mt-0.5">▸</span>
-                    <span className="leading-relaxed">{b}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {r.links?.length ? (
-              <div className="mt-auto pt-4">
-                {r.links.map((l) => (
-                  <a key={l.href} href={l.href} className="text-sm font-semibold text-[hsl(var(--brand-primary))] hover:text-[hsl(var(--brand-accent))]">
-                    {l.label} →
-                  </a>
-                ))}
               </div>
-            ) : null}
-          </article>
-        ))}
-      </div>
+            ))}
+          </div>
+
+          {r.launch ? (
+            <div className="px-6 md:px-8 pt-5">
+              <pre className="rounded-xl bg-[hsl(var(--brand-primary))] px-5 py-4 font-mono text-[12.5px] leading-relaxed whitespace-pre-wrap break-all text-sky-50">
+                {r.launch.split("\n").map((line, i) => (
+                  <span key={i} className={line.startsWith("#") ? "text-sky-300/80" : ""}>
+                    {line}
+                    {"\n"}
+                  </span>
+                ))}
+              </pre>
+            </div>
+          ) : null}
+
+          <div className="px-6 md:px-8 py-7 grid md:grid-cols-3 gap-x-8 gap-y-6">
+            {r.sections.map((sec) => (
+              <section key={sec.title}>
+                <h4 className="text-sm font-bold text-[hsl(var(--fc-fg-primary))]">{sec.title}</h4>
+                <ul className="mt-3 space-y-2.5">
+                  {sec.items.map((it) => (
+                    <li key={it} className="flex gap-2.5 text-sm leading-relaxed text-[hsl(var(--fc-fg-secondary))]">
+                      <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-[hsl(var(--brand-accent))]" />
+                      <span>
+                        <Rich text={it} />
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ))}
+          </div>
+
+          {r.links?.length ? (
+            <footer className="px-6 md:px-8 py-4 border-t border-[hsl(var(--fc-bg-tertiary))] bg-[hsl(var(--fc-bg-tertiary))/0.35] flex flex-wrap gap-x-8 gap-y-2">
+              {r.links.map((l) => (
+                <a key={l.href} href={l.href} className="inline-flex items-center gap-1.5 text-sm font-semibold text-[hsl(var(--brand-primary))] hover:text-[hsl(var(--brand-accent))]">
+                  {l.label} <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              ))}
+            </footer>
+          ) : null}
+        </article>
+      ))}
     </div>
   );
 }
