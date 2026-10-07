@@ -1,7 +1,7 @@
 // Site-wide constants. Single source of truth for version, external links, and
 // the demo-booking URL so the nav button, hero CTA, and pages stay in sync.
 
-export const SITE_VERSION = "v0.3.0";
+export const SITE_VERSION = "v0.4.0";
 export const SITE_LICENSE = "Apache 2.0";
 
 // Partnership inquiries — cloud providers, GPU platforms, implementation firms.
