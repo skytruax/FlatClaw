@@ -251,16 +251,19 @@ function BuildSheet({ build, live }: { build: Build; live: LivePrices }) {
             {build.cloud.options.map((o) => (
               <div key={o.plan} className={"rounded-lg p-3.5 ring-1 " + (o.recommended ? "ring-[hsl(var(--brand-accent))] bg-[hsl(var(--brand-accent))/0.06]" : "ring-[hsl(var(--fc-bg-tertiary))]")}>
                 <div className="flex items-start justify-between gap-3">
-                  <div>
+                  <div className="min-w-0">
                     <div className="text-[11px] font-semibold uppercase tracking-wide text-[hsl(var(--fc-fg-muted))]">{o.provider}{o.recommended ? " · recommended" : ""}</div>
-                    <div className="font-mono text-sm font-semibold text-[hsl(var(--fc-fg-primary))]">{o.plan}</div>
+                    <div className="font-mono text-sm font-semibold text-[hsl(var(--fc-fg-primary))] break-words">{o.plan}</div>
                     <div className="text-xs text-[hsl(var(--fc-fg-secondary))]">{o.gpus}{o.vram !== "—" ? ` · ${o.vram}` : ""}</div>
                   </div>
                   <div className="text-right shrink-0">
                     <div className="text-lg font-extrabold text-[hsl(var(--fc-fg-primary))] leading-none">{usd(o.monthlyWarm)}<span className="text-xs font-semibold text-[hsl(var(--fc-fg-muted))]">/mo</span></div>
-                    <div className="text-[11px] text-[hsl(var(--fc-fg-muted))]">{o.hourly >= 1 ? `$${o.hourly}/hr warm` : `~$${o.hourly.toFixed(2)}/hr`}{o.spotHourly ? ` · spot $${o.spotHourly}/hr ≈ ${usd(o.monthlySpot ?? 0)}/mo` : ""}</div>
+                    <div className="text-[11px] text-[hsl(var(--fc-fg-muted))] whitespace-nowrap">{o.hourly >= 1 ? `$${o.hourly}/hr warm` : `~$${o.hourly.toFixed(2)}/hr`}</div>
                   </div>
                 </div>
+                {o.spotHourly ? (
+                  <div className="mt-1.5 text-[11px] text-[hsl(var(--fc-fg-muted))]">Spot: ${o.spotHourly}/hr, about {usd(o.monthlySpot ?? 0)}/mo when the capacity is there.</div>
+                ) : null}
                 <ul className="mt-2 space-y-1 text-xs text-[hsl(var(--fc-fg-secondary))]">
                   {o.notes.map((n) => (
                     <li key={n} className="leading-relaxed">{n}</li>

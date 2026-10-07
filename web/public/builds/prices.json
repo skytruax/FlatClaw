@@ -1,5 +1,5 @@
 {
- "updatedAt": "2026-10-07T18:18:35.174Z",
+ "updatedAt": "2026-10-07T21:39:22.967Z",
  "source": "newegg.com",
  "items": {
   "N82E16814132106": {
@@ -7,28 +7,13 @@
    "price": 16699.99,
    "list": 17999.99,
    "rebate": 1300,
-   "inStock": true,
+   "inStock": false,
    "seller": "Newegg",
    "url": "https://www.newegg.com/nvidia-blackwell-rtx-pro-6000-96gb-graphic-card/p/N82E16814132106",
    "parts": [
-    "gemma-4-31b/workstation/gpu-main"
+    "gemma-4-31b/workstation/gpu"
    ],
-   "checkedAt": "2026-10-07T18:18:35.174Z"
-  },
-  "N82E16814132105": {
-   "title": "NVIDIA RTX PRO 6000 Blackwell Graphic Card - 96 GB GDDR7 ECC - PCIe 5.0 x16 - 512-Bit - 2x Slot - Max-Q Edition - Active - XHFL - 300 W - 900-5G153-2200-000 Workstation Video Card",
-   "price": 16999.99,
-   "list": 16999.99,
-   "rebate": 0,
-   "inStock": true,
-   "seller": "Newegg",
-   "url": "https://www.newegg.com/nvidia-900-5g153-2200-000-rtx-pro-6000-96gb-graphics-card/p/N82E16814132105",
-   "parts": [
-    "gemma-4-31b/workstation/gpu-maxq",
-    "glm-5-2/hybrid/gpu",
-    "glm-5-2/server/gpu"
-   ],
-   "checkedAt": "2026-10-07T18:18:35.174Z"
+   "checkedAt": "2026-10-07T21:39:22.967Z"
   },
   "N82E16819113842": {
    "title": "AMD Ryzen 9 9900X - Ryzen 9000 Series Granite Ridge (Zen 5) Radeon Graphics Processor",
@@ -41,7 +26,7 @@
    "parts": [
     "gemma-4-31b/workstation/cpu"
    ],
-   "checkedAt": "2026-10-07T18:18:35.174Z"
+   "checkedAt": "2026-10-07T21:39:22.967Z"
   },
   "N82E16813119688": {
    "title": "ASUS ProArt X870E-CREATOR WIFI AMD AM5 X870E ATX Motherboard PCIe 5.0 x16 slots with full support for next-gen GPUs, 16+2+2 power stages, DDR5, dual USB4, 10 Gb & 2.5 Gb LAN, WiFi 7, four M.2 slots",
@@ -54,47 +39,46 @@
    "parts": [
     "gemma-4-31b/workstation/board"
    ],
-   "checkedAt": "2026-10-07T18:18:35.174Z"
+   "checkedAt": "2026-10-07T21:39:22.967Z"
   },
-  "N82E16820236976": {
-   "title": "CORSAIR Vengeance 96GB (2 x 48GB) 288-Pin PC RAM DDR5 5600 (PC5 44800) Desktop memory Model CMK96GX5M2B5600C40",
-   "price": 1424.99,
-   "list": 1424.99,
-   "rebate": 0,
-   "inStock": false,
+  "N82E16820982288": {
+   "title": "CORSAIR Vengeance 64GB (2 x 32GB) 288-Pin PC RAM DDR5 6000 (PC5 48000) Desktop Memory Model CMK64GX5M2D6000Z40",
+   "price": 1029.99,
+   "list": 1069.49,
+   "rebate": 39.5,
+   "inStock": true,
    "seller": "Newegg",
-   "url": "https://www.newegg.com/corsair-vengeance-96gb-ddr5-5600-cas-latency-cl40-desktop-memory-black/p/N82E16820236976",
+   "url": "https://www.newegg.com/corsair-vengeance-64gb-2-x-32gb-ddr5-6000-pc5-48000-cas-latency-cl40-desktop-memory-gray/p/N82E16820982288",
    "parts": [
     "gemma-4-31b/workstation/ram"
    ],
-   "checkedAt": "2026-10-07T18:18:35.174Z"
+   "checkedAt": "2026-10-07T21:39:22.967Z"
   },
-  "N82E16817151255": {
-   "title": "Seasonic PRIME TX-1600, 1600W 80+ Titanium, ATX Form Factor, Full Modular, Low Noise, Premium Japanese Capacitor, 12 Year Warranty, Nvidia RTX 30/40 Super, AMD GPU Compatible, Ref# SSR-1600TR",
-   "price": 741.57,
-   "list": null,
+  "N82E16817139344": {
+   "title": "CORSAIR HX1200i (2025) Fully Modular Ultra-Low Noise ATX Power Supply with 12V-2x6 Cable – ATX 3.1 & PCIe 5.1 Compliant, Cybenetics Platinum Efficiency, Fluid Dynamic Bearing Fan – Black",
+   "price": 287.68,
+   "list": 344.99,
+   "rebate": 57.31,
+   "inStock": true,
+   "seller": "Newegg",
+   "url": "https://www.newegg.com/corsair-hx1200i-atx-3-1-compatible-1200-w-up-to-92-efficiency-power-supplies-black/p/N82E16817139344",
+   "parts": [
+    "gemma-4-31b/workstation/psu"
+   ],
+   "checkedAt": "2026-10-07T21:39:22.967Z"
+  },
+  "N82E16835181530": {
+   "title": "CORSAIR NAUTILUS II 360 RS Liquid CPU Cooler - 360mm AIO - Low Noise -  FlowDrive 2S Pump - RS II Unified Frame Fans - Daisy-Chain Connections - Fits  AMD AM5/AM4 & Intel LGA 1851/1700 - Black",
+   "price": 109.99,
+   "list": 109.99,
    "rebate": 0,
    "inStock": true,
-   "seller": "marketplace",
-   "url": "https://www.newegg.com/seasonic-usa-atx12v-1600-w-80-plus-titanium-certified-power-supply-prime-tx-1600/p/N82E16817151255",
+   "seller": "Newegg",
+   "url": "https://www.newegg.com/corsair-aio-nautilus-ii-radiator-size-394-mm-amd-am5-amd-am4-intel-lga-1851-intel-lga-1700-black/p/N82E16835181530",
    "parts": [
-    "gemma-4-31b/workstation/psu-alt",
-    "glm-5-2/hybrid/psu"
+    "gemma-4-31b/workstation/cooler"
    ],
-   "checkedAt": "2026-10-07T18:18:35.174Z"
-  },
-  "N82E16835186279": {
-   "title": "ARCTIC COOLING Liquid Freezer III - 420 A-RGB (Black): All-in-One CPU Water Cooler with 420mm radiator and 3x P14 PWM PST A-RGB fan, compatible Intel LGA1700, 1851 and AMD AM4, AM5 - Black color",
-   "price": 199.99,
-   "list": null,
-   "rebate": 0,
-   "inStock": true,
-   "seller": "marketplace",
-   "url": "https://www.newegg.com/arctic-cooling-liquid-cooling-system-liquid-freezer-iii-420-a-rgb-458-mm-black/p/N82E16835186279",
-   "parts": [
-    "gemma-4-31b/workstation/cooler-alt"
-   ],
-   "checkedAt": "2026-10-07T18:18:35.174Z"
+   "checkedAt": "2026-10-07T21:39:22.967Z"
   },
   "N82E16811352215": {
    "title": "Fractal Design North XL ATX mATX Mid Tower PC Case - Charcoal Black Chassis with Walnut Front and Mesh Side Panel - FD-C-NOR1X-01",
@@ -107,7 +91,7 @@
    "parts": [
     "gemma-4-31b/workstation/case"
    ],
-   "checkedAt": "2026-10-07T18:18:35.174Z"
+   "checkedAt": "2026-10-07T21:39:22.967Z"
   },
   "N82E16820147904": {
    "title": "SAMSUNG SSD 9100 PRO 4TB, PCIe 5.0x4 M.2 2280, Seq. Read Speeds Up to 14,800MB/s, Best for AI Computing, Gaming, and Heavy Duty Workstations (MZ-VAP4T0B/AM)",
@@ -119,10 +103,64 @@
    "url": "https://www.newegg.com/samsung-4tb-9100-pro-nvme-2-0/p/N82E16820147904",
    "parts": [
     "gemma-4-31b/workstation/ssd",
-    "glm-5-2/hybrid/ssd",
-    "glm-5-2/server/ssd"
+    "glm-5-2/server/ssd",
+    "glm-5-2/hybrid/ssd"
    ],
-   "checkedAt": "2026-10-07T18:18:35.174Z"
+   "checkedAt": "2026-10-07T21:39:22.967Z"
+  },
+  "N82E16816110225": {
+   "title": "ASUS ESC8000A-E13-32W 4U 8-GPU AI Server | Dual AMD EPYC 9005 SP5 | 24x DDR5 ECC | 8x Hot-Swap NVMe | PCIe 5.0 | NVLink | 3+1 Redundant 3200W Titanium PSU",
+   "price": 8469.98,
+   "list": 8349.99,
+   "rebate": 0,
+   "inStock": true,
+   "seller": "Newegg",
+   "url": "https://www.newegg.com/p/N82E16816110225",
+   "parts": [
+    "glm-5-2/server/chassis"
+   ],
+   "checkedAt": "2026-10-07T21:39:22.967Z"
+  },
+  "N82E16819113861": {
+   "title": "AMD EPYC 5th Gen 9005 Series (Thirty-Two-Core) 32 Core - Model 9355 AMD - EPYC - Processor / Number: 9355 - Processor / Clock Speed: 3.55 - Total Threads: 64 - Socket SP5 - L3 Cache - 256MB Memory",
+   "price": 3094,
+   "list": 3094,
+   "rebate": 0,
+   "inStock": true,
+   "seller": "Newegg",
+   "url": "https://www.newegg.com/amd-epyc-9355-socket-sp5/p/N82E16819113861",
+   "parts": [
+    "glm-5-2/server/cpu"
+   ],
+   "checkedAt": "2026-10-07T21:39:22.967Z"
+  },
+  "N82E16820242894": {
+   "title": "Kingston KSM56R46BD4-64MD  64GB DDR5 SDRAM Memory Module - For Server, Motherboard, Computer - 64 GB - DDR5-5600/PC5-44800 DDR5 SDRAM - 5600 MHz Dual-rank Memory - CL46 - 1.10 V - ECC",
+   "price": 2349.99,
+   "list": 2349.99,
+   "rebate": 0,
+   "inStock": true,
+   "seller": "Newegg",
+   "url": "https://www.newegg.com/kingston-64gb/p/N82E16820242894",
+   "parts": [
+    "glm-5-2/server/ram",
+    "glm-5-2/hybrid/ram"
+   ],
+   "checkedAt": "2026-10-07T21:39:22.967Z"
+  },
+  "N82E16814132105": {
+   "title": "NVIDIA RTX PRO 6000 Blackwell Graphic Card - 96 GB GDDR7 ECC - PCIe 5.0 x16 - 512-Bit - 2x Slot - Max-Q Edition - Active - XHFL - 300 W - 900-5G153-2200-000 Workstation Video Card",
+   "price": 16999.99,
+   "list": 16999.99,
+   "rebate": 0,
+   "inStock": true,
+   "seller": "Newegg",
+   "url": "https://www.newegg.com/nvidia-900-5g153-2200-000-rtx-pro-6000-96gb-graphics-card/p/N82E16814132105",
+   "parts": [
+    "glm-5-2/server/gpu",
+    "glm-5-2/hybrid/gpu"
+   ],
+   "checkedAt": "2026-10-07T21:39:22.967Z"
   },
   "N82E16819113807": {
    "title": "AMD Ryzen Threadripper PRO 7975WX - Ryzen Threadripper 7000 Series Storm Peak (Zen 4) 32-Core 4.0 GHz - Socket sTR5 350W - None Integrated Graphics Processor - 100-100000453WOF",
@@ -135,7 +173,7 @@
    "parts": [
     "glm-5-2/hybrid/cpu"
    ],
-   "checkedAt": "2026-10-07T18:18:35.174Z"
+   "checkedAt": "2026-10-07T21:39:22.967Z"
   },
   "N82E16813119667": {
    "title": "ASUS Pro WS WRX90E-SAGE SE EEB Workstation motherboard, AMD Ryzen™ Threadripper™ PRO 7000 WX-Series Processors, ECC R-DIMM DDR5, 32 power-stage,7xPCIe 5.0 x 16, PCIe 5.0 M.2, 10 Gb and 2.5 Gb LAN",
@@ -148,34 +186,20 @@
    "parts": [
     "glm-5-2/hybrid/board"
    ],
-   "checkedAt": "2026-10-07T18:18:35.174Z"
+   "checkedAt": "2026-10-07T21:39:22.967Z"
   },
-  "N82E16820242894": {
-   "title": "Kingston KSM56R46BD4-64MD  64GB DDR5 SDRAM Memory Module - For Server, Motherboard, Computer - 64 GB - DDR5-5600/PC5-44800 DDR5 SDRAM - 5600 MHz Dual-rank Memory - CL46 - 1.10 V - ECC",
-   "price": 2349.99,
-   "list": 2349.99,
+  "N82E16817151255": {
+   "title": "Seasonic PRIME TX-1600, 1600W 80+ Titanium, ATX Form Factor, Full Modular, Low Noise, Premium Japanese Capacitor, 12 Year Warranty, Nvidia RTX 30/40 Super, AMD GPU Compatible, Ref# SSR-1600TR",
+   "price": 733.21,
+   "list": null,
    "rebate": 0,
    "inStock": true,
-   "seller": "Newegg",
-   "url": "https://www.newegg.com/kingston-64gb/p/N82E16820242894",
+   "seller": "marketplace",
+   "url": "https://www.newegg.com/seasonic-usa-atx12v-1600-w-80-plus-titanium-certified-power-supply-prime-tx-1600/p/N82E16817151255",
    "parts": [
-    "glm-5-2/hybrid/ram",
-    "glm-5-2/server/ram"
+    "glm-5-2/hybrid/psu"
    ],
-   "checkedAt": "2026-10-07T18:18:35.174Z"
-  },
-  "N82E16820242850": {
-   "title": "Kingston 128GB (4 x 32GB) DDR5 5600MT/s CL28 FURY Renegade Pro RDIMM Black EXPO - For Motherboard - 128 GB (4 x 32GB) - DDR5-5600/PC5-44800 DDR5 SDRAM - 5600 MHz Dual-rank Memory -  KF556R28RBE2K4-128",
-   "price": 4799.99,
-   "list": 4799.99,
-   "rebate": 0,
-   "inStock": true,
-   "seller": "Newegg",
-   "url": "https://www.newegg.com/kingston-128gb/p/N82E16820242850",
-   "parts": [
-    "glm-5-2/hybrid/ram-alt"
-   ],
-   "checkedAt": "2026-10-07T18:18:35.174Z"
+   "checkedAt": "2026-10-07T21:39:22.967Z"
   },
   "N82E16835220161": {
    "title": "SilverStone Technology XE360-TR5-V2 360mm All-in-One Liquid Cooler for AMD TR5 / SP6",
@@ -188,7 +212,7 @@
    "parts": [
     "glm-5-2/hybrid/cooler"
    ],
-   "checkedAt": "2026-10-07T18:18:35.174Z"
+   "checkedAt": "2026-10-07T21:39:22.967Z"
   },
   "N82E16811352137": {
    "title": "Fractal Design Meshify 2 XL Black ATX Flexible Light Tinted Tempered Glass Window Full Tower Computer Case",
@@ -201,20 +225,7 @@
    "parts": [
     "glm-5-2/hybrid/case"
    ],
-   "checkedAt": "2026-10-07T18:18:35.174Z"
-  },
-  "N82E16816110214": {
-   "title": "ASUS ESC8000A-E12-26W10G 4U Rackmount Server Barebone",
-   "price": 6099,
-   "list": 6099,
-   "rebate": 0,
-   "inStock": false,
-   "seller": "Newegg",
-   "url": "https://www.newegg.com/asus-esc8000a-e12-26w10g-amd-epyc-9004-series/p/N82E16816110214",
-   "parts": [
-    "glm-5-2/server/chassis"
-   ],
-   "checkedAt": "2026-10-07T18:18:35.174Z"
+   "checkedAt": "2026-10-07T21:39:22.967Z"
   }
  }
 }

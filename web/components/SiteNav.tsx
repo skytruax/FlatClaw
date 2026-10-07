@@ -7,8 +7,8 @@ import { Menu, X } from "lucide-react";
 import { GITHUB_URL, SCHEDULE_DEMO_URL } from "@/lib/site";
 
 const links = [
-  { href: "/#what", label: "What it is" },
-  { href: "/use-cases", label: "Use cases" },
+  { href: "/#what", label: "What It Is" },
+  { href: "/use-cases", label: "Use Cases" },
   { href: "/services", label: "Services" },
   { href: "/#architecture", label: "Architecture" },
   { href: "/tokenomics", label: "Tokenomics" },

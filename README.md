@@ -179,8 +179,8 @@ The honest trade-offs (where self-hosting is *wrong* — low volume, low utiliza
 
 **[flatclaw.org/builds](https://flatclaw.org/builds/)** is the hardware companion to this section. For each model class it puts a local build you can order today next to the cloud node that runs the same checkpoint:
 
-- **Standard class — Gemma 4 31B at FP8, 256K context.** One 96 GB card locally (an RTX PRO 6000 Blackwell workstation bought in three phases), or the ~$2,000/month H100 plan above.
-- **Frontier class — GLM-5.2, 744B parameters as a mixture of experts.** A two-card CUDA hybrid workstation that holds the model in 512 GB of system memory, the all-GPU 4U server it would take to serve it at full precision, and the eight-H200 cloud node.
+- **Standard class — Gemma 4 31B at FP8, 256K context.** One 96 GB card locally (an RTX PRO 6000 Blackwell workstation, every part at Newegg's price), or the ~$2,000/month H100 plan above plus the control plane.
+- **Frontier class — GLM-5.2, 744B parameters as a mixture of experts.** An eight-card 4U server that holds the FP8 checkpoint in 768 GB of VRAM, a two-card workstation for a 4-bit copy, and the eight-B200 cloud node tuned for speed, with the economy H200 node beside it.
 
 Every part carries a live Newegg street price (refreshed hourly by a scheduled job; the page re-reads them every ten minutes), the quantization ladder shows what fits where, and each class has a printable build sheet with the local and cloud versions side by side. The recipes tab holds the two configurations behind it: the standard tenant (one H100, with its control plane and what cost us time) and the frontier class (GLM-5.2 on eight H200s, or quantized on a workstation).
 
