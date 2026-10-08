@@ -23,7 +23,7 @@ const features = [
   {
     Icon: Cpu,
     title: "Inference",
-    body: "Patched SGLang serving the tenant's model class inside its own tenancy. Standard class: Gemma 4 31B at FP8 on one H100-class GPU, 256K context. Frontier class: GLM-5.2, a 744B mixture of experts at FP8 across eight GPUs, 1M context. Chosen per tenant; same platform either way.",
+    body: "Patched SGLang serving the tenant's model class inside its own tenancy. Flagship class: Gemma 4 31B at FP8 on one H100-class GPU, 256K context. Frontier class: GLM-5.2, a 744B mixture of experts at FP8 across eight GPUs, 1M context. Chosen per tenant; same platform either way.",
   },
   {
     Icon: Database,

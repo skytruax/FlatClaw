@@ -81,7 +81,7 @@ export function ArchitectureDiagram() {
           </div>
           <Tier
             label="Inference service"
-            subtitle="Patched SGLang · standard class: Gemma 4 31B-IT (FP8), 256K, 1 × H100 80 GB · frontier class: GLM-5.2 (FP8), 1M, 8 × H200 or B200 · chosen per tenant"
+            subtitle="Patched SGLang · flagship class: Gemma 4 31B-IT (FP8), 256K, 1 × H100 80 GB · frontier class: GLM-5.2 (FP8), 1M, 8 × H200 or B200 · chosen per tenant"
           />
           <div className="mt-3 text-xs text-[hsl(var(--fc-fg-muted))]">
             Weights served by the in-project{" "}

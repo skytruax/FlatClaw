@@ -3,7 +3,7 @@
   "builds": [
     {
       "id": "gemma-4-31b",
-      "klass": "Standard class",
+      "klass": "Flagship class",
       "title": "Gemma 4 31B at FP8, 256K context",
       "subtitle": "One 96 GB card locally, one H100 in the cloud. The model every FlatClaw tenant runs today.",
       "model": {
@@ -431,7 +431,7 @@
             ],
             "notes": [
               "The engine keeps attention and KV on the cards and routes cold experts to RAM: llama.cpp (-ngl 99 -n-cpu-moe 999 -ts 50,50 --flash-attn --cache-type-k q8_0 --cache-type-v q8_0) or KTransformers for more expert throughput. OpenClaw points at the single OpenAI endpoint, exactly like the 31B box.",
-              "A 744B MoE owns all the memory: no room for image or voice on this box; run modality on a second machine as the standard build does.",
+              "A 744B MoE owns all the memory: no room for image or voice on this box; run modality on a second machine as the flagship build does.",
               "This is the cheaper path: a quantized GLM-5.2 (4-bit is excellent) at workstation speed. FP8 parity you own is the eight-card server above."
             ],
             "software": [
@@ -448,7 +448,7 @@
         ]
       },
       "cloud": {
-        "lead": "The same checkpoint in a tenancy on the cloud the customer already runs. The fast node and the economy node are both eight-GPU machines; the control plane is twice the standard tenant's.",
+        "lead": "The same checkpoint in a tenancy on the cloud the customer already runs. The fast node and the economy node are both eight-GPU machines; the control plane is twice the flagship tenant's.",
         "priceBasis": "Indicative list prices held warm 24/7 on our reference lane; the same classes on Azure, AWS and Google Cloud land in the same band on reserved terms, and bare metal amortizes lower.",
         "options": [
           {
@@ -533,7 +533,7 @@
               }
             ],
             "notes": [
-              "Twice the standard tenant's control plane: the frontier class carries more users and longer sessions, and the router that fails over between the fast node, the economy node and a quantized fallback runs here too. Room for eight to ten users at 1–1.2 GB each."
+              "Twice the flagship tenant's control plane: the frontier class carries more users and longer sessions, and the router that fails over between the fast node, the economy node and a quantized fallback runs here too. Room for eight to ten users at 1–1.2 GB each."
             ]
           },
           {
@@ -569,7 +569,7 @@
           "Per GPU-hour at reference list prices: H100 $2.74 · RTX PRO 6000 96 GB $3.00 · H200 ~$3.14 · B200 ~$5.87.",
           "Routing is unchanged: OpenClaw points at one endpoint; a LiteLLM or vLLM router in the same tenancy adds failover to the economy node, a quantized fallback or a second region."
         ],
-        "allInNote": "About $34,700 a month held warm on the B200 node and about $18,700 on the H200 node, control plane and weights volume included; spot on H200 about $10,900. Schedule the flagship for live load and keep a smaller class as the floor."
+        "allInNote": "About $34,700 a month held warm on the B200 node and about $18,700 on the H200 node, control plane and weights volume included; spot on H200 about $10,900. Schedule the frontier node for live load and keep a smaller class as the floor."
       },
       "sheetPdf": "/builds/FlatClaw-GLM-5.2-Local-vs-Cloud.pdf"
     }
@@ -577,7 +577,7 @@
   "recipes": [
     {
       "id": "gemma-one-h100",
-      "eyebrow": "Recipe 01 · Standard class",
+      "eyebrow": "Recipe 01 · Flagship class",
       "title": "Gemma 4 31B at FP8 on one H100, 256K context",
       "summary": "What every FlatClaw tenant runs today, in a tenancy on the customer's own cloud: a public SGLang image with no weights baked in, a weights volume served over the tenancy's own network, and the Portal and one OpenClaw gateway per user on a small CPU service next to the GPU.",
       "specs": [
@@ -700,7 +700,7 @@
           "title": "Why this shape",
           "items": [
             "Only about 40B parameters are active per token, so decode is bound by how fast the experts can be read, not by compute. That is why the B200 node is the fast one and why the eight-card server, at GDDR7 speed, is parity rather than speed.",
-            "Scale is coarse: each replica is another eight-GPU node. Schedule the flagship for live load and keep a smaller class as the floor.",
+            "Scale is coarse: each replica is another eight-GPU node. Schedule the frontier node for live load and keep a smaller class as the floor.",
             "The front door does not change: OpenClaw points at one endpoint, and a router adds failover to the economy node, a quantized fallback or a second region."
           ]
         },

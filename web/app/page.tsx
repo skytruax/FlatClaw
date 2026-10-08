@@ -115,12 +115,12 @@ export default function HomePage() {
         id="cost"
         eyebrow="Token Economics"
         title="One flat rate per tenant, in two classes."
-        lede="One node carries a tenant's whole workload: voice, intake, reporting, search and agents share it. The standard class runs Gemma 4 31B on one H100-class card for about $2,200 a month; the frontier class runs GLM-5.2 across eight H200 or B200 GPUs for about $18,700 or $34,700. Indicative list prices on the reference lane, held warm 24/7; the same classes on Azure, AWS and Google Cloud land in the same band on reserved terms. The rate is per tenant and scales with the tenant — not metered per token or per seat."
+        lede="One node carries a tenant's whole workload: voice, intake, reporting, search and agents share it. The flagship class runs Gemma 4 31B on one H100-class card for about $2,200 a month; the frontier class runs GLM-5.2 across eight H200 or B200 GPUs for about $18,700 or $34,700. Indicative list prices on the reference lane, held warm 24/7; the same classes on Azure, AWS and Google Cloud land in the same band on reserved terms. The rate is per tenant and scales with the tenant — not metered per token or per seat."
       >
         <div className="grid lg:grid-cols-2 gap-8 items-start">
           <div className="bg-[hsl(var(--fc-bg-surface))] rounded-xl ring-1 ring-[hsl(var(--fc-bg-tertiary))] p-6 shadow-sm">
             <h3 className="font-semibold text-base mb-4 text-[hsl(var(--fc-fg-primary))]">
-              Standard class, monthly
+              Flagship class, monthly
             </h3>
             <table className="w-full text-sm">
               <tbody className="divide-y divide-[hsl(var(--fc-bg-tertiary))]">
@@ -197,7 +197,7 @@ export default function HomePage() {
                 v: "What the node serves is peak concurrent active sessions, not the tenant's total user count — people skim a result, edit a doc, take a call, ask a follow-up. The node is sized to that concurrent peak; the per-tenant rate doesn't move with seat count.",
               },
               {
-                k: "The standard class handles 8–12 concurrent streams; the frontier node, hundreds.",
+                k: "The flagship class handles 8–12 concurrent streams; the frontier node, hundreds.",
                 v: "One H100 SGLang process at Gemma 4 31B FP8 sustains ~8–12 concurrent streaming chats with first-token latency in the 1–2 s range; eight H200s or B200s serving GLM-5.2 with multi-token prediction sustain hundreds. SGLang's RadixAttention prefix cache earns most of that on conversational reuse.",
               },
               {
@@ -206,7 +206,7 @@ export default function HomePage() {
               },
               {
                 k: "Two classes, one platform.",
-                v: "The standard class is Gemma 4 31B at FP8 on one card: ~33 GB of weights plus KV cache in 80 GB, with headroom for long contexts. The frontier class is GLM-5.2, a 744B mixture of experts at FP8 across eight GPUs with a 1M-token window. Same platform, same agents, same front door; the class is a per-tenant choice, and a tenant can run both behind one endpoint.",
+                v: "The flagship class is Gemma 4 31B at FP8 on one card: ~33 GB of weights plus KV cache in 80 GB, with headroom for long contexts. The frontier class is GLM-5.2, a 744B mixture of experts at FP8 across eight GPUs with a 1M-token window. Same platform, same agents, same front door; the class is a per-tenant choice, and a tenant can run both behind one endpoint.",
               },
               {
                 k: "Tenants scale the class, not the architecture.",
@@ -267,10 +267,10 @@ export default function HomePage() {
       >
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[
-            ["Inference", "Patched SGLang · Gemma 4 31B (standard class) · GLM-5.2 (frontier class)"],
+            ["Inference", "Patched SGLang · Gemma 4 31B (flagship class) · GLM-5.2 (frontier class)"],
             ["Silicon", "One H100-class card, or eight H200 / B200 · native FP8"],
             ["Substrate", "Your cloud — Azure, AWS, Google Cloud, Northflank, or bare metal — one tenancy per customer"],
-            ["Context", "256K on the standard class · 1M on the frontier class · RadixAttention prefix cache"],
+            ["Context", "256K on the flagship class · 1M on the frontier class · RadixAttention prefix cache"],
             ["Agent harness", "Built on the minimal open Pi agent core — RBAC at every tool call · per-agent memory built in · gateway layer swappable behind the session API"],
             ["Frontend", "Next.js 16 + React 19 + TypeScript + SQLite"],
             ["Auth", "Auth.js sign-in with Portal roles · enterprise SSO on the roadmap"],

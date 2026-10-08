@@ -5,7 +5,7 @@ import { Section } from "@/components/Section";
 export const metadata: Metadata = {
   title: "Tokenomics",
   description:
-    "What a token costs on FlatClaw's two model classes, the standard class on one H100-class card and the frontier class on an eight-GPU node, against the hosted API rate card of October 2026.",
+    "What a token costs on FlatClaw's two model classes, the flagship class on one H100-class card and the frontier class on an eight-GPU node, against the hosted API rate card of October 2026.",
 };
 
 /* Output-token prices per million, ranked: hosted list prices (October 2026, sources at the foot of the page)
@@ -14,7 +14,7 @@ type RateRow = { name: string; price: string; note?: string; ours?: boolean };
 const standardRates: RateRow[] = [
   { name: "Claude Haiku 5.5", price: "$0.50 – $2.50", note: "tiered by request size" },
   { name: "Llama 4 Maverick, hosted", price: "$0.60", note: "open weights, cheapest hosts" },
-  { name: "FlatClaw standard class", price: "$0.66", note: "Gemma 4 31B at FP8 on one H100", ours: true },
+  { name: "FlatClaw flagship class", price: "$0.66", note: "Gemma 4 31B at FP8 on one H100", ours: true },
   { name: "GPT-5.6 Luna", price: "$1.20" },
   { name: "Gemini 3.5 Flash-Lite", price: "$2.50" },
   { name: "Gemini 3.8 Flash", price: "$3.75" },
@@ -48,7 +48,7 @@ const classRows: { k: string; standard: string; frontier: string }[] = [
 /* The same month of output, billed by the token at hosted list rates. */
 const sameMonth: { node: string; tokens: string; flat: string; rows: [string, string][] }[] = [
   {
-    node: "Standard class, one H100",
+    node: "Flagship class, one H100",
     tokens: "3.3 billion output tokens a month",
     flat: "$2,200 flat",
     rows: [
@@ -128,7 +128,7 @@ const beyondPrice: [string, string][] = [
 
 const whichClass: [string, string][] = [
   [
-    "Standard class",
+    "Flagship class",
     "The default tenant. One H100-class card, a flat rate, and the cheapest private token on the market for the work most teams actually do all day.",
   ],
   [
@@ -137,7 +137,7 @@ const whichClass: [string, string][] = [
   ],
   [
     "Both",
-    "The standard class as the floor and the frontier node for the flagship work, behind the same endpoint. Same platform, same agents, same front door.",
+    "The flagship class as the floor and the frontier node for the hardest work, behind the same endpoint. Same platform, same agents, same front door.",
   ],
 ];
 
@@ -239,7 +239,7 @@ export default function TokenomicsPage() {
             Two model classes, one flat rate each.
           </h1>
           <p className="mt-5 text-lg max-w-3xl leading-relaxed text-[hsl(var(--brand-accent-fg))/0.9]">
-            A FlatClaw tenant pays for a node held warm, not for tokens. The standard class turns one H100-class card
+            A FlatClaw tenant pays for a node held warm, not for tokens. The flagship class turns one H100-class card
             into output at about 66 cents per million tokens. The frontier class runs a frontier-grade open model on
             eight GPUs inside the tenancy at about a dollar per million, a twentieth of frontier-lab list rates. Here
             is the math, refreshed October 2026.
@@ -250,21 +250,21 @@ export default function TokenomicsPage() {
       <Section
         eyebrow="01 · Ability and price"
         title="Each class against the hosted models it competes with."
-        lede="October 2026 list prices per million output tokens, one table per class, next to published head-to-head results. The standard class is priced with the cheapest hosted models and outscores the mid-tier ones; the frontier class is priced with the cheapest hosted models and plays in the frontier tier."
+        lede="October 2026 list prices per million output tokens, one table per class, next to published head-to-head results. The flagship class is priced with the cheapest hosted models and outscores the mid-tier ones; the frontier class is priced with the cheapest hosted models and plays in the frontier tier."
       >
         <div className="space-y-10">
           <div>
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-[hsl(var(--brand-primary))] mb-3">Standard class · Gemma 4 31B</div>
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-[hsl(var(--brand-primary))] mb-3">Flagship class · Gemma 4 31B</div>
             <div className="grid lg:grid-cols-2 gap-8 items-start">
               <PriceCard
                 title="Price, per 1M output tokens"
-                intro="The hosted models a standard tenant would otherwise rent, from the entry tier up to Sonnet 5.5, including the open models the cheapest hosts serve."
+                intro="The hosted models a flagship tenant would otherwise rent, from the entry tier up to Sonnet 5.5, including the open models the cheapest hosts serve."
                 rows={standardRates}
               />
               <BenchCard
                 title="Ability: Gemma 4 31B against the mid-tier hosted models"
                 intro="Published results against the hosted models on the price list. Gemma 4 31B outscores Claude Haiku 4.5, Llama 4 Maverick and Mistral Medium 3.5 on knowledge and reasoning, edges GPT-5.4 mini and Gemini 3.5 Flash-Lite, and leads Haiku 4.5 by 200 points of human preference."
-                ours="Gemma 4 31B, FlatClaw standard class"
+                ours="Gemma 4 31B, FlatClaw flagship class"
                 legend={["anthropic", "openai", "google", "meta", "mistral"]}
                 rows={standardHeadToHead}
                 foot="Bars are drawn relative to the best score in each row. Arena Elo as of June 2026; benchmark figures as published by the labs and the Artificial Analysis, Vals and benchlm leaderboards; see sources."
@@ -334,7 +334,7 @@ export default function TokenomicsPage() {
             <thead>
               <tr>
                 <Th>{""}</Th>
-                <Th>Standard class</Th>
+                <Th>Flagship class</Th>
                 <Th>Frontier class</Th>
               </tr>
             </thead>
@@ -358,7 +358,7 @@ export default function TokenomicsPage() {
 
         <div className="mt-6 grid md:grid-cols-2 gap-6">
           <div className="bg-[hsl(var(--brand-primary))/0.07] rounded-xl p-6 ring-1 ring-[hsl(var(--brand-primary))/0.25]">
-            <h3 className="font-semibold text-base mb-2 text-[hsl(var(--brand-primary))]">Standard class, in one line</h3>
+            <h3 className="font-semibold text-base mb-2 text-[hsl(var(--brand-primary))]">Flagship class, in one line</h3>
             <p className="text-sm leading-relaxed text-[hsl(var(--fc-fg-secondary))]">
               About $0.66 per million output tokens. Against Sonnet 5.5 at $10 that is a fifteenth of the price for
               the same tier of work; against Opus 5.5, GPT-5.5 and Fable 5.1 it is 30–76× cheaper. It undercuts

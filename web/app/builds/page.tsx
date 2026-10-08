@@ -7,7 +7,7 @@ import data from "@/data/builds.json";
 export const metadata: Metadata = {
   title: "Build recipes",
   description:
-    "What FlatClaw actually runs and what it costs: the standard tenant on one H100, the control plane, the second-card question, the frontier class on eight H200s, and the local workstation — with live Newegg prices and cloud plans side by side.",
+    "What FlatClaw actually runs and what it costs: the flagship tenant on one H100, the control plane, the second-card question, the frontier class on eight H200s, and the local workstation — with live Newegg prices and cloud plans side by side.",
   openGraph: { images: ["/builds/hero-share.jpg"] },
   twitter: { images: ["/builds/hero-share.jpg"] },
 };

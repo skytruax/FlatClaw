@@ -18,7 +18,7 @@ const milestones = [
       "First-party connectors through the plugin contract — commerce and CRM (Shopify, Dynamics 365), mailbox and calendar, hosting panels, estimating from marked-up drawings, alongside Google and Jira; the contract documented so partners ship their own",
       "Channels — the agent where the customer already is: a chat widget on the storefront running the same rule book, email in and out, Slack or Teams for internal agents; every channel ends in the same case record",
       "Scheduled agents and reports — daily and weekly digests, the report that writes itself across several ERPs, exceptions raised to a person",
-      "Model classes per tenant — standard (one H100-class card), large (two) and frontier (eight, a mixture-of-experts model) on the same platform, chosen per tenant and swappable without touching agents; build sheets for the local and cloud versions on the Builds page",
+      "Model classes per tenant — flagship (one H100-class card), large (two) and frontier (eight, a mixture-of-experts model) on the same platform, chosen per tenant and swappable without touching agents; build sheets for the local and cloud versions on the Builds page",
     ],
   },
   {
