@@ -163,18 +163,6 @@ export default function TokenomicsPage() {
             eight GPUs inside the tenancy at about a dollar per million, a twentieth of frontier-lab list rates. Here
             is the math, refreshed October 2026.
           </p>
-          <div className="mt-8 grid sm:grid-cols-3 gap-4 max-w-4xl">
-            {[
-              ["$0.66", "per 1M output tokens, standard class"],
-              ["$0.54", "per 1M output tokens, frontier class, fast node"],
-              ["19–93×", "cheaper than the frontier-lab tier, same model class"],
-            ].map(([n, l]) => (
-              <div key={l} className="rounded-xl bg-white/5 ring-1 ring-white/10 px-5 py-4">
-                <div className="text-3xl font-extrabold tracking-tight">{n}</div>
-                <div className="mt-1 text-sm text-[hsl(var(--brand-accent-fg))/0.75]">{l}</div>
-              </div>
-            ))}
-          </div>
         </div>
       </div>
 
