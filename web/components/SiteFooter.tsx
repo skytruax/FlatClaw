@@ -74,6 +74,9 @@ export function SiteFooter() {
             <FooterLink href="https://ai.google.dev/gemma/apache_2">
               Gemma 4 license
             </FooterLink>
+            <FooterLink href="https://huggingface.co/zai-org/GLM-5.2/blob/main/LICENSE">
+              GLM-5.2 license
+            </FooterLink>
           </FooterCol>
         </div>
       </div>

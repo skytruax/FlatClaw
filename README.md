@@ -164,14 +164,14 @@ Indicative monthly costs on the reference lane (Northflank's published list pric
 
 This is a **flat per-tenant rate, not per-token metering**, and it scales with the tenant — not with seat count. List prices and round numbers; committed-use or annual terms on any of the clouds typically reduce the GPU line. The inference line dominates — everything else combined is under $200.
 
-### Why a dedicated H100 wins on cost
+### Why a dedicated node wins on cost
 
-The economic case is structural, and it gets *stronger* at scale. Running Gemma 4 31B-IT on a dedicated H100 collapses the per-token API cost stack — GPU + multi-tenant spare capacity + orchestration + margin — down to GPU lease alone:
+The economic case is structural, and it gets *stronger* at scale. A node held warm for one tenant collapses the per-token API cost stack — GPU + multi-tenant spare capacity + orchestration + margin — down to the GPU line. Two classes, two different things bought:
 
-- **~$1.35 per 1M output tokens** self-hosted at a realistic 70% utilization, against **~$15** for Claude Sonnet 4.6 at list — about **11× cheaper per output token**, about 7× against Sonnet 5 at $10, and 18–37× against the frontier tier (Claude Opus 5 at $25, GPT-5.5 at $30, Claude Fable 5.1 at $50; September 2026 list prices).
-- **Comparable output to Sonnet 4.6 at our configuration.** At 256K context, FP8 on a dedicated H100, with complexity-based routing, Gemma 4 31B-IT clears the bar for the majority of a tenant's workload at that ~1/11th cost. The frontier tier (Claude Opus 5, Fable 5.1, GPT-5.5) is reserved for the hardest fraction, routed up explicitly.
-- **Breakeven is far behind, not ahead.** One H100 at ~$1,800–2,000/month at 60% utilization produces ~2B output tokens/month; the same volume at Sonnet list runs ~$30,000/month. Breakeven against Sonnet lands near 130M output tokens/month — a threshold a busy tenant clears in days, not months.
-- **Utilization, not headcount, is the variable.** What the GPU serves is peak concurrent sessions, not total users. The per-tenant rate doesn't move as a tenant adds people; it moves when sustained concurrency outgrows one card — at which point the answer is a higher-tier or multi-GPU plan on the same cloud, same tenancy, same architecture.
+- **Standard class, about $0.95 per 1M output tokens** all-in at a realistic 70% utilization (Gemma 4 31B at FP8 on one H100, about 1,260 output tokens/s aggregate), against **$10** for Claude Sonnet 5.5 at list — about **10× cheaper per output token** for the same tier of work — and 20–50× against the frontier tier (Claude Opus 5.5 at $20, GPT-5.5 at $30, Claude Fable 5.1 at $50; October 2026 list prices). On the box you own it is about $0.27.
+- **Frontier class, about $8 per 1M output tokens** on an eight-H200 node held warm (GLM-5.2 at FP8, 1,215 output tokens/s with speculative decoding), about $14 on eight B200s, about $6 on the eight-card server you own: 2–6× cheaper than the frontier-lab tier for a model in the same class, running inside the tenancy. Renting the same open weights from a hosted API is $4.40, so the frontier class is bought for locality and control, not for the cheapest token, and we say so.
+- **Breakeven is far behind, not ahead.** One H100 at 60% utilization produces about 2B output tokens a month; the same volume at Sonnet 5.5 list runs about $20,000. Breakeven against Sonnet lands near 220M output tokens a month, a threshold a busy tenant clears in days.
+- **Utilization, not headcount, is the variable.** What the GPU serves is peak concurrent sessions, not total users. The per-tenant rate doesn't move as a tenant adds people; it moves when sustained concurrency outgrows one card — at which point the answer is a second card, or the frontier class, on the same cloud, same tenancy, same architecture.
 
 The honest trade-offs (where self-hosting is *wrong* — low volume, low utilization, the hardest reasoning tasks) and the full cost-stack walkthrough are on the **[Tokenomics page](https://flatclaw.org/tokenomics)**.
 
