@@ -10,23 +10,25 @@ export const metadata: Metadata = {
 
 /* Output-token prices per million, ranked: hosted list prices (October 2026, sources at the foot of the page)
    and FlatClaw's own nodes, all-in, at full utilization. */
-type RateRow = { name: string; price: string; note?: string; ours?: boolean; frontier?: boolean };
-const rateCard: RateRow[] = [
+type RateRow = { name: string; price: string; note?: string; ours?: boolean };
+const standardRates: RateRow[] = [
   { name: "Claude Haiku 5.5", price: "$0.50 – $2.50", note: "tiered by request size" },
-  { name: "FlatClaw frontier class, fast node", price: "$0.54", note: "GLM-5.2 on eight B200s, NVFP4 with multi-token prediction", ours: true, frontier: true },
   { name: "FlatClaw standard class", price: "$0.66", note: "Gemma 4 31B at FP8 on one H100", ours: true },
-  { name: "FlatClaw frontier class", price: "$1.04", note: "GLM-5.2 on eight H200s, FP8 with multi-token prediction", ours: true, frontier: true },
   { name: "GPT-5.6 Luna", price: "$1.20" },
   { name: "Gemini 3.8 Flash", price: "$3.75" },
-  { name: "GLM-5.2, rented from Z.ai", price: "$4.40", note: "the same open weights, hosted", frontier: true },
   { name: "Claude Haiku 4.5", price: "$5" },
   { name: "Claude Sonnet 5.5", price: "$10" },
-  { name: "Gemini 3.1 Pro", price: "$12", note: "$18 above 200K-token prompts", frontier: true },
+];
+const frontierRates: RateRow[] = [
+  { name: "FlatClaw frontier class, fast node", price: "$0.54", note: "GLM-5.2 on eight B200s, NVFP4 with multi-token prediction", ours: true },
+  { name: "FlatClaw frontier class", price: "$1.04", note: "GLM-5.2 on eight H200s, FP8 with multi-token prediction", ours: true },
+  { name: "GLM-5.2, rented from Z.ai", price: "$4.40", note: "the same open weights, hosted" },
+  { name: "Gemini 3.1 Pro", price: "$12", note: "$18 above 200K-token prompts" },
   { name: "GPT-5.6 Terra", price: "$12" },
-  { name: "Claude Opus 5.5", price: "$20", frontier: true },
-  { name: "GPT-5.6 Sol", price: "$20", note: "promotional, $30 list", frontier: true },
-  { name: "GPT-5.5", price: "$30", frontier: true },
-  { name: "Claude Fable 5.1", price: "$50", frontier: true },
+  { name: "Claude Opus 5.5", price: "$20" },
+  { name: "GPT-5.6 Sol", price: "$20", note: "promotional, $30 list" },
+  { name: "GPT-5.5", price: "$30" },
+  { name: "Claude Fable 5.1", price: "$50" },
 ];
 
 /* Both classes, all-in (node, control plane, weights volume) at October 2026 list prices, at full utilization. */
@@ -75,18 +77,25 @@ const sameMonth: { node: string; tokens: string; flat: string; rows: [string, st
 
 /* Published head-to-head results for GLM-5.2 against the frontier labs (sources at the foot of the page).
    Bars are drawn relative to the best score in each row. */
-type Bench = { name: string; unit: string; note?: string; scores: { model: string; value: number; who: "glm" | "openai" | "anthropic" }[] };
-const headToHead: Bench[] = [
-  { name: "SWE-bench Pro", unit: "% resolved", note: "real-world bug fixes", scores: [{ model: "GLM-5.2", value: 62.1, who: "glm" }, { model: "GPT-5.5", value: 58.6, who: "openai" }] },
-  { name: "MCP-Atlas", unit: "% tool-use tasks", note: "agentic tool use", scores: [{ model: "GLM-5.2", value: 77.0, who: "glm" }, { model: "Claude Opus 4.8", value: 77.8, who: "anthropic" }, { model: "GPT-5.5", value: 75.3, who: "openai" }] },
-  { name: "Humanity's Last Exam", unit: "% with tools", scores: [{ model: "GLM-5.2", value: 54.7, who: "glm" }, { model: "GPT-5.5", value: 52.2, who: "openai" }] },
-  { name: "SWE-bench Verified", unit: "% resolved", scores: [{ model: "GLM-5.2", value: 78.7, who: "glm" }, { model: "GPT-5.5", value: 80.6, who: "openai" }] },
-  { name: "GPQA Diamond", unit: "% graduate science", scores: [{ model: "GLM-5.2", value: 91.2, who: "glm" }, { model: "GPT-5.5", value: 94.0, who: "openai" }] },
-  { name: "Text Arena, coding", unit: "Elo", note: "human preference", scores: [{ model: "GLM-5.2", value: 1593, who: "glm" }, { model: "Claude Fable 5", value: 1654, who: "anthropic" }] },
-  { name: "AIME 2026", unit: "% solved", scores: [{ model: "GLM-5.2", value: 99.2, who: "glm" }] },
+type Who = "ours" | "openai" | "anthropic";
+type Bench = { name: string; unit: string; note?: string; scores: { model: string; value: number; who: Who }[] };
+const frontierHeadToHead: Bench[] = [
+  { name: "SWE-bench Pro", unit: "% resolved", note: "real-world bug fixes", scores: [{ model: "GLM-5.2", value: 62.1, who: "ours" }, { model: "GPT-5.5", value: 58.6, who: "openai" }] },
+  { name: "MCP-Atlas", unit: "% tool-use tasks", note: "agentic tool use", scores: [{ model: "GLM-5.2", value: 77.0, who: "ours" }, { model: "Claude Opus 4.8", value: 77.8, who: "anthropic" }, { model: "GPT-5.5", value: 75.3, who: "openai" }] },
+  { name: "Humanity's Last Exam", unit: "% with tools", scores: [{ model: "GLM-5.2", value: 54.7, who: "ours" }, { model: "GPT-5.5", value: 52.2, who: "openai" }] },
+  { name: "SWE-bench Verified", unit: "% resolved", scores: [{ model: "GLM-5.2", value: 78.7, who: "ours" }, { model: "GPT-5.5", value: 80.6, who: "openai" }] },
+  { name: "GPQA Diamond", unit: "% graduate science", scores: [{ model: "GLM-5.2", value: 91.2, who: "ours" }, { model: "GPT-5.5", value: 94.0, who: "openai" }] },
+  { name: "Text Arena, coding", unit: "Elo", note: "human preference", scores: [{ model: "GLM-5.2", value: 1593, who: "ours" }, { model: "Claude Fable 5", value: 1654, who: "anthropic" }] },
+  { name: "AIME 2026", unit: "% solved", scores: [{ model: "GLM-5.2", value: 99.2, who: "ours" }] },
 ];
-const whoColor: Record<"glm" | "openai" | "anthropic", string> = {
-  glm: "hsl(var(--brand-accent))",
+const standardHeadToHead: Bench[] = [
+  { name: "LMArena", unit: "Elo", note: "human preference, all models", scores: [{ model: "Gemma 4 31B", value: 1451, who: "ours" }, { model: "Claude Haiku 4.5", value: 1240, who: "anthropic" }] },
+  { name: "MMLU-Pro", unit: "% correct", note: "broad knowledge and reasoning", scores: [{ model: "Gemma 4 31B", value: 85.2, who: "ours" }, { model: "Claude Haiku 4.5", value: 68, who: "anthropic" }] },
+  { name: "GPQA Diamond", unit: "% graduate science", scores: [{ model: "Gemma 4 31B", value: 84.3, who: "ours" }, { model: "Claude Haiku 4.5", value: 52, who: "anthropic" }] },
+  { name: "AIME", unit: "% solved", scores: [{ model: "Gemma 4 31B", value: 89.2, who: "ours" }] },
+];
+const whoColor: Record<Who, string> = {
+  ours: "hsl(var(--brand-accent))",
   anthropic: "hsl(var(--brand-primary) / 0.8)",
   openai: "hsl(var(--fc-fg-muted) / 0.6)",
 };
@@ -136,7 +145,72 @@ const sources: { label: string; href: string }[] = [
   { label: "GLM-5.2 benchmarks: SWE-bench Pro, MCP-Atlas, HLE, GPQA, AIME (apidog)", href: "https://apidog.com/blog/glm-5-2-benchmarks/" },
   { label: "SWE-bench Verified and coding arena leaderboards (LM Council)", href: "https://lmcouncil.ai/benchmarks" },
   { label: "SWE-bench Pro leaderboard (Morph)", href: "https://www.morphllm.com/swe-bench-pro" },
+  { label: "Gemma 4 31B vs Claude Haiku 4.5 (Artificial Analysis)", href: "https://artificialanalysis.ai/models/comparisons/gemma-4-31b-vs-claude-4-5-haiku-reasoning" },
+  { label: "Gemma 4 benchmarks and arena Elo", href: "https://gemma4all.com/blog/gemma-4-benchmarks-performance" },
 ];
+
+function PriceCard({ title, intro, rows }: { title: string; intro: string; rows: RateRow[] }) {
+  return (
+    <div className="bg-[hsl(var(--fc-bg-surface))] rounded-xl ring-1 ring-[hsl(var(--fc-bg-tertiary))] p-6 shadow-sm">
+      <h3 className="font-semibold text-base mb-1 text-[hsl(var(--fc-fg-primary))]">{title}</h3>
+      <p className="mb-4 text-xs text-[hsl(var(--fc-fg-muted))] leading-relaxed">{intro}</p>
+      <table className="w-full text-sm">
+        <tbody className="divide-y divide-[hsl(var(--fc-bg-tertiary))]">
+          {rows.map((r) => (
+            <tr key={r.name} className={r.ours ? "bg-[hsl(var(--brand-accent))/0.08]" : ""}>
+              <td className={"py-2 pr-3 " + (r.ours ? "pl-2 rounded-l-md" : "")}>
+                <span className={r.ours ? "font-semibold text-[hsl(var(--brand-primary))]" : "text-[hsl(var(--fc-fg-secondary))]"}>{r.name}</span>
+                {r.note ? <span className="block text-[11px] text-[hsl(var(--fc-fg-muted))]">{r.note}</span> : null}
+              </td>
+              <td className={"py-2 text-right font-mono whitespace-nowrap " + (r.ours ? "pr-2 rounded-r-md font-bold text-[hsl(var(--brand-primary))]" : "text-[hsl(var(--fc-fg-primary))]")}>{r.price}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function BenchCard({ title, intro, ours, rows, legend, foot }: { title: string; intro: string; ours: string; rows: Bench[]; legend: Exclude<Who, "ours">[]; foot: string }) {
+  const legendLabel: Record<Exclude<Who, "ours">, string> = { anthropic: "Anthropic", openai: "OpenAI" };
+  return (
+    <div className="bg-[hsl(var(--fc-bg-surface))] rounded-xl ring-1 ring-[hsl(var(--fc-bg-tertiary))] p-6 shadow-sm">
+      <h3 className="font-semibold text-base mb-1 text-[hsl(var(--fc-fg-primary))]">{title}</h3>
+      <p className="mb-4 text-xs text-[hsl(var(--fc-fg-muted))] leading-relaxed">{intro}</p>
+      <div className="flex flex-wrap gap-x-4 gap-y-1 mb-4 text-[11px] text-[hsl(var(--fc-fg-secondary))]">
+        <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm" style={{ background: whoColor.ours }} />{ours}</span>
+        {legend.map((w) => (
+          <span key={w} className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm" style={{ background: whoColor[w] }} />{legendLabel[w]}</span>
+        ))}
+      </div>
+      <div className="space-y-4">
+        {rows.map((b) => {
+          const max = Math.max(...b.scores.map((x) => x.value));
+          return (
+            <div key={b.name}>
+              <div className="flex items-baseline justify-between gap-3">
+                <div className="text-sm font-semibold text-[hsl(var(--fc-fg-primary))]">{b.name}</div>
+                <div className="text-[11px] text-[hsl(var(--fc-fg-muted))]">{b.unit}{b.note ? ` · ${b.note}` : ""}</div>
+              </div>
+              <div className="mt-1.5 space-y-1">
+                {b.scores.map((x) => (
+                  <div key={x.model} className="grid grid-cols-[7.5rem_1fr_3.5rem] items-center gap-2">
+                    <div className={"text-[11px] truncate " + (x.who === "ours" ? "font-semibold text-[hsl(var(--brand-primary))]" : "text-[hsl(var(--fc-fg-secondary))]")}>{x.model}</div>
+                    <div className="h-2.5 rounded-full bg-[hsl(var(--fc-bg-tertiary))/0.5] overflow-hidden">
+                      <div className="h-full rounded-full" style={{ width: `${Math.max(4, (x.value / max) * 100)}%`, background: whoColor[x.who] }} />
+                    </div>
+                    <div className={"text-right font-mono text-[11px] " + (x.who === "ours" ? "font-bold text-[hsl(var(--brand-primary))]" : "text-[hsl(var(--fc-fg-primary))]")}>{x.value}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <p className="mt-4 text-[11px] text-[hsl(var(--fc-fg-muted))] leading-relaxed">{foot}</p>
+    </div>
+  );
+}
 
 function Th({ children }: { children: React.ReactNode }) {
   return <th className="py-2.5 pr-4 text-left text-[11px] font-semibold uppercase tracking-wider text-[hsl(var(--fc-fg-muted))]">{children}</th>;
@@ -256,63 +330,47 @@ export default function TokenomicsPage() {
 
       <Section
         eyebrow="04 · Ability and price"
-        title="A frontier-tier model, priced like a small one."
-        lede="On the left, October 2026 list prices per million output tokens with FlatClaw's nodes in the same list. On the right, where GLM-5.2 actually lands against the frontier labs in published head-to-head results. The frontier class sits next to the small models on price and next to GPT-5.5 and Opus on ability."
+        title="Each class against the hosted models it competes with."
+        lede="October 2026 list prices per million output tokens, one table per class, next to published head-to-head results. The standard class is priced with the small hosted models and outscores them; the frontier class is priced with the small models and plays in the frontier tier."
         variant="soft"
       >
-        <div className="grid lg:grid-cols-2 gap-8 items-start">
-          <div className="bg-[hsl(var(--fc-bg-surface))] rounded-xl ring-1 ring-[hsl(var(--fc-bg-tertiary))] p-6 shadow-sm">
-            <h3 className="font-semibold text-base mb-1 text-[hsl(var(--fc-fg-primary))]">Price, per 1M output tokens</h3>
-            <p className="mb-4 text-xs text-[hsl(var(--fc-fg-muted))] leading-relaxed">Rows marked frontier tier are models in GLM-5.2's class; the rest are smaller or mid-tier models.</p>
-            <table className="w-full text-sm">
-              <tbody className="divide-y divide-[hsl(var(--fc-bg-tertiary))]">
-                {rateCard.map((r) => (
-                  <tr key={r.name} className={r.ours ? "bg-[hsl(var(--brand-accent))/0.08]" : ""}>
-                    <td className={"py-2 pr-3 " + (r.ours ? "pl-2 rounded-l-md" : "")}>
-                      <span className={r.ours ? "font-semibold text-[hsl(var(--brand-primary))]" : "text-[hsl(var(--fc-fg-secondary))]"}>{r.name}</span>
-                      {r.frontier ? <span className={"ml-2 align-middle rounded px-1.5 py-0.5 text-[9.5px] font-semibold uppercase tracking-wide " + (r.ours ? "bg-[hsl(var(--brand-accent))] text-[hsl(var(--brand-accent-fg))]" : "bg-[hsl(var(--fc-bg-tertiary))/0.7] text-[hsl(var(--fc-fg-secondary))]")}>frontier tier</span> : null}
-                      {r.note ? <span className="block text-[11px] text-[hsl(var(--fc-fg-muted))]">{r.note}</span> : null}
-                    </td>
-                    <td className={"py-2 text-right font-mono whitespace-nowrap " + (r.ours ? "pr-2 rounded-r-md font-bold text-[hsl(var(--brand-primary))]" : "text-[hsl(var(--fc-fg-primary))]")}>{r.price}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <div className="space-y-10">
+          <div>
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-[hsl(var(--brand-primary))] mb-3">Standard class · Gemma 4 31B</div>
+            <div className="grid lg:grid-cols-2 gap-8 items-start">
+              <PriceCard
+                title="Price, per 1M output tokens"
+                intro="The hosted models a standard tenant would otherwise rent, from the small tier up to Sonnet 5.5."
+                rows={standardRates}
+              />
+              <BenchCard
+                title="Ability: Gemma 4 31B against the small hosted models"
+                intro="Published results against Claude Haiku 4.5, the hosted small model at $5 per million. Gemma 4 31B leads on human preference and on knowledge and reasoning benchmarks by wide margins."
+                ours="Gemma 4 31B, FlatClaw standard class"
+                legend={["anthropic"]}
+                rows={standardHeadToHead}
+                foot="Bars are drawn relative to the best score in each row. Arena Elo as of June 2026; benchmark figures as published by Google and the comparison leaderboards; see sources."
+              />
+            </div>
           </div>
 
-          <div className="bg-[hsl(var(--fc-bg-surface))] rounded-xl ring-1 ring-[hsl(var(--fc-bg-tertiary))] p-6 shadow-sm">
-            <h3 className="font-semibold text-base mb-1 text-[hsl(var(--fc-fg-primary))]">Ability: GLM-5.2 against the frontier labs</h3>
-            <p className="mb-4 text-xs text-[hsl(var(--fc-fg-muted))] leading-relaxed">Published head-to-head results. GLM-5.2 leads GPT-5.5 on real-world bug fixing and Humanity's Last Exam, ties Opus-class models on agentic tool use, and sits within a few points everywhere else. This is the model the frontier class runs, at $0.54 to $1.04 per million tokens.</p>
-            <div className="flex flex-wrap gap-x-4 gap-y-1 mb-4 text-[11px] text-[hsl(var(--fc-fg-secondary))]">
-              <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm" style={{ background: whoColor.glm }} />GLM-5.2, FlatClaw frontier class</span>
-              <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm" style={{ background: whoColor.anthropic }} />Anthropic</span>
-              <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm" style={{ background: whoColor.openai }} />OpenAI</span>
+          <div>
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-[hsl(var(--brand-primary))] mb-3">Frontier class · GLM-5.2</div>
+            <div className="grid lg:grid-cols-2 gap-8 items-start">
+              <PriceCard
+                title="Price, per 1M output tokens"
+                intro="The frontier-tier hosted models, and the same GLM-5.2 weights rented from a hosted API."
+                rows={frontierRates}
+              />
+              <BenchCard
+                title="Ability: GLM-5.2 against the frontier labs"
+                intro="Published head-to-head results. GLM-5.2 leads GPT-5.5 on real-world bug fixing and Humanity's Last Exam, ties Opus-class models on agentic tool use, and sits within a few points everywhere else."
+                ours="GLM-5.2, FlatClaw frontier class"
+                legend={["anthropic", "openai"]}
+                rows={frontierHeadToHead}
+                foot="Bars are drawn relative to the best score in each row. Figures as published by the labs and the LM Council and Morph leaderboards; see sources."
+              />
             </div>
-            <div className="space-y-4">
-              {headToHead.map((b) => {
-                const max = Math.max(...b.scores.map((x) => x.value));
-                return (
-                  <div key={b.name}>
-                    <div className="flex items-baseline justify-between gap-3">
-                      <div className="text-sm font-semibold text-[hsl(var(--fc-fg-primary))]">{b.name}</div>
-                      <div className="text-[11px] text-[hsl(var(--fc-fg-muted))]">{b.unit}{b.note ? ` · ${b.note}` : ""}</div>
-                    </div>
-                    <div className="mt-1.5 space-y-1">
-                      {b.scores.map((x) => (
-                        <div key={x.model} className="grid grid-cols-[7.5rem_1fr_3.5rem] items-center gap-2">
-                          <div className={"text-[11px] truncate " + (x.who === "glm" ? "font-semibold text-[hsl(var(--brand-primary))]" : "text-[hsl(var(--fc-fg-secondary))]")}>{x.model}</div>
-                          <div className="h-2.5 rounded-full bg-[hsl(var(--fc-bg-tertiary))/0.5] overflow-hidden">
-                            <div className="h-full rounded-full" style={{ width: `${Math.max(4, (x.value / max) * 100)}%`, background: whoColor[x.who] }} />
-                          </div>
-                          <div className={"text-right font-mono text-[11px] " + (x.who === "glm" ? "font-bold text-[hsl(var(--brand-primary))]" : "text-[hsl(var(--fc-fg-primary))]")}>{x.value}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            <p className="mt-4 text-[11px] text-[hsl(var(--fc-fg-muted))] leading-relaxed">Bars are drawn relative to the best score in each row. Figures as published by the labs and the LM Council and Morph leaderboards; see sources.</p>
           </div>
         </div>
 
