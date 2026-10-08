@@ -248,102 +248,9 @@ export default function TokenomicsPage() {
       </div>
 
       <Section
-        eyebrow="01 · Thesis"
-        title="The per-token premium is structural, not promotional."
-        lede="At a tenant's volume, hosted API rates run fifteen to seventy times the hardware cost of the same inference on the standard class, and twenty to ninety times on the frontier class. Not because the providers are mispriced. Their rate has to carry spare capacity, an orchestration stack and margin on top of the GPU. Run a node for one tenant and you keep the GPU line and shed the rest."
-      >
-        <div className="grid md:grid-cols-2 gap-6">
-          <div className="bg-[hsl(var(--fc-bg-surface))] rounded-xl p-6 ring-1 ring-[hsl(var(--fc-bg-tertiary))]">
-            <p className="text-sm leading-relaxed text-[hsl(var(--fc-fg-secondary))]">
-              A token generated on the same silicon costs the same in physics whoever runs it. What differs is what
-              has to be packed into the price. The hosted rate card below is the October 2026 list; the self-hosted
-              figures are what the nodes on the <Link href="/builds" className="font-semibold text-[hsl(var(--brand-primary))] hover:text-[hsl(var(--brand-accent))]">builds page</Link> cost, held warm and fully used.
-            </p>
-          </div>
-          <div className="bg-[hsl(var(--brand-primary))/0.07] rounded-xl p-6 ring-1 ring-[hsl(var(--brand-primary))/0.25]">
-            <p className="text-sm leading-relaxed text-[hsl(var(--fc-fg-secondary))]">
-              Two classes, because two different things are being bought. The standard class is the cheapest private
-              token on the market for the work most teams do all day. The frontier class puts a frontier-grade model
-              inside the tenancy, cheaper than renting its own weights and with nobody else's policy in the loop.
-            </p>
-          </div>
-        </div>
-      </Section>
-
-      <Section
-        eyebrow="02 · The two classes"
-        title="What a token costs on each node."
-        lede="All-in figures: the GPU node, the control plane and the weights volume, at indicative list prices on our reference lane, the same classes on Azure, AWS and Google Cloud landing in the same band on reserved terms."
-        variant="soft"
-      >
-        <div className="bg-[hsl(var(--fc-bg-surface))] rounded-xl ring-1 ring-[hsl(var(--fc-bg-tertiary))] p-5 md:p-6 shadow-sm overflow-x-auto">
-          <table className="w-full min-w-[640px] text-sm">
-            <thead>
-              <tr>
-                <Th>{""}</Th>
-                <Th>Standard class</Th>
-                <Th>Frontier class</Th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[hsl(var(--fc-bg-tertiary))]">
-              {classRows.map((r) => (
-                <tr key={r.k} className={r.k.startsWith("Per 1M") ? "bg-[hsl(var(--brand-accent))/0.06]" : ""}>
-                  <td className="py-2.5 pr-4 text-[hsl(var(--fc-fg-secondary))] align-top w-[28%]">{r.k}</td>
-                  <td className={"py-2.5 pr-4 align-top " + (r.k.startsWith("Per 1M") ? "font-bold text-[hsl(var(--brand-primary))]" : "text-[hsl(var(--fc-fg-primary))]")}>{r.standard}</td>
-                  <td className={"py-2.5 align-top " + (r.k.startsWith("Per 1M") ? "font-bold text-[hsl(var(--brand-primary))]" : "text-[hsl(var(--fc-fg-primary))]")}>{r.frontier}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <p className="mt-4 text-xs text-[hsl(var(--fc-fg-muted))] leading-relaxed">
-            Throughput references: Gemma 4 31B at FP8 on one H100 with SGLang, about 1,260 output tokens per second
-            aggregate at concurrency 128. GLM-5 with multi-token prediction as measured by SemiAnalysis InferenceX,
-            about 850 output tokens per second per H200 at FP8 and about 3,000 per B200 at NVFP4, eight of each per
-            node. It is the batched aggregate that pays the bill, which is what naive comparisons miss.
-          </p>
-        </div>
-
-        <div className="mt-6 grid md:grid-cols-2 gap-6">
-          <div className="bg-[hsl(var(--brand-primary))/0.07] rounded-xl p-6 ring-1 ring-[hsl(var(--brand-primary))/0.25]">
-            <h3 className="font-semibold text-base mb-2 text-[hsl(var(--brand-primary))]">Standard class, in one line</h3>
-            <p className="text-sm leading-relaxed text-[hsl(var(--fc-fg-secondary))]">
-              About $0.66 per million output tokens. Against Sonnet 5.5 at $10 that is a fifteenth of the price for
-              the same tier of work; against Opus 5.5, GPT-5.5 and Fable 5.1 it is 30–76× cheaper. It undercuts
-              renting Gemma 4 31B from the cheapest host, and the node is private.
-            </p>
-          </div>
-          <div className="bg-[hsl(var(--brand-primary))/0.07] rounded-xl p-6 ring-1 ring-[hsl(var(--brand-primary))/0.25]">
-            <h3 className="font-semibold text-base mb-2 text-[hsl(var(--brand-primary))]">Frontier class, in one line</h3>
-            <p className="text-sm leading-relaxed text-[hsl(var(--fc-fg-secondary))]">
-              About $1.04 per million output tokens on the H200 node, $0.54 on the B200 node. Against Opus 5.5 at
-              $20, GPT-5.5 at $30 and Fable 5.1 at $50 that is 19–93× cheaper for a model in the same tier, running
-              inside the tenancy, and a quarter to an eighth of what renting the same weights from Z.ai costs. The
-              fast node is both the cheaper token and the faster stream.
-            </p>
-          </div>
-        </div>
-      </Section>
-
-      <Section
-        eyebrow="03 · Beyond price"
-        title="What the frontier class buys that a rate card cannot show."
-        lede="A frontier-grade model inside the tenancy is a different product from a frontier-grade API, even at the same price per token."
-      >
-        <div className="grid md:grid-cols-2 gap-4">
-          {beyondPrice.map(([k, v]) => (
-            <div key={k} className="bg-[hsl(var(--fc-bg-surface))] rounded-lg ring-1 ring-[hsl(var(--fc-bg-tertiary))] p-5">
-              <div className="font-semibold text-sm text-[hsl(var(--fc-fg-primary))]">{k}</div>
-              <p className="mt-1.5 text-sm text-[hsl(var(--fc-fg-secondary))] leading-relaxed">{v}</p>
-            </div>
-          ))}
-        </div>
-      </Section>
-
-      <Section
-        eyebrow="04 · Ability and price"
+        eyebrow="01 · Ability and price"
         title="Each class against the hosted models it competes with."
         lede="October 2026 list prices per million output tokens, one table per class, next to published head-to-head results. The standard class is priced with the small hosted models and outscores them; the frontier class is priced with the small models and plays in the frontier tier."
-        variant="soft"
       >
         <div className="space-y-10">
           <div>
@@ -413,6 +320,99 @@ export default function TokenomicsPage() {
               </div>
             ))}
           </div>
+        </div>
+      </Section>
+
+      <Section
+        eyebrow="02 · Thesis"
+        title="The per-token premium is structural, not promotional."
+        lede="At a tenant's volume, hosted API rates run fifteen to seventy times the hardware cost of the same inference on the standard class, and twenty to ninety times on the frontier class. Not because the providers are mispriced. Their rate has to carry spare capacity, an orchestration stack and margin on top of the GPU. Run a node for one tenant and you keep the GPU line and shed the rest."
+        variant="soft"
+      >
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="bg-[hsl(var(--fc-bg-surface))] rounded-xl p-6 ring-1 ring-[hsl(var(--fc-bg-tertiary))]">
+            <p className="text-sm leading-relaxed text-[hsl(var(--fc-fg-secondary))]">
+              A token generated on the same silicon costs the same in physics whoever runs it. What differs is what
+              has to be packed into the price. The hosted rate card above is the October 2026 list; the self-hosted
+              figures are what the nodes on the <Link href="/builds" className="font-semibold text-[hsl(var(--brand-primary))] hover:text-[hsl(var(--brand-accent))]">builds page</Link> cost, held warm and fully used.
+            </p>
+          </div>
+          <div className="bg-[hsl(var(--brand-primary))/0.07] rounded-xl p-6 ring-1 ring-[hsl(var(--brand-primary))/0.25]">
+            <p className="text-sm leading-relaxed text-[hsl(var(--fc-fg-secondary))]">
+              Two classes, because two different things are being bought. The standard class is the cheapest private
+              token on the market for the work most teams do all day. The frontier class puts a frontier-grade model
+              inside the tenancy, cheaper than renting its own weights and with nobody else's policy in the loop.
+            </p>
+          </div>
+        </div>
+      </Section>
+
+      <Section
+        eyebrow="03 · The two classes"
+        title="What a token costs on each node."
+        lede="All-in figures: the GPU node, the control plane and the weights volume, at indicative list prices on our reference lane, the same classes on Azure, AWS and Google Cloud landing in the same band on reserved terms."
+      >
+        <div className="bg-[hsl(var(--fc-bg-surface))] rounded-xl ring-1 ring-[hsl(var(--fc-bg-tertiary))] p-5 md:p-6 shadow-sm overflow-x-auto">
+          <table className="w-full min-w-[640px] text-sm">
+            <thead>
+              <tr>
+                <Th>{""}</Th>
+                <Th>Standard class</Th>
+                <Th>Frontier class</Th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[hsl(var(--fc-bg-tertiary))]">
+              {classRows.map((r) => (
+                <tr key={r.k} className={r.k.startsWith("Per 1M") ? "bg-[hsl(var(--brand-accent))/0.06]" : ""}>
+                  <td className="py-2.5 pr-4 text-[hsl(var(--fc-fg-secondary))] align-top w-[28%]">{r.k}</td>
+                  <td className={"py-2.5 pr-4 align-top " + (r.k.startsWith("Per 1M") ? "font-bold text-[hsl(var(--brand-primary))]" : "text-[hsl(var(--fc-fg-primary))]")}>{r.standard}</td>
+                  <td className={"py-2.5 align-top " + (r.k.startsWith("Per 1M") ? "font-bold text-[hsl(var(--brand-primary))]" : "text-[hsl(var(--fc-fg-primary))]")}>{r.frontier}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="mt-4 text-xs text-[hsl(var(--fc-fg-muted))] leading-relaxed">
+            Throughput references: Gemma 4 31B at FP8 on one H100 with SGLang, about 1,260 output tokens per second
+            aggregate at concurrency 128. GLM-5 with multi-token prediction as measured by SemiAnalysis InferenceX,
+            about 850 output tokens per second per H200 at FP8 and about 3,000 per B200 at NVFP4, eight of each per
+            node. It is the batched aggregate that pays the bill, which is what naive comparisons miss.
+          </p>
+        </div>
+
+        <div className="mt-6 grid md:grid-cols-2 gap-6">
+          <div className="bg-[hsl(var(--brand-primary))/0.07] rounded-xl p-6 ring-1 ring-[hsl(var(--brand-primary))/0.25]">
+            <h3 className="font-semibold text-base mb-2 text-[hsl(var(--brand-primary))]">Standard class, in one line</h3>
+            <p className="text-sm leading-relaxed text-[hsl(var(--fc-fg-secondary))]">
+              About $0.66 per million output tokens. Against Sonnet 5.5 at $10 that is a fifteenth of the price for
+              the same tier of work; against Opus 5.5, GPT-5.5 and Fable 5.1 it is 30–76× cheaper. It undercuts
+              renting Gemma 4 31B from the cheapest host, and the node is private.
+            </p>
+          </div>
+          <div className="bg-[hsl(var(--brand-primary))/0.07] rounded-xl p-6 ring-1 ring-[hsl(var(--brand-primary))/0.25]">
+            <h3 className="font-semibold text-base mb-2 text-[hsl(var(--brand-primary))]">Frontier class, in one line</h3>
+            <p className="text-sm leading-relaxed text-[hsl(var(--fc-fg-secondary))]">
+              About $1.04 per million output tokens on the H200 node, $0.54 on the B200 node. Against Opus 5.5 at
+              $20, GPT-5.5 at $30 and Fable 5.1 at $50 that is 19–93× cheaper for a model in the same tier, running
+              inside the tenancy, and a quarter to an eighth of what renting the same weights from Z.ai costs. The
+              fast node is both the cheaper token and the faster stream.
+            </p>
+          </div>
+        </div>
+      </Section>
+
+      <Section
+        eyebrow="04 · Beyond price"
+        title="What the frontier class buys that a rate card cannot show."
+        lede="A frontier-grade model inside the tenancy is a different product from a frontier-grade API, even at the same price per token."
+        variant="soft"
+      >
+        <div className="grid md:grid-cols-2 gap-4">
+          {beyondPrice.map(([k, v]) => (
+            <div key={k} className="bg-[hsl(var(--fc-bg-surface))] rounded-lg ring-1 ring-[hsl(var(--fc-bg-tertiary))] p-5">
+              <div className="font-semibold text-sm text-[hsl(var(--fc-fg-primary))]">{k}</div>
+              <p className="mt-1.5 text-sm text-[hsl(var(--fc-fg-secondary))] leading-relaxed">{v}</p>
+            </div>
+          ))}
         </div>
       </Section>
 
