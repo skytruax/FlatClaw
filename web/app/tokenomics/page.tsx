@@ -250,7 +250,7 @@ export default function TokenomicsPage() {
       <Section
         eyebrow="01 · Ability and price"
         title="Each class against the hosted models it competes with."
-        lede="October 2026 list prices per million output tokens, one table per class, next to published head-to-head results. The standard class is priced with the small hosted models and outscores them; the frontier class is priced with the small models and plays in the frontier tier."
+        lede="October 2026 list prices per million output tokens, one table per class, next to published head-to-head results. The standard class is priced with the cheapest hosted models and outscores the mid-tier ones; the frontier class is priced with the cheapest hosted models and plays in the frontier tier."
       >
         <div className="space-y-10">
           <div>
@@ -258,11 +258,11 @@ export default function TokenomicsPage() {
             <div className="grid lg:grid-cols-2 gap-8 items-start">
               <PriceCard
                 title="Price, per 1M output tokens"
-                intro="The hosted models a standard tenant would otherwise rent, from the small tier up to Sonnet 5.5, including the open models the cheapest hosts serve."
+                intro="The hosted models a standard tenant would otherwise rent, from the entry tier up to Sonnet 5.5, including the open models the cheapest hosts serve."
                 rows={standardRates}
               />
               <BenchCard
-                title="Ability: Gemma 4 31B against the small hosted models"
+                title="Ability: Gemma 4 31B against the mid-tier hosted models"
                 intro="Published results against the hosted models on the price list. Gemma 4 31B outscores Claude Haiku 4.5, Llama 4 Maverick and Mistral Medium 3.5 on knowledge and reasoning, edges GPT-5.4 mini and Gemini 3.5 Flash-Lite, and leads Haiku 4.5 by 200 points of human preference."
                 ours="Gemma 4 31B, FlatClaw standard class"
                 legend={["anthropic", "openai", "google", "meta", "mistral"]}
