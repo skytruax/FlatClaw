@@ -24,11 +24,11 @@ export function BuildsExplorer({ data }: { data: BuildsData }) {
 
   return (
     <div>
-      <div className="sticky top-16 z-20 -mx-5 px-5 py-3 bg-[hsl(var(--fc-bg-primary))/0.92] backdrop-blur border-b border-[hsl(var(--fc-bg-tertiary))]">
-        <div className="mx-auto max-w-6xl flex flex-wrap items-center gap-2">
+      <div className="sticky top-[72px] z-20 -mx-5 px-5 pt-2.5 pb-3.5 md:py-3 bg-[hsl(var(--fc-bg-primary))/0.92] backdrop-blur border-b border-[hsl(var(--fc-bg-tertiary))]">
+        <div className="mx-auto max-w-6xl flex flex-wrap items-center gap-x-2 gap-y-3.5">
           <TabButton active={tab === "references"} onClick={() => go("references")} icon={<Cpu className="w-4 h-4" />} label="Local and cloud references" sub="parts, live prices, cloud nodes, side by side" />
           <TabButton active={tab === "recipes"} onClick={() => go("recipes")} icon={<Server className="w-4 h-4" />} label="Build recipes" sub="what we run and what we learned" />
-          <div className="ml-auto">
+          <div className="order-first w-full mb-1 md:order-none md:w-auto md:mb-0 md:ml-auto">
             <PriceStatus live={live} />
           </div>
         </div>
@@ -48,7 +48,7 @@ function TabButton({ active, onClick, icon, label, sub }: { active: boolean; onC
       onClick={onClick}
       aria-pressed={active}
       className={
-        "flex items-center gap-3 rounded-lg px-4 py-2 text-left transition ring-1 " +
+        "relative flex items-center gap-3 rounded-lg px-4 py-2 text-left transition ring-1 " +
         (active
           ? "bg-[hsl(var(--brand-primary))] text-white ring-[hsl(var(--brand-primary))]"
           : "bg-[hsl(var(--fc-bg-surface))] text-[hsl(var(--fc-fg-primary))] ring-[hsl(var(--fc-bg-tertiary))] hover:ring-[hsl(var(--brand-accent))]")
@@ -59,6 +59,16 @@ function TabButton({ active, onClick, icon, label, sub }: { active: boolean; onC
         <span className="block text-sm font-semibold leading-tight">{label}</span>
         <span className={"block text-[11px] leading-tight " + (active ? "text-white/70" : "text-[hsl(var(--fc-fg-muted))]")}>{sub}</span>
       </span>
+      {active ? (
+        /* the notch from the Kirk logomark (branding/kirk-notch.svg), hung from the tab in the tab's own navy */
+        <svg
+          aria-hidden
+          viewBox="0 0 35.3035 27.7312"
+          className="absolute left-4 -bottom-[12px] h-[12px] w-[15px] text-[hsl(var(--brand-primary))]"
+        >
+          <path d="M35.3035 0H0V27.7312L35.3035 0Z" fill="currentColor" />
+        </svg>
+      ) : null}
     </button>
   );
 }
