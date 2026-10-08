@@ -1,6 +1,5 @@
 {
   "updated": "2026-10-07",
-  "priceNote": "Street prices are read from newegg.com by a scheduled job (web/scripts/price-watch.mjs) and refreshed hourly; the page re-reads them every ten minutes. Every part is something Newegg sells, at Newegg's price; out-of-stock items are marked.",
   "builds": [
     {
       "id": "gemma-4-31b",

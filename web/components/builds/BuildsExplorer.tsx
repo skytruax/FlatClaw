@@ -179,7 +179,6 @@ function RecipesTab({ recipes }: { recipes: Recipe[] }) {
 function ReferencesTab({ data, live }: { data: BuildsData; live: LivePrices }) {
   return (
     <div className="space-y-16">
-      <p className="max-w-3xl text-[hsl(var(--fc-fg-secondary))] leading-relaxed">{data.priceNote}</p>
       {data.builds.map((b) => (
         <BuildSheet key={b.id} build={b} live={live} />
       ))}

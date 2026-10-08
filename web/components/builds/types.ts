@@ -60,7 +60,6 @@ export interface Recipe {
 }
 export interface BuildsData {
   updated: string;
-  priceNote: string;
   builds: Build[];
   recipes: Recipe[];
 }
