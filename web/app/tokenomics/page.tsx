@@ -324,33 +324,10 @@ export default function TokenomicsPage() {
       </Section>
 
       <Section
-        eyebrow="02 · Thesis"
-        title="The per-token premium is structural, not promotional."
-        lede="At a tenant's volume, hosted API rates run fifteen to seventy times the hardware cost of the same inference on the standard class, and twenty to ninety times on the frontier class. Not because the providers are mispriced. Their rate has to carry spare capacity, an orchestration stack and margin on top of the GPU. Run a node for one tenant and you keep the GPU line and shed the rest."
-        variant="soft"
-      >
-        <div className="grid md:grid-cols-2 gap-6">
-          <div className="bg-[hsl(var(--fc-bg-surface))] rounded-xl p-6 ring-1 ring-[hsl(var(--fc-bg-tertiary))]">
-            <p className="text-sm leading-relaxed text-[hsl(var(--fc-fg-secondary))]">
-              A token generated on the same silicon costs the same in physics whoever runs it. What differs is what
-              has to be packed into the price. The hosted rate card above is the October 2026 list; the self-hosted
-              figures are what the nodes on the <Link href="/builds" className="font-semibold text-[hsl(var(--brand-primary))] hover:text-[hsl(var(--brand-accent))]">builds page</Link> cost, held warm and fully used.
-            </p>
-          </div>
-          <div className="bg-[hsl(var(--brand-primary))/0.07] rounded-xl p-6 ring-1 ring-[hsl(var(--brand-primary))/0.25]">
-            <p className="text-sm leading-relaxed text-[hsl(var(--fc-fg-secondary))]">
-              Two classes, because two different things are being bought. The standard class is the cheapest private
-              token on the market for the work most teams do all day. The frontier class puts a frontier-grade model
-              inside the tenancy, cheaper than renting its own weights and with nobody else's policy in the loop.
-            </p>
-          </div>
-        </div>
-      </Section>
-
-      <Section
-        eyebrow="03 · The two classes"
+        eyebrow="02 · The two classes"
         title="What a token costs on each node."
         lede="All-in figures: the GPU node, the control plane and the weights volume, at indicative list prices on our reference lane, the same classes on Azure, AWS and Google Cloud landing in the same band on reserved terms."
+        variant="soft"
       >
         <div className="bg-[hsl(var(--fc-bg-surface))] rounded-xl ring-1 ring-[hsl(var(--fc-bg-tertiary))] p-5 md:p-6 shadow-sm overflow-x-auto">
           <table className="w-full min-w-[640px] text-sm">
@@ -401,10 +378,9 @@ export default function TokenomicsPage() {
       </Section>
 
       <Section
-        eyebrow="04 · Beyond price"
+        eyebrow="03 · Beyond price"
         title="What the frontier class buys that a rate card cannot show."
         lede="A frontier-grade model inside the tenancy is a different product from a frontier-grade API, even at the same price per token."
-        variant="soft"
       >
         <div className="grid md:grid-cols-2 gap-4">
           {beyondPrice.map(([k, v]) => (
@@ -417,9 +393,10 @@ export default function TokenomicsPage() {
       </Section>
 
       <Section
-        eyebrow="05 · Which class"
+        eyebrow="04 · Which class"
         title="Pick the node for the work."
         lede="The choice is not model brand or vendor preference. It is whether the hardest work is allowed to leave the building."
+        variant="soft"
       >
         <div className="grid md:grid-cols-3 gap-4">
           {whichClass.map(([k, v]) => (
