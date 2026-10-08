@@ -76,6 +76,24 @@ const sameMonth: { node: string; tokens: string; flat: string; rows: [string, st
   },
 ];
 
+/* Published head-to-head results for GLM-5.2 against the frontier labs (sources at the foot of the page).
+   Bars are drawn relative to the best score in each row. */
+type Bench = { name: string; unit: string; note?: string; scores: { model: string; value: number; who: "glm" | "openai" | "anthropic" }[] };
+const headToHead: Bench[] = [
+  { name: "SWE-bench Pro", unit: "% resolved", note: "real-world bug fixes", scores: [{ model: "GLM-5.2", value: 62.1, who: "glm" }, { model: "GPT-5.5", value: 58.6, who: "openai" }] },
+  { name: "MCP-Atlas", unit: "% tool-use tasks", note: "agentic tool use", scores: [{ model: "GLM-5.2", value: 77.0, who: "glm" }, { model: "Claude Opus 4.8", value: 77.8, who: "anthropic" }, { model: "GPT-5.5", value: 75.3, who: "openai" }] },
+  { name: "Humanity's Last Exam", unit: "% with tools", scores: [{ model: "GLM-5.2", value: 54.7, who: "glm" }, { model: "GPT-5.5", value: 52.2, who: "openai" }] },
+  { name: "SWE-bench Verified", unit: "% resolved", scores: [{ model: "GLM-5.2", value: 78.7, who: "glm" }, { model: "GPT-5.5", value: 80.6, who: "openai" }] },
+  { name: "GPQA Diamond", unit: "% graduate science", scores: [{ model: "GLM-5.2", value: 91.2, who: "glm" }, { model: "GPT-5.5", value: 94.0, who: "openai" }] },
+  { name: "Text Arena, coding", unit: "Elo", note: "human preference", scores: [{ model: "GLM-5.2", value: 1593, who: "glm" }, { model: "Claude Fable 5", value: 1654, who: "anthropic" }] },
+  { name: "AIME 2026", unit: "% solved", scores: [{ model: "GLM-5.2", value: 99.2, who: "glm" }] },
+];
+const whoColor: Record<"glm" | "openai" | "anthropic", string> = {
+  glm: "hsl(var(--brand-accent))",
+  anthropic: "hsl(var(--brand-primary) / 0.8)",
+  openai: "hsl(var(--fc-fg-muted) / 0.6)",
+};
+
 const beyondPrice: [string, string][] = [
   [
     "No gate on what you may research or build.",
@@ -92,40 +110,6 @@ const beyondPrice: [string, string][] = [
   [
     "A flat line in the budget.",
     "The GPU line is the same in a busy month and a quiet one, so the tenant can let agents run without a meter ticking: overnight batch jobs, long agentic sessions, a storefront chat widget on a sale day. Per-token pricing taxes exactly the usage that creates value.",
-  ],
-];
-
-const costStack: [string, string][] = [
-  [
-    "GPU cost",
-    "What the provider pays for the same silicon we lease or buy. Roughly equal across serious providers; the one layer dedicated infrastructure keeps.",
-  ],
-  [
-    "Spare capacity, 1.5–2×",
-    "Multi-tenant serving holds idle headroom for traffic bursts. A single-tenant node is sized to one tenant's demand, not to a statistical worst case.",
-  ],
-  [
-    "Orchestration and observability, 1.5–2×",
-    "Global load balancing, multi-region failover, abuse detection, per-key rate limiting, metering, billing. For one tenant, a serving engine behind one endpoint replaces the layer.",
-  ],
-  [
-    "Margin, 3–5×",
-    "Hosted providers carry research roadmaps and growth targets in the price. Reasonable for them; not a cost the tenant has to pay at the tenant's volume.",
-  ],
-];
-
-const howItRuns: [string, string][] = [
-  [
-    "Capacity is concurrency, not head count.",
-    "What a node serves is peak concurrent sessions. One H100 sustains 8–12 concurrent streaming chats at FP8 with first tokens in one to two seconds; the eight-GPU node serves hundreds. The flat rate does not move when the tenant adds people; it moves when sustained concurrency outgrows the node, and the next node is the same architecture.",
-  ],
-  [
-    "Route by difficulty.",
-    "The standard class handles classification, summarization, extraction, code edits, retrieval over the tenant's own data and agent sub-tasks: most of a tenant's day. The frontier class takes the hardest reasoning and the longest agentic runs. Both answer at one endpoint; the router decides.",
-  ],
-  [
-    "The fleet is run for you.",
-    "Serving, monitoring, failover, eval pipelines, model updates and on-call are part of the managed service and amortized across tenants, which is why the per-token figures above are real rather than aspirational.",
   ],
 ];
 
@@ -152,6 +136,9 @@ const sources: { label: string; href: string }[] = [
   { label: "Gemma 4 31B hosted providers (Artificial Analysis)", href: "https://artificialanalysis.ai/models/gemma-4-31b/providers" },
   { label: "GLM-5 on B200 and H200 with multi-token prediction (SemiAnalysis InferenceX)", href: "https://inferencex.semianalysis.com/blog/b200-glm5-nvfp4-vs-h200-fp8-3-6x-perf-per-dollar" },
   { label: "GLM-5.2 serving recipe (SGLang docs)", href: "https://lmsysorg.mintlify.app/cookbook/autoregressive/GLM/GLM-5.2" },
+  { label: "GLM-5.2 benchmarks: SWE-bench Pro, MCP-Atlas, HLE, GPQA, AIME (apidog)", href: "https://apidog.com/blog/glm-5-2-benchmarks/" },
+  { label: "SWE-bench Verified and coding arena leaderboards (LM Council)", href: "https://lmcouncil.ai/benchmarks" },
+  { label: "SWE-bench Pro leaderboard (Morph)", href: "https://www.morphllm.com/swe-bench-pro" },
   { label: "US commercial electricity price (EIA)", href: "https://www.eia.gov/electricity/monthly/" },
 ];
 
@@ -286,14 +273,14 @@ export default function TokenomicsPage() {
       </Section>
 
       <Section
-        eyebrow="04 · The rate card"
-        title="Output-token prices, October 2026, ranked."
-        lede="List prices per million output tokens from the official rate cards, with FlatClaw's nodes in the same list. Input tokens are four to six times cheaper across the board; output dominates real bills because output is what gets generated for the user."
+        eyebrow="04 · Ability and price"
+        title="A frontier-tier model, priced like a small one."
+        lede="On the left, October 2026 list prices per million output tokens with FlatClaw's nodes in the same list. On the right, where GLM-5.2 actually lands against the frontier labs in published head-to-head results. The frontier class sits next to the small models on price and next to GPT-5.5 and Opus on ability."
         variant="soft"
       >
-        <div className="grid lg:grid-cols-[1.15fr_1fr] gap-8 items-start">
+        <div className="grid lg:grid-cols-2 gap-8 items-start">
           <div className="bg-[hsl(var(--fc-bg-surface))] rounded-xl ring-1 ring-[hsl(var(--fc-bg-tertiary))] p-6 shadow-sm">
-            <h3 className="font-semibold text-base mb-1 text-[hsl(var(--fc-fg-primary))]">Per 1M output tokens</h3>
+            <h3 className="font-semibold text-base mb-1 text-[hsl(var(--fc-fg-primary))]">Price, per 1M output tokens</h3>
             <p className="mb-4 text-xs text-[hsl(var(--fc-fg-muted))] leading-relaxed">Rows marked frontier tier are models in GLM-5.2's class; the rest are smaller or mid-tier models.</p>
             <table className="w-full text-sm">
               <tbody className="divide-y divide-[hsl(var(--fc-bg-tertiary))]">
@@ -301,7 +288,7 @@ export default function TokenomicsPage() {
                   <tr key={r.name} className={r.ours ? "bg-[hsl(var(--brand-accent))/0.08]" : ""}>
                     <td className={"py-2 pr-3 " + (r.ours ? "pl-2 rounded-l-md" : "")}>
                       <span className={r.ours ? "font-semibold text-[hsl(var(--brand-primary))]" : "text-[hsl(var(--fc-fg-secondary))]"}>{r.name}</span>
-                      {r.frontier ? <span className="ml-2 align-middle rounded px-1.5 py-0.5 text-[9.5px] font-semibold uppercase tracking-wide bg-[hsl(var(--fc-bg-tertiary))/0.7] text-[hsl(var(--fc-fg-secondary))]">frontier tier</span> : null}
+                      {r.frontier ? <span className={"ml-2 align-middle rounded px-1.5 py-0.5 text-[9.5px] font-semibold uppercase tracking-wide " + (r.ours ? "bg-[hsl(var(--brand-accent))] text-[hsl(var(--brand-accent-fg))]" : "bg-[hsl(var(--fc-bg-tertiary))/0.7] text-[hsl(var(--fc-fg-secondary))]")}>frontier tier</span> : null}
                       {r.note ? <span className="block text-[11px] text-[hsl(var(--fc-fg-muted))]">{r.note}</span> : null}
                     </td>
                     <td className={"py-2 text-right font-mono whitespace-nowrap " + (r.ours ? "pr-2 rounded-r-md font-bold text-[hsl(var(--brand-primary))]" : "text-[hsl(var(--fc-fg-primary))]")}>{r.price}</td>
@@ -311,8 +298,45 @@ export default function TokenomicsPage() {
             </table>
           </div>
 
-          <div className="space-y-4">
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-[hsl(var(--fc-fg-muted))]">The same month, billed by the token</div>
+          <div className="bg-[hsl(var(--fc-bg-surface))] rounded-xl ring-1 ring-[hsl(var(--fc-bg-tertiary))] p-6 shadow-sm">
+            <h3 className="font-semibold text-base mb-1 text-[hsl(var(--fc-fg-primary))]">Ability: GLM-5.2 against the frontier labs</h3>
+            <p className="mb-4 text-xs text-[hsl(var(--fc-fg-muted))] leading-relaxed">Published head-to-head results. GLM-5.2 leads GPT-5.5 on real-world bug fixing and Humanity's Last Exam, ties Opus-class models on agentic tool use, and sits within a few points everywhere else. This is the model the frontier class runs, at $0.54 to $1.04 per million tokens.</p>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 mb-4 text-[11px] text-[hsl(var(--fc-fg-secondary))]">
+              <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm" style={{ background: whoColor.glm }} />GLM-5.2, FlatClaw frontier class</span>
+              <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm" style={{ background: whoColor.anthropic }} />Anthropic</span>
+              <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm" style={{ background: whoColor.openai }} />OpenAI</span>
+            </div>
+            <div className="space-y-4">
+              {headToHead.map((b) => {
+                const max = Math.max(...b.scores.map((x) => x.value));
+                return (
+                  <div key={b.name}>
+                    <div className="flex items-baseline justify-between gap-3">
+                      <div className="text-sm font-semibold text-[hsl(var(--fc-fg-primary))]">{b.name}</div>
+                      <div className="text-[11px] text-[hsl(var(--fc-fg-muted))]">{b.unit}{b.note ? ` · ${b.note}` : ""}</div>
+                    </div>
+                    <div className="mt-1.5 space-y-1">
+                      {b.scores.map((x) => (
+                        <div key={x.model} className="grid grid-cols-[7.5rem_1fr_3.5rem] items-center gap-2">
+                          <div className={"text-[11px] truncate " + (x.who === "glm" ? "font-semibold text-[hsl(var(--brand-primary))]" : "text-[hsl(var(--fc-fg-secondary))]")}>{x.model}</div>
+                          <div className="h-2.5 rounded-full bg-[hsl(var(--fc-bg-tertiary))/0.5] overflow-hidden">
+                            <div className="h-full rounded-full" style={{ width: `${Math.max(4, (x.value / max) * 100)}%`, background: whoColor[x.who] }} />
+                          </div>
+                          <div className={"text-right font-mono text-[11px] " + (x.who === "glm" ? "font-bold text-[hsl(var(--brand-primary))]" : "text-[hsl(var(--fc-fg-primary))]")}>{x.value}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="mt-4 text-[11px] text-[hsl(var(--fc-fg-muted))] leading-relaxed">Bars are drawn relative to the best score in each row. Figures as published by the labs and the LM Council and Morph leaderboards; see sources.</p>
+          </div>
+        </div>
+
+        <div className="mt-8">
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-[hsl(var(--fc-fg-muted))] mb-3">The same month, billed by the token</div>
+          <div className="grid md:grid-cols-3 gap-4">
             {sameMonth.map((m) => (
               <div key={m.node} className="bg-[hsl(var(--fc-bg-surface))] rounded-xl ring-1 ring-[hsl(var(--fc-bg-tertiary))] p-5 shadow-sm">
                 <div className="flex items-baseline justify-between gap-3">
@@ -342,42 +366,7 @@ export default function TokenomicsPage() {
       </Section>
 
       <Section
-        eyebrow="05 · The cost stack"
-        title="Four layers, four multipliers."
-        lede="A hosted price tag has to cover four layers. Walk through each and the gap stops looking like magic."
-      >
-        <div className="grid md:grid-cols-2 gap-4">
-          {costStack.map(([k, v]) => (
-            <div key={k} className="bg-[hsl(var(--fc-bg-surface))] rounded-lg ring-1 ring-[hsl(var(--fc-bg-tertiary))] p-5">
-              <div className="font-semibold text-sm text-[hsl(var(--fc-fg-primary))]">{k}</div>
-              <p className="mt-1.5 text-sm text-[hsl(var(--fc-fg-secondary))] leading-relaxed">{v}</p>
-            </div>
-          ))}
-        </div>
-        <p className="mt-6 text-sm text-[hsl(var(--fc-fg-muted))] leading-relaxed max-w-3xl">
-          Compound the multipliers and the gap falls out. A dedicated node keeps the first layer and sheds the other
-          three; at a tenant's volume, the other three had become a tax.
-        </p>
-      </Section>
-
-      <Section
-        eyebrow="06 · How it runs"
-        title="Capacity, routing and operations."
-        lede="Three things worth knowing about how the flat rate behaves in practice."
-        variant="soft"
-      >
-        <div className="grid md:grid-cols-3 gap-4">
-          {howItRuns.map(([k, v]) => (
-            <div key={k} className="bg-[hsl(var(--fc-bg-surface))] rounded-lg ring-1 ring-[hsl(var(--fc-bg-tertiary))] p-5">
-              <div className="font-semibold text-sm text-[hsl(var(--fc-fg-primary))]">{k}</div>
-              <p className="mt-1.5 text-sm text-[hsl(var(--fc-fg-secondary))] leading-relaxed">{v}</p>
-            </div>
-          ))}
-        </div>
-      </Section>
-
-      <Section
-        eyebrow="07 · Which class"
+        eyebrow="05 · Which class"
         title="Pick the node for the work."
         lede="The choice is not model brand or vendor preference. It is whether the hardest work is allowed to leave the building."
       >
