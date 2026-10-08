@@ -34,12 +34,9 @@ const classRows: { k: string; standard: string; frontier: string }[] = [
   { k: "Model", standard: "Gemma 4 31B at FP8, 256K context", frontier: "GLM-5.2, 744B mixture of experts, 1M context" },
   { k: "Cloud node", standard: "1 × H100 80 GB", frontier: "8 × H200 at FP8, or 8 × B200 at NVFP4 (fast)" },
   { k: "Flat rate, held warm", standard: "about $2,200 a month", frontier: "about $18,700 (H200) or $34,700 (B200) a month" },
-  { k: "Local box, every part on Newegg", standard: "about $20,000 once", frontier: "about $182,000 once" },
-  { k: "Local box per month, 36 months plus power", standard: "about $640", frontier: "about $5,400" },
   { k: "Aggregate output, measured", standard: "about 1,260 tokens/s at concurrency 128", frontier: "about 6,800 tokens/s (H200) or 24,000 tokens/s (B200)" },
   { k: "Output tokens per month", standard: "about 3.3 billion", frontier: "about 18 billion (H200) or 64 billion (B200)" },
-  { k: "Per 1M output tokens, cloud", standard: "about $0.66", frontier: "about $1.04 (H200) or $0.54 (B200)" },
-  { k: "Per 1M output tokens, local box", standard: "about $0.19", frontier: "about $0.80" },
+  { k: "Per 1M output tokens", standard: "about $0.66", frontier: "about $1.04 (H200) or $0.54 (B200)" },
 ];
 
 /* The same month of output, billed by the token at hosted list rates. */
@@ -139,7 +136,6 @@ const sources: { label: string; href: string }[] = [
   { label: "GLM-5.2 benchmarks: SWE-bench Pro, MCP-Atlas, HLE, GPQA, AIME (apidog)", href: "https://apidog.com/blog/glm-5-2-benchmarks/" },
   { label: "SWE-bench Verified and coding arena leaderboards (LM Council)", href: "https://lmcouncil.ai/benchmarks" },
   { label: "SWE-bench Pro leaderboard (Morph)", href: "https://www.morphllm.com/swe-bench-pro" },
-  { label: "US commercial electricity price (EIA)", href: "https://www.eia.gov/electricity/monthly/" },
 ];
 
 function Th({ children }: { children: React.ReactNode }) {
@@ -192,7 +188,7 @@ export default function TokenomicsPage() {
       <Section
         eyebrow="02 · The two classes"
         title="What a token costs on each node."
-        lede="All-in figures: the GPU node, the control plane and the weights volume, at indicative list prices on our reference lane, the same classes on Azure, AWS and Google Cloud landing in the same band on reserved terms. Local boxes are the Newegg builds, amortized over 36 months plus power at the US commercial average of about 14 cents per kWh."
+        lede="All-in figures: the GPU node, the control plane and the weights volume, at indicative list prices on our reference lane, the same classes on Azure, AWS and Google Cloud landing in the same band on reserved terms."
         variant="soft"
       >
         <div className="bg-[hsl(var(--fc-bg-surface))] rounded-xl ring-1 ring-[hsl(var(--fc-bg-tertiary))] p-5 md:p-6 shadow-sm overflow-x-auto">
@@ -218,8 +214,7 @@ export default function TokenomicsPage() {
             Throughput references: Gemma 4 31B at FP8 on one H100 with SGLang, about 1,260 output tokens per second
             aggregate at concurrency 128. GLM-5 with multi-token prediction as measured by SemiAnalysis InferenceX,
             about 850 output tokens per second per H200 at FP8 and about 3,000 per B200 at NVFP4, eight of each per
-            node. The eight-card local server runs the same checkpoint on GDDR7 at roughly 40 % of the H200 node's
-            throughput. It is the batched aggregate that pays the bill, which is what naive comparisons miss.
+            node. It is the batched aggregate that pays the bill, which is what naive comparisons miss.
           </p>
         </div>
 
@@ -227,19 +222,18 @@ export default function TokenomicsPage() {
           <div className="bg-[hsl(var(--brand-primary))/0.07] rounded-xl p-6 ring-1 ring-[hsl(var(--brand-primary))/0.25]">
             <h3 className="font-semibold text-base mb-2 text-[hsl(var(--brand-primary))]">Standard class, in one line</h3>
             <p className="text-sm leading-relaxed text-[hsl(var(--fc-fg-secondary))]">
-              About $0.66 per million output tokens in the cloud, about $0.19 on the box you own. Against Sonnet 5.5
-              at $10 that is a fifteenth of the price for the same tier of work; against Opus 5.5, GPT-5.5 and Fable
-              5.1 it is 30–76× cheaper. It undercuts renting Gemma 4 31B from the cheapest host, and the node is
-              private.
+              About $0.66 per million output tokens. Against Sonnet 5.5 at $10 that is a fifteenth of the price for
+              the same tier of work; against Opus 5.5, GPT-5.5 and Fable 5.1 it is 30–76× cheaper. It undercuts
+              renting Gemma 4 31B from the cheapest host, and the node is private.
             </p>
           </div>
           <div className="bg-[hsl(var(--brand-primary))/0.07] rounded-xl p-6 ring-1 ring-[hsl(var(--brand-primary))/0.25]">
             <h3 className="font-semibold text-base mb-2 text-[hsl(var(--brand-primary))]">Frontier class, in one line</h3>
             <p className="text-sm leading-relaxed text-[hsl(var(--fc-fg-secondary))]">
-              About $1.04 per million output tokens on the H200 node, $0.54 on the B200 node, about $0.80 on the
-              eight-card server you own. Against Opus 5.5 at $20, GPT-5.5 at $30 and Fable 5.1 at $50 that is 19–93×
-              cheaper for a model in the same tier, running inside the tenancy, and a quarter to an eighth of what
-              renting the same weights from Z.ai costs. The fast node is both the cheaper token and the faster stream.
+              About $1.04 per million output tokens on the H200 node, $0.54 on the B200 node. Against Opus 5.5 at
+              $20, GPT-5.5 at $30 and Fable 5.1 at $50 that is 19–93× cheaper for a model in the same tier, running
+              inside the tenancy, and a quarter to an eighth of what renting the same weights from Z.ai costs. The
+              fast node is both the cheaper token and the faster stream.
             </p>
           </div>
         </div>
