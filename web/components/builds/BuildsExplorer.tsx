@@ -439,11 +439,11 @@ function PartsTable({ variant, live }: { variant: Variant; live: LivePrices }) {
           </colgroup>
           <thead>
             <tr className="text-left text-[10px] font-semibold uppercase tracking-wider text-[hsl(var(--fc-fg-muted))]">
-              <th className="py-2 pr-3">Part</th>
+              <th className="py-2 pl-3 pr-3">Part</th>
               <th className="py-2 pr-3">Pick · why it's here</th>
               <th className="py-2 pr-3 text-right">Street</th>
               <th className="py-2 pr-3">Trend</th>
-              <th className="py-2">Buy</th>
+              <th className="py-2 pr-3">Buy</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[hsl(var(--fc-bg-tertiary))]">
@@ -453,7 +453,7 @@ function PartsTable({ variant, live }: { variant: Variant; live: LivePrices }) {
               const delta = source === "live" ? priceDelta(hist, unit) : null;
               return (
                 <tr key={p.id} className={p.optional ? "opacity-80" : p.tag === "chosen" ? "bg-[hsl(var(--brand-accent))/0.05]" : ""}>
-                  <td className="py-2.5 pr-3 align-top">
+                  <td className="py-2.5 pl-3 pr-3 align-top">
                     <div className="text-[10.5px] font-semibold uppercase tracking-wide text-[hsl(var(--fc-fg-muted))] leading-tight">{p.role}</div>
                     {p.phase ? <div className="text-[10px] text-[hsl(var(--fc-fg-muted))]">phase {p.phase}</div> : null}
                     {p.optional ? <div className="mt-0.5 inline-block rounded px-1.5 py-0.5 text-[9.5px] font-semibold uppercase tracking-wide bg-[hsl(var(--fc-bg-tertiary))/0.6] text-[hsl(var(--fc-fg-secondary))]">not in total</div> : null}
@@ -491,7 +491,7 @@ function PartsTable({ variant, live }: { variant: Variant; live: LivePrices }) {
                   <td className="py-2.5 pr-3 align-top">
                     <Sparkline points={hist} width={72} />
                   </td>
-                  <td className="py-2.5 align-top whitespace-nowrap">
+                  <td className="py-2.5 pr-3 align-top whitespace-nowrap">
                     <a href={entry?.url ?? p.searchUrl ?? (p.newegg ? `https://www.newegg.com/p/${p.newegg}` : "#")} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-[hsl(var(--brand-primary))] hover:text-[hsl(var(--brand-accent))]">
                       {p.newegg ? "Newegg" : p.searchUrl ? "search" : "—"} <ExternalLink className="w-3 h-3" />
                     </a>
@@ -505,15 +505,15 @@ function PartsTable({ variant, live }: { variant: Variant; live: LivePrices }) {
               const cumulative = variant.phases!.filter((x) => x.n <= ph.n).reduce((s, x) => s + (totals.byPhase[x.n] ?? 0), 0);
               return (
                 <tr key={ph.n} className="bg-[hsl(var(--fc-bg-tertiary))/0.35]">
-                  <td className="py-2 pr-3 text-[10.5px] font-semibold uppercase tracking-wide text-[hsl(var(--fc-fg-muted))]">Phase {ph.n}</td>
+                  <td className="py-2 pl-3 pr-3 text-[10.5px] font-semibold uppercase tracking-wide text-[hsl(var(--fc-fg-muted))]">Phase {ph.n}</td>
                   <td className="py-2 pr-3 text-xs text-[hsl(var(--fc-fg-secondary))]"><span className="font-semibold text-[hsl(var(--fc-fg-primary))]">{ph.title}</span> — {ph.note}</td>
                   <td className="py-2 pr-3 text-right font-bold text-[hsl(var(--fc-fg-primary))] whitespace-nowrap">{usd(cumulative)}</td>
                   <td colSpan={2} />
                 </tr>
               );
             })}
-            <tr className="bg-[hsl(var(--brand-primary))] text-white">
-              <td className="py-2.5 pr-3 text-[10.5px] font-semibold uppercase tracking-wide text-white/70">All-in</td>
+            <tr className="bg-[hsl(var(--brand-primary))] text-white [&>td:first-child]:rounded-l-md [&>td:last-child]:rounded-r-md">
+              <td className="py-2.5 pl-3 pr-3 text-[10.5px] font-semibold uppercase tracking-wide text-white/70">All-in</td>
               <td className="py-2.5 pr-3 text-xs text-white/80">
                 {totals.core} parts · {totals.liveCount} priced live from Newegg{totals.priced - totals.liveCount > 0 ? `, ${totals.priced - totals.liveCount} at reference prices` : ""}
                 {totals.priced < totals.core ? `, ${totals.core - totals.priced} unpriced` : ""}
