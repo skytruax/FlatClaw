@@ -9,16 +9,16 @@ import type { BuildsData, Build, Part, Variant, Recipe } from "./types";
 type TabKey = "recipes" | "references";
 
 export function BuildsExplorer({ data }: { data: BuildsData }) {
-  const [tab, setTab] = useState<TabKey>("recipes");
+  const [tab, setTab] = useState<TabKey>("references");
   useEffect(() => {
-    const fromHash = () => setTab(window.location.hash === "#references" ? "references" : "recipes");
+    const fromHash = () => setTab(window.location.hash === "#recipes" ? "recipes" : "references");
     fromHash();
     window.addEventListener("hashchange", fromHash);
     return () => window.removeEventListener("hashchange", fromHash);
   }, []);
   const go = (t: TabKey) => {
     setTab(t);
-    history.replaceState(null, "", t === "references" ? "#references" : "#recipes");
+    history.replaceState(null, "", t === "recipes" ? "#recipes" : "#references");
   };
   const live = useLivePrices();
 
@@ -26,8 +26,8 @@ export function BuildsExplorer({ data }: { data: BuildsData }) {
     <div>
       <div className="sticky top-16 z-20 -mx-5 px-5 py-3 bg-[hsl(var(--fc-bg-primary))/0.92] backdrop-blur border-b border-[hsl(var(--fc-bg-tertiary))]">
         <div className="mx-auto max-w-6xl flex flex-wrap items-center gap-2">
+          <TabButton active={tab === "references"} onClick={() => go("references")} icon={<Cpu className="w-4 h-4" />} label="Local and cloud references" sub="parts, live prices, cloud nodes, side by side" />
           <TabButton active={tab === "recipes"} onClick={() => go("recipes")} icon={<Server className="w-4 h-4" />} label="Build recipes" sub="what we run and what we learned" />
-          <TabButton active={tab === "references"} onClick={() => go("references")} icon={<Cpu className="w-4 h-4" />} label="Local and cloud references" sub="parts, live prices, cloud plans, side by side" />
           <div className="ml-auto">
             <PriceStatus live={live} />
           </div>
@@ -247,14 +247,15 @@ function BuildSheet({ build, live }: { build: Build; live: LivePrices }) {
         {/* Cloud */}
         <div className="bg-[hsl(var(--fc-bg-surface))] rounded-xl ring-1 ring-[hsl(var(--fc-bg-tertiary))] p-5 md:p-6">
           <h3 className="text-lg font-bold text-[hsl(var(--fc-fg-primary))]">Cloud</h3>
+          {build.cloud.lead ? <p className="mt-1 text-sm leading-relaxed text-[hsl(var(--fc-fg-secondary))]">{build.cloud.lead}</p> : null}
           <div className="mt-3 space-y-3">
             {build.cloud.options.map((o) => (
-              <div key={o.plan} className={"rounded-lg p-3.5 ring-1 " + (o.recommended ? "ring-[hsl(var(--brand-accent))] bg-[hsl(var(--brand-accent))/0.06]" : "ring-[hsl(var(--fc-bg-tertiary))]")}>
+              <div key={o.name} className={"rounded-lg p-3.5 ring-1 " + (o.recommended ? "ring-[hsl(var(--brand-accent))] bg-[hsl(var(--brand-accent))/0.06]" : "ring-[hsl(var(--fc-bg-tertiary))]")}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="text-[11px] font-semibold uppercase tracking-wide text-[hsl(var(--fc-fg-muted))]">{o.provider}{o.recommended ? " · recommended" : ""}</div>
-                    <div className="font-mono text-sm font-semibold text-[hsl(var(--fc-fg-primary))] break-words">{o.plan}</div>
-                    <div className="text-xs text-[hsl(var(--fc-fg-secondary))]">{o.gpus}{o.vram !== "—" ? ` · ${o.vram}` : ""}</div>
+                    {o.recommended ? <div className="text-[11px] font-semibold uppercase tracking-wide text-[hsl(var(--brand-primary))]">Recommended</div> : null}
+                    <div className="text-sm font-bold text-[hsl(var(--fc-fg-primary))]">{o.name}</div>
+                    <div className="text-xs text-[hsl(var(--fc-fg-secondary))]">{o.spec}</div>
                   </div>
                   <div className="text-right shrink-0">
                     <div className="text-lg font-extrabold text-[hsl(var(--fc-fg-primary))] leading-none">{usd(o.monthlyWarm)}<span className="text-xs font-semibold text-[hsl(var(--fc-fg-muted))]">/mo</span></div>
@@ -263,6 +264,16 @@ function BuildSheet({ build, live }: { build: Build; live: LivePrices }) {
                 </div>
                 {o.spotHourly ? (
                   <div className="mt-1.5 text-[11px] text-[hsl(var(--fc-fg-muted))]">Spot: ${o.spotHourly}/hr, about {usd(o.monthlySpot ?? 0)}/mo when the capacity is there.</div>
+                ) : null}
+                {o.skus?.length ? (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {o.skus.map((k) => (
+                      <span key={k.cloud} className="inline-flex items-baseline gap-1 rounded bg-[hsl(var(--fc-bg-tertiary))/0.55] px-1.5 py-0.5 text-[10.5px]">
+                        <span className="font-semibold text-[hsl(var(--fc-fg-primary))]">{k.cloud}</span>
+                        <span className="font-mono text-[hsl(var(--fc-fg-muted))]">{k.sku}</span>
+                      </span>
+                    ))}
+                  </div>
                 ) : null}
                 <ul className="mt-2 space-y-1 text-xs text-[hsl(var(--fc-fg-secondary))]">
                   {o.notes.map((n) => (
@@ -276,16 +287,7 @@ function BuildSheet({ build, live }: { build: Build; live: LivePrices }) {
             <div className="text-[10px] font-semibold uppercase tracking-widest text-[hsl(var(--brand-accent))]">All-in</div>
             <div className="mt-1 text-sm leading-relaxed">{build.cloud.allInNote}</div>
           </div>
-          <div className="mt-4">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-[hsl(var(--fc-fg-muted))]">The same shape elsewhere</div>
-            <ul className="mt-1.5 space-y-1.5 text-xs text-[hsl(var(--fc-fg-secondary))]">
-              {build.cloud.elsewhere.map((e) => (
-                <li key={e.cloud + e.sku}>
-                  <span className="font-semibold text-[hsl(var(--fc-fg-primary))]">{e.cloud}</span> · <span className="font-mono">{e.sku}</span> — {e.note}
-                </li>
-              ))}
-            </ul>
-          </div>
+          <p className="mt-3 text-[11px] leading-relaxed text-[hsl(var(--fc-fg-muted))]">{build.cloud.priceBasis}</p>
           <ul className="mt-4 space-y-1.5 text-sm text-[hsl(var(--fc-fg-secondary))]">
             {build.cloud.notes.map((n) => (
               <li key={n} className="flex gap-2">

@@ -22,16 +22,17 @@ export interface Variant {
   software?: { label: string; value: string }[];
 }
 export interface CloudOption {
-  provider: string;
-  plan: string;
-  gpus: string;
-  vram: string;
+  /** cloud-neutral service name, e.g. "GPU node" or "Control plane" */
+  name: string;
+  spec: string;
   hourly: number;
   monthlyWarm: number;
   spotHourly?: number;
   monthlySpot?: number;
   notes: string[];
   recommended?: boolean;
+  /** the same class on each cloud, the reference lane among them */
+  skus?: { cloud: string; sku: string }[];
 }
 export interface Build {
   id: string;
@@ -42,7 +43,7 @@ export interface Build {
   glance: { v: string; l: string }[];
   quantLadder?: { tier: string; footprint: string; fits: string }[];
   local: { variants: Variant[] };
-  cloud: { options: CloudOption[]; elsewhere: { cloud: string; sku: string; note: string }[]; notes: string[]; allInNote: string };
+  cloud: { lead?: string; priceBasis: string; options: CloudOption[]; notes: string[]; allInNote: string };
   sheetPdf?: string;
 }
 export interface Recipe {

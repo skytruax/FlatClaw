@@ -126,65 +126,98 @@
         ]
       },
       "cloud": {
+        "lead": "The same checkpoint in a tenancy on the cloud the customer already runs: Azure, AWS, Google Cloud, or our reference lane.",
+        "priceBasis": "Indicative list prices held warm 24/7 on our reference lane; the same classes on Azure, AWS and Google Cloud land in the same band on reserved terms, and bare metal amortizes lower.",
         "options": [
           {
-            "provider": "Northflank",
-            "plan": "nf-gpu-h100-80-1g",
-            "gpus": "1 × H100 80 GB",
-            "vram": "80 GB",
+            "name": "GPU node",
+            "spec": "1 × H100 80 GB · 26 vCPU · 234 GB RAM on the reference plan",
             "hourly": 2.74,
             "monthlyWarm": 2000,
-            "notes": [
-              "26 vCPU and 234 GB RAM bundled with the GPU; ~$2,000/month held warm 24/7 including the bundled compute.",
-              "Cold boot ~10 minutes: image pull, weights fetched from the weights-server pod over the internal network, SGLang load."
+            "recommended": true,
+            "skus": [
+              {
+                "cloud": "Azure",
+                "sku": "NC H100 v5"
+              },
+              {
+                "cloud": "AWS",
+                "sku": "p5"
+              },
+              {
+                "cloud": "Google Cloud",
+                "sku": "A3"
+              },
+              {
+                "cloud": "Northflank",
+                "sku": "nf-gpu-h100-80-1g"
+              }
             ],
-            "recommended": true
+            "notes": [
+              "About $2,000 a month held warm 24/7 including the bundled CPU and RAM.",
+              "Cold boot about 10 minutes: image pull, weights fetched from the weights volume over the tenancy's own network, SGLang load."
+            ]
           },
           {
-            "provider": "Northflank",
-            "plan": "nf-compute-400-16 (control plane)",
-            "gpus": "none",
-            "vram": "—",
+            "name": "Control plane",
+            "spec": "4 vCPU · 16 GB · the Portal plus one OpenClaw gateway per user",
             "hourly": 0.2,
             "monthlyWarm": 144,
+            "skus": [
+              {
+                "cloud": "Azure",
+                "sku": "D4s v5"
+              },
+              {
+                "cloud": "AWS",
+                "sku": "m6i.xlarge"
+              },
+              {
+                "cloud": "Google Cloud",
+                "sku": "n2-standard-4"
+              },
+              {
+                "cloud": "Northflank",
+                "sku": "nf-compute-400-16"
+              }
+            ],
             "notes": [
-              "Portal plus one OpenClaw gateway per user: 4 vCPU / 16 GB carries two or three users at 0.6–1.2 GB each with room to spare. Every tenant has this service next to its GPU."
+              "Two or three users at 0.6–1.2 GB each with room to spare. Every tenant has this service next to its GPU, on any cloud's small VM or container plan."
             ]
           },
           {
-            "provider": "Northflank",
-            "plan": "nf-compute-50 + 200 GB volume",
-            "gpus": "none",
-            "vram": "—",
-            "hourly": 0.02,
+            "name": "Weights volume",
+            "spec": "200 GB of storage plus a small CPU pod that serves it over HTTP",
+            "hourly": 0.04,
             "monthlyWarm": 30,
+            "skus": [
+              {
+                "cloud": "Azure",
+                "sku": "Blob + blobfuse2"
+              },
+              {
+                "cloud": "AWS",
+                "sku": "S3"
+              },
+              {
+                "cloud": "Google Cloud",
+                "sku": "GCS"
+              },
+              {
+                "cloud": "Northflank",
+                "sku": "volume + CPU pod"
+              }
+            ],
             "notes": [
-              "weights-server: a CPU pod serving the tenancy's weights volume over HTTP, because GPU plans cannot mount the volume directly."
+              "Staged once; the GPU node fetches the weights at boot because GPU plans rarely mount a volume directly."
             ]
-          }
-        ],
-        "elsewhere": [
-          {
-            "cloud": "Azure",
-            "sku": "NC H100 v5",
-            "note": "AKS node pool or a single GPU VM in the customer's subscription; same containers, same weights-volume pattern (Blob + blobfuse)."
-          },
-          {
-            "cloud": "AWS",
-            "sku": "p5 / g6e class",
-            "note": "EKS or a single GPU instance in an account the customer owns; IAM + KMS, private VPC egress only."
-          },
-          {
-            "cloud": "Google Cloud",
-            "sku": "A3 (H100)",
-            "note": "GKE with an A3 node or a single GPU VM; Workload Identity, VPC Service Controls."
           }
         ],
         "notes": [
           "Flat per-tenant rate, not per-token metering: the GPU line dominates and everything else is under $200.",
           "Capacity is peak concurrent sessions, not head count: one H100 sustains 8–12 concurrent streaming chats at FP8 with first tokens in 1–2 s."
         ],
-        "allInNote": "About $2,200 a month per tenant held warm: the GPU plan, the control plane and the weights-server. List prices; committed-use terms on any cloud cut the GPU line."
+        "allInNote": "About $2,200 a month per tenant held warm: the GPU node, the control plane and the weights volume, on whichever cloud the customer already runs."
       },
       "sheetPdf": "/builds/FlatClaw-Gemma-4-31B-Local-vs-Cloud.pdf"
     },
@@ -416,74 +449,128 @@
         ]
       },
       "cloud": {
+        "lead": "The same checkpoint in a tenancy on the cloud the customer already runs. The fast node and the economy node are both eight-GPU machines; the control plane does not change.",
+        "priceBasis": "Indicative list prices held warm 24/7 on our reference lane; the same classes on Azure, AWS and Google Cloud land in the same band on reserved terms, and bare metal amortizes lower.",
         "options": [
           {
-            "provider": "Northflank",
-            "plan": "nf-gpu-b200-180-8g",
-            "gpus": "8 × B200 180 GB",
-            "vram": "1,536 GB",
+            "name": "GPU node, fast",
+            "spec": "8 × B200 180 GB · 1,536 GB",
             "hourly": 47,
             "monthlyWarm": 34300,
             "recommended": true,
+            "skus": [
+              {
+                "cloud": "Azure",
+                "sku": "ND GB200 v6"
+              },
+              {
+                "cloud": "AWS",
+                "sku": "p6"
+              },
+              {
+                "cloud": "Google Cloud",
+                "sku": "A4"
+              },
+              {
+                "cloud": "Northflank",
+                "sku": "nf-gpu-b200-180-8g"
+              }
+            ],
             "notes": [
-              "The fast node: HBM3e at about 8 TB/s per card, roughly twice the H200, so decode per stream is about twice as fast; FP8 weights and an FP8 KV cache with room for the full 1M-token window.",
-              "SGLang --tp 8 --enable-moe-ep; the weights-server + customEntrypoint pattern from the 31B box with a ≥1.5 TB volume and a 20–40 minute cold boot (744 GB fetched)."
+              "HBM3e at about 8 TB/s per card, roughly twice the H200, so decode per stream is about twice as fast; FP8 weights and an FP8 KV cache with room for the full 1M-token window.",
+              "SGLang --tp 8 --enable-moe-ep; a 1.5 TB or larger weights volume and a 20–40 minute cold boot (744 GB fetched)."
             ]
           },
           {
-            "provider": "Northflank",
-            "plan": "nf-gpu-h200-141-8g",
-            "gpus": "8 × H200 141 GB",
-            "vram": "1,128 GB",
+            "name": "GPU node, economy",
+            "spec": "8 × H200 141 GB · 1,128 GB",
             "hourly": 25,
             "monthlyWarm": 18300,
             "spotHourly": 14.6,
             "monthlySpot": 10700,
+            "skus": [
+              {
+                "cloud": "Azure",
+                "sku": "ND H200 v5"
+              },
+              {
+                "cloud": "AWS",
+                "sku": "p5e"
+              },
+              {
+                "cloud": "Google Cloud",
+                "sku": "A3 Ultra"
+              },
+              {
+                "cloud": "Northflank",
+                "sku": "nf-gpu-h200-141-8g"
+              }
+            ],
             "notes": [
-              "The economy node: the same checkpoint and launch line at about half the decode speed; context up to 256K with KV room."
+              "The same checkpoint and launch line at about half the decode speed; context up to 256K with KV room."
             ]
           },
           {
-            "provider": "Northflank",
-            "plan": "nf-compute-400-16 (control plane)",
-            "gpus": "none",
-            "vram": "—",
+            "name": "Control plane",
+            "spec": "4 vCPU · 16 GB · the Portal plus one OpenClaw gateway per user",
             "hourly": 0.2,
             "monthlyWarm": 144,
+            "skus": [
+              {
+                "cloud": "Azure",
+                "sku": "D4s v5"
+              },
+              {
+                "cloud": "AWS",
+                "sku": "m6i.xlarge"
+              },
+              {
+                "cloud": "Google Cloud",
+                "sku": "n2-standard-4"
+              },
+              {
+                "cloud": "Northflank",
+                "sku": "nf-compute-400-16"
+              }
+            ],
             "notes": [
-              "Portal plus one OpenClaw gateway per user, the same service as the standard tenant. The model class does not change the control plane."
+              "The same service as the standard tenant. The model class does not change the control plane."
             ]
           },
           {
-            "provider": "Northflank",
-            "plan": "weights-server (CPU) + ≥1.5 TB volume",
-            "gpus": "none",
-            "vram": "—",
+            "name": "Weights volume",
+            "spec": "1.5 TB or larger, plus a small CPU pod that serves it",
             "hourly": 0.08,
             "monthlyWarm": 60,
+            "skus": [
+              {
+                "cloud": "Azure",
+                "sku": "Blob + blobfuse2"
+              },
+              {
+                "cloud": "AWS",
+                "sku": "S3"
+              },
+              {
+                "cloud": "Google Cloud",
+                "sku": "GCS"
+              },
+              {
+                "cloud": "Northflank",
+                "sku": "volume + CPU pod"
+              }
+            ],
             "notes": [
-              "nginx autoindex over the checkpoint directory; the GPU node fetches it at boot."
+              "The GPU node fetches the checkpoint at boot; an Ampere node (A100) has no FP8 and would need a quantized copy."
             ]
-          }
-        ],
-        "elsewhere": [
-          {
-            "cloud": "Azure",
-            "sku": "ND GB200 v6 (8 × B200) for speed and the 1M window · ND H200 v5 (8 × H200)",
-            "note": "One 8-GPU deployment on AKS (NVIDIA device plugin, --tp 8) behind an internal ingress, or an Azure ML online endpoint; weights in Blob, fetched on boot; no public egress."
-          },
-          {
-            "cloud": "Azure, cheaper",
-            "sku": "NC A100 v4 × N",
-            "note": "Ampere has no FP8: a quantized GLM-5.2 only, the same caveat as the two-card workstation."
           }
         ],
         "notes": [
-          "Cost reality: this is a different tier. The B200 node is about seventeen times the 31B box held warm, so the frontier class is scheduled for live load and scaled to zero between sessions.",
-          "Per GPU-hour on Northflank: H100 $2.74 · RTX PRO 6000 96 GB $3.00 · H200 ~$3.14 · B200 ~$5.87.",
-          "Routing is unchanged: OpenClaw points at one endpoint; a LiteLLM or vLLM router in the same tenancy adds failover to the H200 node, a quantized fallback or a second region."
+          "Cost reality: this is a different tier. The B200 node is about seventeen times the 31B tenant held warm, so the frontier class is scheduled for live load and scaled to zero between sessions.",
+          "Per GPU-hour at reference list prices: H100 $2.74 · RTX PRO 6000 96 GB $3.00 · H200 ~$3.14 · B200 ~$5.87.",
+          "Routing is unchanged: OpenClaw points at one endpoint; a LiteLLM or vLLM router in the same tenancy adds failover to the economy node, a quantized fallback or a second region."
         ],
-        "allInNote": "About $34,500 a month held warm on the B200 node and about $18,500 on the H200 node, control plane and weights-server included; spot on H200 about $10,700. Schedule the flagship for live load and keep a smaller class as the floor."
+        "allInNote": "About $34,500 a month held warm on the B200 node and about $18,500 on the H200 node, control plane and weights volume included; spot on H200 about $10,700. Schedule the flagship for live load and keep a smaller class as the floor."
       },
       "sheetPdf": "/builds/FlatClaw-GLM-5.2-Local-vs-Cloud.pdf"
     }
@@ -493,15 +580,15 @@
       "id": "gemma-one-h100",
       "eyebrow": "Recipe 01 · Standard class",
       "title": "Gemma 4 31B at FP8 on one H100, 256K context",
-      "summary": "What every FlatClaw tenant runs today on the Northflank reference lane: a public SGLang image with no weights baked in, a weights volume served over the tenancy's own network, the Portal and one OpenClaw gateway per user on a small CPU plan next to the GPU, and a cold boot you can time with a watch.",
+      "summary": "What every FlatClaw tenant runs today, in a tenancy on the customer's own cloud: a public SGLang image with no weights baked in, a weights volume served over the tenancy's own network, the Portal and one OpenClaw gateway per user on a small CPU service next to the GPU, and a cold boot you can time with a watch.",
       "specs": [
         {
-          "k": "GPU plan",
-          "v": "`nf-gpu-h100-80-1g` · 26 vCPU · 234 GB RAM · 1 × H100 80 GB · $2.74 per GPU-hour"
+          "k": "GPU node",
+          "v": "1 × H100 80 GB · about $2,000 a month held warm · Azure `NC H100 v5` · AWS `p5` · Google Cloud `A3` · reference lane `nf-gpu-h100-80-1g` (26 vCPU, 234 GB RAM bundled)"
         },
         {
           "k": "Control plane",
-          "v": "`nf-compute-400-16` · 4 vCPU · 16 GB · about $144 a month · the Portal plus one gateway per user at 0.6–1.2 GB each"
+          "v": "4 vCPU · 16 GB · about $144 a month · the Portal plus one gateway per user at 0.6–1.2 GB each · Azure `D4s v5` · AWS `m6i.xlarge` · Google Cloud `n2-standard-4` · reference lane `nf-compute-400-16`"
         },
         {
           "k": "Image",
@@ -531,7 +618,7 @@
       "launch": "# inference pod, after the weights fetch\npython -m sglang.launch_server --model-path /weights/gemma-4-31b-it --quantization fp8 --tp 1 --context-length 262144 --tool-call-parser gemma4 --reasoning-parser gemma4 --cuda-graph-max-bs-decode 1 --port 8000",
       "sections": [
         {
-          "title": "How it is wired",
+          "title": "How it is wired on the reference lane",
           "items": [
             "GPU plans bundle CPU, RAM and GPU. A GPU attached to a CPU plan is silently dropped.",
             "Managed GPU services cannot mount the read-write-once volume, so a CPU pod serves it and the GPU pod fetches the weights at boot.",
@@ -554,7 +641,7 @@
           "items": [
             "A second H100 buys capacity and lanes, not a smarter model: on the October 2026 index nothing from a non-Chinese lab that fits two H100s beats Gemma 4 31B. Run Gemma tensor-parallel across two cards for throughput, or add a second lane.",
             "The real steps up are GPU-count steps: four cards (Inkling-Small at NVFP4, 171 GB), then eight (Mistral Large 4, or the frontier class below).",
-            "Northflank sells 1, 2, 4 or 8 GPUs per instance. NVLink and SXM are not documented, so do not plan on them."
+            "Managed GPU lanes sell 1, 2, 4 or 8 GPUs per instance. NVLink and SXM are rarely documented on them, so do not plan on them."
           ]
         }
       ],
@@ -577,15 +664,15 @@
       "specs": [
         {
           "k": "Cloud, fast",
-          "v": "`nf-gpu-b200-180-8g` · 8 × B200 180 GB, 1,536 GB · $47 an hour · about $34,300 a month warm · FP8 weights and KV with room for the 1M window"
+          "v": "8 × B200 180 GB, 1,536 GB · $47 an hour, about $34,300 a month warm at list · Azure `ND GB200 v6` · AWS `p6` · Google Cloud `A4` · reference lane `nf-gpu-b200-180-8g` · FP8 weights and KV with room for the 1M window"
         },
         {
           "k": "Cloud, economy",
-          "v": "`nf-gpu-h200-141-8g` · 8 × H200 141 GB, 1,128 GB · $25 an hour · about $18,300 a month warm · spot about $14.60 an hour · context up to 256K"
+          "v": "8 × H200 141 GB, 1,128 GB · $25 an hour, about $18,300 a month warm · spot about $14.60 an hour · Azure `ND H200 v5` · AWS `p5e` · Google Cloud `A3 Ultra` · reference lane `nf-gpu-h200-141-8g` · context up to 256K"
         },
         {
           "k": "Control plane",
-          "v": "`nf-compute-400-16` · 4 vCPU · 16 GB · about $144 a month · the Portal plus one OpenClaw gateway per user, the same service as the standard tenant"
+          "v": "4 vCPU · 16 GB · about $144 a month · the Portal plus one OpenClaw gateway per user, the same service as the standard tenant, on any cloud's small VM or container plan"
         },
         {
           "k": "Speed",

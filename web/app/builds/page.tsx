@@ -23,12 +23,12 @@ export default function BuildsPage() {
             <h1 className="text-4xl md:text-5xl font-bold tracking-tight">What we actually run, and what it costs.</h1>
             <p className="mt-5 text-lg max-w-2xl leading-relaxed text-[hsl(var(--brand-accent-fg))/0.9]">
               Two model classes, each with a local build you can order today and the cloud node that runs the same checkpoint,
-              side by side. Parts carry live Newegg prices; cloud plans carry list prices on the reference lane. The recipes
-              are the configurations behind them and the lessons that came with them.
+              side by side. Parts carry live Newegg prices. Cloud nodes carry indicative list prices, the same class on Azure,
+              AWS, Google Cloud or our reference lane. The recipes are the configurations behind them and the lessons that came with them.
             </p>
             <div className="mt-6 flex flex-wrap gap-3 text-sm">
-              <a href="#recipes" className="rounded-md bg-[hsl(var(--brand-accent))] px-4 py-2 font-semibold text-[hsl(var(--brand-accent-fg))] hover:opacity-90">Build recipes</a>
-              <a href="#references" className="rounded-md ring-1 ring-white/30 px-4 py-2 font-semibold hover:bg-white/10">Local and cloud references</a>
+              <a href="#references" className="rounded-md bg-[hsl(var(--brand-accent))] px-4 py-2 font-semibold text-[hsl(var(--brand-accent-fg))] hover:opacity-90">Local and cloud references</a>
+              <a href="#recipes" className="rounded-md ring-1 ring-white/30 px-4 py-2 font-semibold hover:bg-white/10">Build recipes</a>
             </div>
           </div>
           <div className="relative rounded-xl overflow-hidden ring-1 ring-white/10 shadow-2xl">

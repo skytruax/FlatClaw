@@ -115,6 +115,10 @@ const PACKER = `
     const secH = blk.querySelector("h2.sec") ? H(blk.querySelector("h2.sec")) : 0;
     const blkMargin = parseFloat(getComputedStyle(blk).marginBottom);
     const minFirst = preH + theadH + rowH.slice(0, 3).reduce((a, b) => a + b, 0);
+    // a block that fits on a fresh page is only split when it is a long table and the current page
+    // still takes a real share of it; small tables and short blocks move whole
+    const avgRow = rowH.reduce((a, b) => a + b, 0) / rowH.length;
+    if (h <= capacity && (rows.length < 10 || capacity - cur.h < minFirst + 4 * avgRow)) { flush(); place(blk); continue; }
     if (capacity - cur.h < minFirst) flush();
     let i = 0, first = true;
     while (i < rows.length) {
@@ -216,8 +220,7 @@ function sheetFor(build) {
   const variant = build.local.variants[0];
   const extraVariant = build.local.variants[1];
   const rec = build.cloud.options.find((o) => o.recommended) ?? build.cloud.options[0];
-  const cloudCards = build.cloud.options.map((o) => `<div class="card ${o.recommended ? "rec" : ""}"><h4>${esc(o.provider)}${o.recommended ? " · recommended" : ""} · <span style="font-family:monospace;text-transform:none;letter-spacing:0">${esc(o.plan)}</span></h4><div class="big">${usd(o.monthlyWarm)}<small>/mo${o.hourly >= 1 ? ` · $${o.hourly}/hr` : ""}${o.spotHourly ? ` · spot $${o.spotHourly}/hr ≈ ${usd(o.monthlySpot)}/mo` : ""}</small></div><p><b>${esc(o.gpus)}${o.vram !== "—" ? ` · ${esc(o.vram)}` : ""}.</b> ${o.notes.map(esc).join(" ")}</p></div>`).join("");
-  const elsewhere = build.cloud.elsewhere.map((e) => `<li><b>${esc(e.cloud)}</b> · <span style="font-family:monospace">${esc(e.sku)}</span> — ${esc(e.note)}</li>`).join("");
+  const cloudCards = build.cloud.options.map((o) => `<div class="card ${o.recommended ? "rec" : ""}"><h4>${o.recommended ? "recommended · " : ""}${esc(o.name)}</h4><div class="big">${usd(o.monthlyWarm)}<small>/mo${o.hourly >= 1 ? ` · $${o.hourly}/hr` : ""}${o.spotHourly ? ` · spot $${o.spotHourly}/hr ≈ ${usd(o.monthlySpot)}/mo` : ""}</small></div><p><b>${esc(o.spec)}.</b> ${o.notes.map(esc).join(" ")}</p>${o.skus?.length ? `<p style="margin-top:3px;font-size:6.8pt;color:var(--mute)">${o.skus.map((k) => `<b>${esc(k.cloud)}</b> <span style="font-family:monospace">${esc(k.sku)}</span>`).join(" · ")}</p>` : ""}</div>`).join("");
   const codeBlock = (list) => (list ?? []).map((s) => `<span class="c"># ${esc(s.label)}</span>\n${esc(s.value)}`).join("\n\n");
   const title = build.id === "glm-5-2" ? "Running GLM-5.2: locally and in the cloud" : "Running Gemma 4 31B: locally and in the cloud";
   const tag = `${esc(build.klass)} · build sheet<br>local + cloud · ${esc(asOfText)}`;
@@ -232,12 +235,12 @@ function sheetFor(build) {
 <p class="deck">${esc(build.subtitle)} <b>Model:</b> ${esc(build.model.name)} · ${esc(build.model.params)} · ${esc(build.model.license)} · ${esc(build.model.context)} · ${esc(build.model.footprint)}.</p>
 <div class="glance">${build.glance.map((g) => `<div class="gc"><div class="v">${esc(g.v)}</div><div class="l">${esc(g.l)}</div></div>`).join("")}</div>
 <div class="vs"><div class="side"><div class="k">Local · bought once</div><div class="n">${usd(localSum)}</div><div class="d">${esc(variant.title.replace(/ \(.*\)$/, ""))} as specced below; Newegg street prices on ${esc(asOfText)}.</div></div>
-<div class="side cloud"><div class="k">Cloud · held warm</div><div class="n">${usd(rec.monthlyWarm)}<small>/mo</small></div><div class="d">${esc(rec.provider)} ${esc(rec.plan)}, ${esc(rec.gpus)}; list price, 24/7, CPU and RAM bundled.</div></div></div>`));
+<div class="side cloud"><div class="k">Cloud · held warm</div><div class="n">${usd(rec.monthlyWarm)}<small>/mo</small></div><div class="d">${esc(rec.name)}, ${esc(rec.spec)}; indicative list price, 24/7, on Azure, AWS, Google Cloud or our reference lane.</div></div></div>`));
   blocks.push(blk(`${sec(num(), `Local — ${variant.title.replace(/ \(.*\)$/, "")}`)}<p class="deck" style="margin-bottom:6px">${esc(variant.summary)}</p>${partsTable(variant, { withPhases: true })}<p class="note">Newegg street prices as read on ${esc(asOfText)}; the live table at flatclaw.org/builds refreshes hourly. Used-market and unlisted parts are marked. Verify at checkout.</p>`));
   const alts = altTable(variant, num());
   if (alts) blocks.push(alts); else n--;
-  blocks.push(blk(`${sec(num(), "Cloud — the same checkpoint, one service")}<div class="two"><div>${cloudCards}<div class="tint"><div class="h">All-in</div><p>${esc(build.cloud.allInNote)}</p></div></div>
-<div><div class="card"><h4>The same shape elsewhere</h4><ul class="b">${elsewhere}</ul></div><div class="card"><h4>Notes</h4><ul class="b">${build.cloud.notes.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div></div></div>`));
+  blocks.push(blk(`${sec(num(), "Cloud — the same checkpoint on the cloud you already run")}${build.cloud.lead ? `<p class="deck" style="margin-bottom:6px">${esc(build.cloud.lead)}</p>` : ""}<div class="two"><div>${cloudCards}<div class="tint"><div class="h">All-in</div><p>${esc(build.cloud.allInNote)}</p></div></div>
+<div><div class="card"><h4>Price basis</h4><p>${esc(build.cloud.priceBasis)}</p></div><div class="card"><h4>Notes</h4><ul class="b">${build.cloud.notes.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div></div></div>`));
   if (build.quantLadder) blocks.push(blk(`${sec(num(), "The quant ladder — what fits where")}<table><thead><tr><th style="width:26%">Tier</th><th style="width:18%">Footprint</th><th>Fits</th></tr></thead><tbody>${build.quantLadder.map((q) => `<tr class="${/chosen/i.test(q.tier) ? "chosen" : ""}"><td><b>${esc(q.tier)}</b></td><td class="price" style="text-align:left">${esc(q.footprint)}</td><td>${esc(q.fits)}</td></tr>`).join("")}</tbody></table>`));
   const software = codeBlock(variant.software);
   blocks.push(blk(`${sec(num(), "Run it")}${software ? `<div class="code">${software}</div>` : ""}<ul class="b">${variant.notes.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>`));
