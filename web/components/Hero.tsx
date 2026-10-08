@@ -41,13 +41,14 @@ export function Hero() {
           <span className="text-[hsl(var(--brand-accent))]">Private AI Platform</span>.
         </h1>
         <p className="mt-5 md:mt-6 text-base md:text-xl max-w-3xl leading-relaxed text-[hsl(var(--brand-accent-fg))/0.9]">
-          Takeoffs counted from 190 sheets of drawings. Pricing and forecast
-          across four ERPs. Voice agents on your phone lines. Intake that reads
-          every file. Search walled by matter and role. Actions that wait for
-          approval. One platform runs all of it, with
-          inference on your own GPU, inside a tenancy you own on Azure, AWS,
-          Google Cloud, Northflank or your own hardware. Every line auditable.
-          Data locality mechanically verifiable, not marketed.
+          FlatClaw runs AI agents on infrastructure you own. Teams use it to
+          count takeoffs from drawing sets, price and forecast across several
+          ERPs, answer their phone lines, read incoming documents, search their
+          own records within the access rules they already have, and hold any
+          consequential action until a person approves it. The model runs on a
+          GPU inside a tenancy you own on Azure, AWS, Google Cloud, Northflank
+          or your own hardware. Every action is logged, and a packet capture on
+          the tenancy&apos;s egress shows that nothing leaves it.
         </p>
         <div className="mt-8 md:mt-9 flex flex-wrap gap-3">
           <a
