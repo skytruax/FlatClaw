@@ -448,7 +448,7 @@
         ]
       },
       "cloud": {
-        "lead": "The same checkpoint in a tenancy on the cloud the customer already runs. The fast node and the economy node are both eight-GPU machines; the control plane does not change.",
+        "lead": "The same checkpoint in a tenancy on the cloud the customer already runs. The fast node and the economy node are both eight-GPU machines; the control plane is twice the standard tenant's.",
         "priceBasis": "Indicative list prices held warm 24/7 on our reference lane; the same classes on Azure, AWS and Google Cloud land in the same band on reserved terms, and bare metal amortizes lower.",
         "options": [
           {
@@ -511,29 +511,29 @@
           },
           {
             "name": "Control plane",
-            "spec": "4 vCPU · 16 GB · the Portal plus one OpenClaw gateway per user",
-            "hourly": 0.2,
-            "monthlyWarm": 144,
+            "spec": "8 vCPU · 32 GB · the Portal, one OpenClaw gateway per user and the failover router",
+            "hourly": 0.4,
+            "monthlyWarm": 288,
             "skus": [
               {
                 "cloud": "Azure",
-                "sku": "D4s v5"
+                "sku": "D8s v5"
               },
               {
                 "cloud": "AWS",
-                "sku": "m6i.xlarge"
+                "sku": "m6i.2xlarge"
               },
               {
                 "cloud": "Google Cloud",
-                "sku": "n2-standard-4"
+                "sku": "n2-standard-8"
               },
               {
                 "cloud": "Northflank",
-                "sku": "nf-compute-400-16"
+                "sku": "nf-compute-800-32"
               }
             ],
             "notes": [
-              "The same service as the standard tenant. The model class does not change the control plane."
+              "Twice the standard tenant's control plane: the frontier class carries more users and longer sessions, and the router that fails over between the fast node, the economy node and a quantized fallback runs here too. Room for eight to ten users at 1–1.2 GB each."
             ]
           },
           {
@@ -569,7 +569,7 @@
           "Per GPU-hour at reference list prices: H100 $2.74 · RTX PRO 6000 96 GB $3.00 · H200 ~$3.14 · B200 ~$5.87.",
           "Routing is unchanged: OpenClaw points at one endpoint; a LiteLLM or vLLM router in the same tenancy adds failover to the economy node, a quantized fallback or a second region."
         ],
-        "allInNote": "About $34,500 a month held warm on the B200 node and about $18,500 on the H200 node, control plane and weights volume included; spot on H200 about $10,700. Schedule the flagship for live load and keep a smaller class as the floor."
+        "allInNote": "About $34,700 a month held warm on the B200 node and about $18,700 on the H200 node, control plane and weights volume included; spot on H200 about $10,900. Schedule the flagship for live load and keep a smaller class as the floor."
       },
       "sheetPdf": "/builds/FlatClaw-GLM-5.2-Local-vs-Cloud.pdf"
     }
@@ -671,7 +671,7 @@
         },
         {
           "k": "Control plane",
-          "v": "4 vCPU · 16 GB · about $144 a month · the Portal plus one OpenClaw gateway per user, the same service as the standard tenant, on any cloud's small VM or container plan"
+          "v": "8 vCPU · 32 GB · about $288 a month · the Portal, one OpenClaw gateway per user and the failover router · Azure `D8s v5` · AWS `m6i.2xlarge` · Google Cloud `n2-standard-8` · reference lane `nf-compute-800-32`"
         },
         {
           "k": "Speed",
