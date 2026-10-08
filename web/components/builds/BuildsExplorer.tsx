@@ -24,8 +24,8 @@ export function BuildsExplorer({ data }: { data: BuildsData }) {
 
   return (
     <div>
-      <div className="sticky top-[72px] z-20 -mx-5 px-5 pt-2.5 pb-3.5 md:py-3 bg-[hsl(var(--fc-bg-primary))/0.92] backdrop-blur border-b border-[hsl(var(--fc-bg-tertiary))]">
-        <div className="mx-auto max-w-6xl flex flex-wrap items-center gap-x-2 gap-y-3.5">
+      <div className="sticky top-[72px] z-20 -mx-5 px-5 pt-2.5 pb-4 md:pt-3 md:pb-4 bg-[hsl(var(--fc-bg-primary))/0.92] backdrop-blur border-b border-[hsl(var(--fc-bg-tertiary))]">
+        <div className="mx-auto max-w-6xl flex flex-wrap items-center gap-x-2 gap-y-4">
           <TabButton active={tab === "references"} onClick={() => go("references")} icon={<Cpu className="w-4 h-4" />} label="Local and cloud references" sub="parts, live prices, cloud nodes, side by side" />
           <TabButton active={tab === "recipes"} onClick={() => go("recipes")} icon={<Server className="w-4 h-4" />} label="Build recipes" sub="what we run and what we learned" />
           <div className="order-first w-full mb-1 md:order-none md:w-auto md:mb-0 md:ml-auto">
@@ -60,11 +60,11 @@ function TabButton({ active, onClick, icon, label, sub }: { active: boolean; onC
         <span className={"block text-[11px] leading-tight " + (active ? "text-white/70" : "text-[hsl(var(--fc-fg-muted))]")}>{sub}</span>
       </span>
       {active ? (
-        /* the notch from the Kirk logomark (branding/kirk-notch.svg), hung from the tab in the tab's own navy */
+        /* the notch from the Kirk logomark (branding/kirk-notch.svg), in Kirk orange, hung from the active tab */
         <svg
           aria-hidden
           viewBox="0 0 35.3035 27.7312"
-          className="absolute left-4 -bottom-[12px] h-[12px] w-[15px] text-[hsl(var(--brand-primary))]"
+          className="absolute left-4 -bottom-[14px] h-[14px] w-[18px] text-[#FA6900]"
         >
           <path d="M35.3035 0H0V27.7312L35.3035 0Z" fill="currentColor" />
         </svg>
