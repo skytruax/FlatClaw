@@ -13,10 +13,14 @@ export const metadata: Metadata = {
 type RateRow = { name: string; price: string; note?: string; ours?: boolean };
 const standardRates: RateRow[] = [
   { name: "Claude Haiku 5.5", price: "$0.50 – $2.50", note: "tiered by request size" },
+  { name: "Llama 4 Maverick, hosted", price: "$0.60", note: "open weights, cheapest hosts" },
   { name: "FlatClaw standard class", price: "$0.66", note: "Gemma 4 31B at FP8 on one H100", ours: true },
   { name: "GPT-5.6 Luna", price: "$1.20" },
+  { name: "Gemini 3.5 Flash-Lite", price: "$2.50" },
   { name: "Gemini 3.8 Flash", price: "$3.75" },
+  { name: "GPT-5.4 mini", price: "$4.50" },
   { name: "Claude Haiku 4.5", price: "$5" },
+  { name: "Mistral Medium 3.5, hosted", price: "$7.50" },
   { name: "Claude Sonnet 5.5", price: "$10" },
 ];
 const frontierRates: RateRow[] = [
@@ -77,7 +81,7 @@ const sameMonth: { node: string; tokens: string; flat: string; rows: [string, st
 
 /* Published head-to-head results for GLM-5.2 against the frontier labs (sources at the foot of the page).
    Bars are drawn relative to the best score in each row. */
-type Who = "ours" | "openai" | "anthropic";
+type Who = "ours" | "openai" | "anthropic" | "google" | "meta" | "mistral";
 type Bench = { name: string; unit: string; note?: string; scores: { model: string; value: number; who: Who }[] };
 const frontierHeadToHead: Bench[] = [
   { name: "SWE-bench Pro", unit: "% resolved", note: "real-world bug fixes", scores: [{ model: "GLM-5.2", value: 62.1, who: "ours" }, { model: "GPT-5.5", value: 58.6, who: "openai" }] },
@@ -90,14 +94,17 @@ const frontierHeadToHead: Bench[] = [
 ];
 const standardHeadToHead: Bench[] = [
   { name: "LMArena", unit: "Elo", note: "human preference, all models", scores: [{ model: "Gemma 4 31B", value: 1451, who: "ours" }, { model: "Claude Haiku 4.5", value: 1240, who: "anthropic" }] },
-  { name: "MMLU-Pro", unit: "% correct", note: "broad knowledge and reasoning", scores: [{ model: "Gemma 4 31B", value: 85.2, who: "ours" }, { model: "Claude Haiku 4.5", value: 68, who: "anthropic" }] },
-  { name: "GPQA Diamond", unit: "% graduate science", scores: [{ model: "Gemma 4 31B", value: 84.3, who: "ours" }, { model: "Claude Haiku 4.5", value: 52, who: "anthropic" }] },
+  { name: "MMLU-Pro", unit: "% correct", note: "broad knowledge and reasoning", scores: [{ model: "Gemma 4 31B", value: 85.2, who: "ours" }, { model: "GPT-5.4 mini", value: 84.6, who: "openai" }, { model: "Llama 4 Maverick", value: 80.9, who: "meta" }, { model: "Claude Haiku 4.5", value: 68, who: "anthropic" }] },
+  { name: "GPQA Diamond", unit: "% graduate science", scores: [{ model: "Gemma 4 31B", value: 84.3, who: "ours" }, { model: "Gemini 3.5 Flash-Lite", value: 83.8, who: "google" }, { model: "Mistral Medium 3.5", value: 74.8, who: "mistral" }, { model: "Llama 4 Maverick", value: 69.8, who: "meta" }, { model: "Claude Haiku 4.5", value: 52, who: "anthropic" }] },
   { name: "AIME", unit: "% solved", scores: [{ model: "Gemma 4 31B", value: 89.2, who: "ours" }] },
 ];
 const whoColor: Record<Who, string> = {
   ours: "hsl(var(--brand-accent))",
   anthropic: "hsl(var(--brand-primary) / 0.8)",
   openai: "hsl(var(--fc-fg-muted) / 0.6)",
+  google: "hsl(var(--brand-primary) / 0.45)",
+  meta: "hsl(var(--fc-fg-muted) / 0.4)",
+  mistral: "hsl(var(--brand-primary) / 0.28)",
 };
 
 const beyondPrice: [string, string][] = [
@@ -147,6 +154,10 @@ const sources: { label: string; href: string }[] = [
   { label: "SWE-bench Pro leaderboard (Morph)", href: "https://www.morphllm.com/swe-bench-pro" },
   { label: "Gemma 4 31B vs Claude Haiku 4.5 (Artificial Analysis)", href: "https://artificialanalysis.ai/models/comparisons/gemma-4-31b-vs-claude-4-5-haiku-reasoning" },
   { label: "Gemma 4 benchmarks and arena Elo", href: "https://gemma4all.com/blog/gemma-4-benchmarks-performance" },
+  { label: "Llama 4 Maverick (Artificial Analysis)", href: "https://artificialanalysis.ai/models/llama-4-maverick" },
+  { label: "GPT-5.4 mini benchmarks and pricing (benchlm)", href: "https://benchlm.ai/compare/gpt-5-4-mini-vs-gpt-5-5" },
+  { label: "Gemini 3.5 Flash-Lite (Artificial Analysis)", href: "https://artificialanalysis.ai/models/gemini-3-5-flash-lite" },
+  { label: "Mistral Medium 3.5 (Vals AI)", href: "https://www.vals.ai/models/mistralai_mistral-medium-3.5" },
 ];
 
 function PriceCard({ title, intro, rows }: { title: string; intro: string; rows: RateRow[] }) {
@@ -172,7 +183,7 @@ function PriceCard({ title, intro, rows }: { title: string; intro: string; rows:
 }
 
 function BenchCard({ title, intro, ours, rows, legend, foot }: { title: string; intro: string; ours: string; rows: Bench[]; legend: Exclude<Who, "ours">[]; foot: string }) {
-  const legendLabel: Record<Exclude<Who, "ours">, string> = { anthropic: "Anthropic", openai: "OpenAI" };
+  const legendLabel: Record<Exclude<Who, "ours">, string> = { anthropic: "Anthropic", openai: "OpenAI", google: "Google", meta: "Meta", mistral: "Mistral" };
   return (
     <div className="bg-[hsl(var(--fc-bg-surface))] rounded-xl ring-1 ring-[hsl(var(--fc-bg-tertiary))] p-6 shadow-sm">
       <h3 className="font-semibold text-base mb-1 text-[hsl(var(--fc-fg-primary))]">{title}</h3>
@@ -340,16 +351,16 @@ export default function TokenomicsPage() {
             <div className="grid lg:grid-cols-2 gap-8 items-start">
               <PriceCard
                 title="Price, per 1M output tokens"
-                intro="The hosted models a standard tenant would otherwise rent, from the small tier up to Sonnet 5.5."
+                intro="The hosted models a standard tenant would otherwise rent, from the small tier up to Sonnet 5.5, including the open models the cheapest hosts serve."
                 rows={standardRates}
               />
               <BenchCard
                 title="Ability: Gemma 4 31B against the small hosted models"
-                intro="Published results against Claude Haiku 4.5, the hosted small model at $5 per million. Gemma 4 31B leads on human preference and on knowledge and reasoning benchmarks by wide margins."
+                intro="Published results against the hosted models on the price list. Gemma 4 31B outscores Claude Haiku 4.5, Llama 4 Maverick and Mistral Medium 3.5 on knowledge and reasoning, edges GPT-5.4 mini and Gemini 3.5 Flash-Lite, and leads Haiku 4.5 by 200 points of human preference."
                 ours="Gemma 4 31B, FlatClaw standard class"
-                legend={["anthropic"]}
+                legend={["anthropic", "openai", "google", "meta", "mistral"]}
                 rows={standardHeadToHead}
-                foot="Bars are drawn relative to the best score in each row. Arena Elo as of June 2026; benchmark figures as published by Google and the comparison leaderboards; see sources."
+                foot="Bars are drawn relative to the best score in each row. Arena Elo as of June 2026; benchmark figures as published by the labs and the Artificial Analysis, Vals and benchlm leaderboards; see sources."
               />
             </div>
           </div>
