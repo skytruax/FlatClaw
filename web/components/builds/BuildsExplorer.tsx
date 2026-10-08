@@ -5,26 +5,16 @@ import { ExternalLink, RefreshCw, TrendingDown, TrendingUp, Minus, CheckCircle2,
 import { Sparkline } from "./Sparkline";
 import { priceDelta, relativeTime, useLivePrices, usd, type LivePrices } from "./prices";
 import type { BuildsData, Build, Part, Variant, Recipe } from "./types";
-
-type TabKey = "recipes" | "references";
+import { switchTab, useBuildsTab, type TabKey } from "./tabState";
 
 export function BuildsExplorer({ data }: { data: BuildsData }) {
-  const [tab, setTab] = useState<TabKey>("references");
-  useEffect(() => {
-    const fromHash = () => setTab(window.location.hash === "#recipes" ? "recipes" : "references");
-    fromHash();
-    window.addEventListener("hashchange", fromHash);
-    return () => window.removeEventListener("hashchange", fromHash);
-  }, []);
-  const go = (t: TabKey) => {
-    setTab(t);
-    history.replaceState(null, "", t === "recipes" ? "#recipes" : "#references");
-  };
+  const tab = useBuildsTab();
+  const go = (t: TabKey) => switchTab(t);
   const live = useLivePrices();
 
   return (
     <div>
-      <div className="sticky top-[72px] z-20 -mx-5 px-5 pt-2.5 pb-4 md:pt-3 bg-[hsl(var(--fc-bg-primary))/0.92] backdrop-blur border-b border-[hsl(var(--fc-bg-tertiary))]">
+      <div id="builds-tabs" className="sticky top-[72px] z-20 -mx-5 px-5 py-3 bg-[hsl(var(--fc-bg-primary))/0.92] backdrop-blur border-b border-[hsl(var(--fc-bg-tertiary))]">
         <div className="mx-auto max-w-6xl flex flex-wrap items-center gap-x-2 gap-y-3">
           <div className="flex w-full gap-2 sm:w-auto">
             <TabButton active={tab === "references"} onClick={() => go("references")} icon={<Cpu className="w-4 h-4" />} label="Local and cloud references" short="References" sub="parts, live prices, cloud nodes, side by side" />
@@ -56,21 +46,19 @@ function TabButton({ active, onClick, icon, label, short, sub }: { active: boole
           : "bg-[hsl(var(--fc-bg-surface))] text-[hsl(var(--fc-fg-primary))] ring-[hsl(var(--fc-bg-tertiary))] hover:ring-[hsl(var(--brand-accent))]")
       }
     >
-      <span className={active ? "text-[hsl(var(--brand-accent))]" : "text-[hsl(var(--fc-fg-muted))]"}>{icon}</span>
+      <span className={"flex items-center gap-1.5 " + (active ? "text-[hsl(var(--brand-accent))]" : "text-[hsl(var(--fc-fg-muted))]")}>
+        {icon}
+        {active ? (
+          /* the notch from the Kirk logomark (branding/kirk-notch.svg) marks the open tab */
+          <svg aria-hidden viewBox="0 0 35.3035 27.7312" className="h-[10px] w-[13px] text-[#FA6900]">
+            <path d="M35.3035 0H0V27.7312L35.3035 0Z" fill="currentColor" />
+          </svg>
+        ) : null}
+      </span>
       <span>
         <span className="block text-sm font-semibold leading-tight"><span className="sm:hidden">{short}</span><span className="hidden sm:inline">{label}</span></span>
         <span className={"hidden sm:block text-[11px] leading-tight " + (active ? "text-white/70" : "text-[hsl(var(--fc-fg-muted))]")}>{sub}</span>
       </span>
-      {active ? (
-        /* the notch from the Kirk logomark (branding/kirk-notch.svg), in Kirk orange, hung from the active tab */
-        <svg
-          aria-hidden
-          viewBox="0 0 35.3035 27.7312"
-          className="absolute left-4 -bottom-[14px] h-[14px] w-[18px] text-[#FA6900]"
-        >
-          <path d="M35.3035 0H0V27.7312L35.3035 0Z" fill="currentColor" />
-        </svg>
-      ) : null}
     </button>
   );
 }
