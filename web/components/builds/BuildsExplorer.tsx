@@ -24,11 +24,13 @@ export function BuildsExplorer({ data }: { data: BuildsData }) {
 
   return (
     <div>
-      <div className="sticky top-[72px] z-20 -mx-5 px-5 pt-2.5 pb-4 md:pt-3 md:pb-4 bg-[hsl(var(--fc-bg-primary))/0.92] backdrop-blur border-b border-[hsl(var(--fc-bg-tertiary))]">
-        <div className="mx-auto max-w-6xl flex flex-wrap items-center gap-x-2 gap-y-4">
-          <TabButton active={tab === "references"} onClick={() => go("references")} icon={<Cpu className="w-4 h-4" />} label="Local and cloud references" sub="parts, live prices, cloud nodes, side by side" />
-          <TabButton active={tab === "recipes"} onClick={() => go("recipes")} icon={<Server className="w-4 h-4" />} label="Build recipes" sub="what we run and what we learned" />
-          <div className="order-first w-full mb-1 md:order-none md:w-auto md:mb-0 md:ml-auto">
+      <div className="sticky top-[72px] z-20 -mx-5 px-5 pt-2.5 pb-4 md:pt-3 bg-[hsl(var(--fc-bg-primary))/0.92] backdrop-blur border-b border-[hsl(var(--fc-bg-tertiary))]">
+        <div className="mx-auto max-w-6xl flex flex-wrap items-center gap-x-2 gap-y-3">
+          <div className="flex w-full gap-2 sm:w-auto">
+            <TabButton active={tab === "references"} onClick={() => go("references")} icon={<Cpu className="w-4 h-4" />} label="Local and cloud references" short="References" sub="parts, live prices, cloud nodes, side by side" />
+            <TabButton active={tab === "recipes"} onClick={() => go("recipes")} icon={<Server className="w-4 h-4" />} label="Build recipes" short="Recipes" sub="what we run and what we learned" />
+          </div>
+          <div className="order-first w-full md:order-none md:w-auto md:ml-auto">
             <PriceStatus live={live} />
           </div>
         </div>
@@ -41,14 +43,14 @@ export function BuildsExplorer({ data }: { data: BuildsData }) {
   );
 }
 
-function TabButton({ active, onClick, icon, label, sub }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string; sub: string }) {
+function TabButton({ active, onClick, icon, label, short, sub }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string; short: string; sub: string }) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-pressed={active}
       className={
-        "relative flex items-center gap-3 rounded-lg px-4 py-2 text-left transition ring-1 " +
+        "relative flex flex-1 sm:flex-none items-center justify-center sm:justify-start gap-2 sm:gap-3 rounded-lg px-3 sm:px-4 py-2.5 sm:py-2 text-left transition ring-1 " +
         (active
           ? "bg-[hsl(var(--brand-primary))] text-white ring-[hsl(var(--brand-primary))]"
           : "bg-[hsl(var(--fc-bg-surface))] text-[hsl(var(--fc-fg-primary))] ring-[hsl(var(--fc-bg-tertiary))] hover:ring-[hsl(var(--brand-accent))]")
@@ -56,8 +58,8 @@ function TabButton({ active, onClick, icon, label, sub }: { active: boolean; onC
     >
       <span className={active ? "text-[hsl(var(--brand-accent))]" : "text-[hsl(var(--fc-fg-muted))]"}>{icon}</span>
       <span>
-        <span className="block text-sm font-semibold leading-tight">{label}</span>
-        <span className={"block text-[11px] leading-tight " + (active ? "text-white/70" : "text-[hsl(var(--fc-fg-muted))]")}>{sub}</span>
+        <span className="block text-sm font-semibold leading-tight"><span className="sm:hidden">{short}</span><span className="hidden sm:inline">{label}</span></span>
+        <span className={"hidden sm:block text-[11px] leading-tight " + (active ? "text-white/70" : "text-[hsl(var(--fc-fg-muted))]")}>{sub}</span>
       </span>
       {active ? (
         /* the notch from the Kirk logomark (branding/kirk-notch.svg), in Kirk orange, hung from the active tab */
@@ -84,7 +86,12 @@ function PriceStatus({ live }: { live: LivePrices }) {
     <div className="flex items-center gap-2 text-[11px] text-[hsl(var(--fc-fg-muted))]">
       <span className={"inline-block w-2 h-2 rounded-full " + (live.error ? "bg-red-500" : live.loading ? "bg-amber-400 animate-pulse" : "bg-emerald-500")} aria-hidden />
       <span>
-        {live.error ? `prices unavailable (${live.error})` : updated ? `Newegg prices as of ${new Date(updated).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} · checked ${relativeTime(live.fetchedAt?.toISOString() ?? null)}` : "loading prices…"}
+        {live.error ? `prices unavailable (${live.error})` : updated ? (
+          <>
+            Newegg prices as of {new Date(updated).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+            <span className="hidden sm:inline"> · checked {relativeTime(live.fetchedAt?.toISOString() ?? null)}</span>
+          </>
+        ) : "loading prices…"}
       </span>
       <button type="button" onClick={live.refresh} className="inline-flex items-center gap-1 rounded-md px-2 py-1 ring-1 ring-[hsl(var(--fc-bg-tertiary))] hover:text-[hsl(var(--fc-fg-primary))] hover:ring-[hsl(var(--brand-accent))]" aria-label="Refresh prices">
         <RefreshCw className={"w-3 h-3 " + (live.loading ? "animate-spin" : "")} /> refresh
