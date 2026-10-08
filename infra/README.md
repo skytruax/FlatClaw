@@ -8,7 +8,7 @@ A FlatClaw tenant owns one **Northflank project** holding the entire stack:
 
 - Portal (Next.js)
 - OpenClaw Gateway (agent runtime + per-agent memory)
-- Inference service (Northflank-managed H100, 80 GB, sm_90, native FP8)
+- Inference service (the tenant's model class: one managed H100 for the flagship class, an eight-GPU H200 or B200 node for the frontier class; native FP8 either way)
 - weights-server (small CPU pod serving the model-weights volume to the inference pod over the project's internal network)
 
 No second cloud, no BYOC plumbing, no GKE. Northflank schedules the GPU pod, manages ingress, TLS, DNS, observability, and project lifecycle.
