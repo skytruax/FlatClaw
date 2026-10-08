@@ -60,9 +60,17 @@ tcpdump test, zero bytes of vendor egress.
 
 **Where it runs.** Always the same list, in this order: **Azure, AWS, Google
 Cloud, Northflank, or your own hardware.** Never lead with a single cloud. The
-stat block is 1× H100-class GPU per tenant, Apache 2.0, 0 bytes vendor egress;
-the cost line is about $2,000 a month per tenant, every use case, one flat
-rate.
+stat block is 1 or 8 GPUs per tenant (one H100-class card for the flagship
+class, eight H200 or B200 for the frontier class), Apache 2.0, 0 bytes vendor
+egress; the cost line is one flat rate per tenant in two classes: the flagship
+class about $2,200 a month, the frontier class about $18,700 or $34,700, every
+use case, one flat rate.
+
+**The two model classes.** The one-card class (Gemma 4 31B at FP8, 256K
+context) is the **flagship class**; the eight-GPU class (GLM-5.2 at FP8, 1M
+context) is the **frontier class**. Never "standard class", and never describe
+the platform as one model on one GPU: the class is a per-tenant choice on the
+same platform.
 
 **The seven families of work.** When describing what the platform runs, use
 these, in this order. Estimating leads.

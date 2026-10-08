@@ -8,7 +8,6 @@ A FlatClaw tenant owns one **Northflank project** holding the entire stack:
 
 - Portal (Next.js)
 - OpenClaw Gateway (agent runtime + per-agent memory)
-- RAGFlow + corpus volume
 - Inference service (Northflank-managed H100, 80 GB, sm_90, native FP8)
 - weights-server (small CPU pod serving the model-weights volume to the inference pod over the project's internal network)
 
@@ -35,9 +34,9 @@ All four services plus the weights-server are deployed via Northflank manifests 
 
 1. Create a Northflank project named after the tenant.
 2. Provision the per-tenant weights volume (200 GB nvme).
-3. Run a one-shot Northflank stager job that mounts the volume, installs the Kaggle CLI, downloads `google/gemma-4/transformers/gemma-4-31b-it`, extracts and lays it out under `gemma-4-31b-it/`. ~10–15 minutes, idempotent.
+3. Run a one-shot Northflank stager job that mounts the volume, installs the Kaggle CLI, downloads `google/gemma-4/transformers/gemma-4-31b-it`, extracts and lays it out under `gemma-4-31b-it/`. ~10–15 minutes, idempotent. (The frontier class stages `zai-org/GLM-5.2` from Hugging Face onto a 1.5 TB+ volume the same way; the lane scripts cover the flagship class today.)
 4. Deploy the weights-server pod (HTTP file server over the volume, internal-only).
-5. Apply the Northflank manifests for Portal, Gateway, RAGFlow, and the inference service (H100 plan, custom entrypoint that fetches weights from weights-server at boot).
+5. Apply the Northflank manifests for Portal, Gateway and the inference service (H100 plan, custom entrypoint that fetches weights from weights-server at boot).
 6. Seed RBAC: create the owner user, default role-policy matrix.
 7. Print the Portal URL.
 

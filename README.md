@@ -151,18 +151,17 @@ The substrate — Northflank, AKS, EKS, GKE, or your own Kubernetes — provides
 
 ## Cost and tokenomics
 
-Indicative monthly costs on the reference lane (Northflank's published list pricing), single tenant, prod held warm 24/7. Azure NC H100 v5 and AWS p5 classes land in the same band on reserved terms; bare metal amortizes lower:
+Indicative monthly costs on the reference lane (Northflank's published list pricing), one tenant, prod held warm 24/7, in the two model classes. The same classes on Azure, AWS and Google Cloud land in the same band on reserved terms; bare metal amortizes lower:
 
-| Component | Plan | Approx. monthly |
+| Component | Flagship class | Frontier class |
 |---|---|---|
-| **Inference (H100 80GB)** | Managed H100 GPU plan, held warm | **~$1,800** |
-| Portal | 4 vCPU / 8 GB | ~$50 |
-| OpenClaw Gateway | 4 vCPU / 8 GB | ~$50 |
-| weights-server + weights volume | small CPU pod + 200 GB nvme | ~$30 |
-| Egress, TLS, observability, project mgmt | included | — |
-| **Total per tenant, all-in** | | **~$2,000 / month** |
+| **GPU node, held warm** | 1 × H100 80 GB — **~$2,000** | 8 × H200 — **~$18,300**, or 8 × B200 for speed — **~$34,300** |
+| Control plane — Portal + one OpenClaw gateway per user | 4 vCPU / 16 GB — ~$144 | 8 vCPU / 32 GB, plus the failover router — ~$288 |
+| Weights volume + the CPU pod that serves it | 200 GB — ~$30 | 1.5 TB+ — ~$60 |
+| Egress, TLS, observability, project mgmt | included | included |
+| **Total per tenant, all-in** | **~$2,200 / month** | **~$18,700 / month** (H200) · **~$34,700** (B200) |
 
-This is a **flat per-tenant rate, not per-token metering**, and it scales with the tenant — not with seat count. List prices and round numbers; committed-use or annual terms on any of the clouds typically reduce the GPU line. The inference line dominates — everything else combined is under $200.
+This is a **flat per-tenant rate, not per-token metering**, and it scales with the tenant — not with seat count. List prices and round numbers; committed-use or annual terms on any of the clouds typically reduce the GPU line. The GPU line dominates: everything else combined is under $200 on the flagship class and under $350 on the frontier class.
 
 ### Why a dedicated node wins on cost
 
@@ -179,7 +178,7 @@ The honest trade-offs (where self-hosting is *wrong* — low volume, low utiliza
 
 **[flatclaw.org/builds](https://flatclaw.org/builds/)** is the hardware companion to this section. For each model class it puts a local build you can order today next to the cloud node that runs the same checkpoint:
 
-- **Flagship class — Gemma 4 31B at FP8, 256K context.** One 96 GB card locally (an RTX PRO 6000 Blackwell workstation, every part at Newegg's price), or the ~$2,000/month H100 plan above plus the control plane.
+- **Flagship class — Gemma 4 31B at FP8, 256K context.** One 96 GB card locally (an RTX PRO 6000 Blackwell workstation, every part at Newegg's price), or the ~$2,200/month cloud node above, control plane included.
 - **Frontier class — GLM-5.2, 744B parameters as a mixture of experts.** An eight-card 4U server that holds the FP8 checkpoint in 768 GB of VRAM, a two-card workstation for a 4-bit copy, and the eight-B200 cloud node tuned for speed, with the economy H200 node beside it.
 
 Every part carries a live Newegg street price (refreshed hourly by a scheduled job; the page re-reads them every ten minutes), the quantization ladder shows what fits where, and each class has a printable build sheet with the local and cloud versions side by side. The recipes tab holds the two configurations behind it: the flagship tenant (one H100, with its control plane and what cost us time) and the frontier class (GLM-5.2 on eight H200s, or quantized on a workstation).
