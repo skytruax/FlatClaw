@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import { BuildsExplorer } from "@/components/builds/BuildsExplorer";
-import { HeroTabLinks } from "@/components/builds/HeroTabLinks";
 import type { BuildsData } from "@/components/builds/types";
 import data from "@/data/builds.json";
 
@@ -27,7 +26,6 @@ export default function BuildsPage() {
               side by side. Parts carry live Newegg prices. Cloud nodes carry indicative list prices, the same class on Azure,
               AWS, Google Cloud or our reference lane. The recipes are the configurations behind them and the lessons that came with them.
             </p>
-            <HeroTabLinks />
           </div>
           <div className="relative rounded-xl overflow-hidden ring-1 ring-white/10 shadow-2xl">
             <Image src="/builds/hero.webp" alt="Exploded view of the FlatClaw inference workstation beside an eight-GPU server" width={1600} height={1067} priority className="w-full h-auto" />
