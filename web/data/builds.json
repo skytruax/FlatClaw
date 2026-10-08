@@ -154,7 +154,7 @@
             ],
             "notes": [
               "About $2,000 a month held warm 24/7 including the bundled CPU and RAM.",
-              "Cold boot about 10 minutes: image pull, weights fetched from the weights volume over the tenancy's own network, SGLang load."
+              "Weights are fetched from the weights volume over the tenancy's own network at boot; nothing leaves the tenancy."
             ]
           },
           {
@@ -325,7 +325,7 @@
                 "id": "ram",
                 "role": "Memory",
                 "pick": "Kingston Server Premier 64 GB DDR5-5600 ECC RDIMM × 12 = 768 GB",
-                "why": "768 GB matches the VRAM, so the whole checkpoint page-caches for fast reloads; one DIMM on six of the twelve channels per socket. Memory is where the money went this year.",
+                "why": "768 GB matches the VRAM, so the whole checkpoint can stage through system memory; one DIMM on six of the twelve channels per socket. Memory is where the money went this year.",
                 "qty": 12,
                 "newegg": "N82E16820242894"
               },
@@ -424,7 +424,7 @@
                 "id": "ssd",
                 "role": "Storage",
                 "pick": "Samsung 9100 PRO 4 TB, NVMe Gen5 × 2",
-                "why": "GGUF tiers run 223–810 GB each; Gen5 keeps mmap and load fast. Two 4 TB drives hold several quant levels side by side (the 8 TB model is not listed).",
+                "why": "GGUF tiers run 223–810 GB each. Two 4 TB Gen5 drives hold several quant levels side by side (the 8 TB model is not listed).",
                 "qty": 2,
                 "newegg": "N82E16820147904"
               }
@@ -477,7 +477,7 @@
             ],
             "notes": [
               "HBM3e at about 8 TB/s per card, roughly twice the H200, so decode per stream is about twice as fast; FP8 weights and an FP8 KV cache with room for the full 1M-token window.",
-              "SGLang --tp 8 --enable-moe-ep; a 1.5 TB or larger weights volume and a 20–40 minute cold boot (744 GB fetched)."
+              "SGLang --tp 8 --enable-moe-ep; a 1.5 TB or larger weights volume, fetched by the node at boot (744 GB)."
             ]
           },
           {
@@ -579,7 +579,7 @@
       "id": "gemma-one-h100",
       "eyebrow": "Recipe 01 · Standard class",
       "title": "Gemma 4 31B at FP8 on one H100, 256K context",
-      "summary": "What every FlatClaw tenant runs today, in a tenancy on the customer's own cloud: a public SGLang image with no weights baked in, a weights volume served over the tenancy's own network, the Portal and one OpenClaw gateway per user on a small CPU service next to the GPU, and a cold boot you can time with a watch.",
+      "summary": "What every FlatClaw tenant runs today, in a tenancy on the customer's own cloud: a public SGLang image with no weights baked in, a weights volume served over the tenancy's own network, and the Portal and one OpenClaw gateway per user on a small CPU service next to the GPU.",
       "specs": [
         {
           "k": "GPU node",
@@ -598,8 +598,8 @@
           "v": "Gemma 4 31B FP8 on a 200 GB tenancy volume · staged once from Kaggle · a CPU pod serves them to the GPU pod over HTTP"
         },
         {
-          "k": "Cold boot",
-          "v": "About 10 minutes: image pull, weights fetch, model load · the gateways are up about 13 seconds after the control container starts"
+          "k": "Boot",
+          "v": "Image pull, weights fetch from the tenancy's own volume, model load; the gateways come up after the control container, with the seeded users' prompts re-synced on every boot"
         },
         {
           "k": "Capacity",
@@ -691,7 +691,7 @@
         },
         {
           "k": "Weights",
-          "v": "`zai-org/GLM-5.2` on Hugging Face, MIT · a 1.5 TB or larger volume · a 20–40 minute cold boot in the cloud · SGLang or vLLM at FP8, llama.cpp or KTransformers for the 4-bit box"
+          "v": "`zai-org/GLM-5.2` on Hugging Face, MIT · a 1.5 TB or larger volume, fetched at boot · SGLang or vLLM at FP8, llama.cpp or KTransformers for the 4-bit box"
         }
       ],
       "launch": "# cloud node (B200 or H200) and the eight-card server: the same line\npython -m sglang.launch_server --model-path zai-org/GLM-5.2 --tp 8 --quantization fp8 --enable-moe-ep --kv-cache-dtype fp8_e5m2 --context-length 262144 --port 8000\n\n# two-card workstation, 4-bit GGUF, experts in system memory\n./llama-server -m GLM-5.2-UD-Q4_K_XL.gguf -ngl 99 -t 32 -c 131072 --flash-attn --cache-type-k q8_0 --cache-type-v q8_0 --port 8000",
