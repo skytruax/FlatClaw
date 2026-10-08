@@ -114,21 +114,20 @@ export default function HomePage() {
       <Section
         id="cost"
         eyebrow="Token Economics"
-        title="≈ $2,000 / month per tenant. Every use case, one flat rate."
-        lede="One GPU carries a tenant's whole workload: voice, intake, reporting, search and agents share it. Indicative monthly cost for a single tenant held warm 24/7 on a managed H100 plan, at the reference lane's published list pricing. Azure and AWS H100 classes land in the same band on reserved terms; bare metal amortizes lower. The H100 dominates; everything else combined is under $200. The rate is per tenant and scales with the tenant — not metered per token or per seat."
+        title="One flat rate per tenant, in two classes."
+        lede="One node carries a tenant's whole workload: voice, intake, reporting, search and agents share it. The standard class runs Gemma 4 31B on one H100-class card for about $2,200 a month; the frontier class runs GLM-5.2 across eight H200 or B200 GPUs for about $18,700 or $34,700. Indicative list prices on the reference lane, held warm 24/7; the same classes on Azure, AWS and Google Cloud land in the same band on reserved terms. The rate is per tenant and scales with the tenant — not metered per token or per seat."
       >
         <div className="grid lg:grid-cols-2 gap-8 items-start">
           <div className="bg-[hsl(var(--fc-bg-surface))] rounded-xl ring-1 ring-[hsl(var(--fc-bg-tertiary))] p-6 shadow-sm">
             <h3 className="font-semibold text-base mb-4 text-[hsl(var(--fc-fg-primary))]">
-              Monthly cost breakdown
+              Standard class, monthly
             </h3>
             <table className="w-full text-sm">
               <tbody className="divide-y divide-[hsl(var(--fc-bg-tertiary))]">
                 {[
-                  ["Inference (H100 80GB, held warm)", "~$1,800"],
-                  ["Portal — small compute (4 vCPU / 8 GB)", "~$50"],
-                  ["Agent harness — small compute", "~$50"],
-                  ["weights-server + 200 GB nvme", "~$30"],
+                  ["GPU node (1 × H100 80 GB, held warm)", "~$2,000"],
+                  ["Control plane — Portal + one gateway per user (4 vCPU / 16 GB)", "~$144"],
+                  ["Weights volume + CPU pod", "~$30"],
                   ["Egress · TLS · observability", "included"],
                 ].map(([k, v]) => (
                   <tr key={k}>
@@ -145,7 +144,37 @@ export default function HomePage() {
                     Total per tenant, all-in
                   </td>
                   <td className="pt-3 text-right font-mono font-bold text-[hsl(var(--brand-accent-deep))]">
-                    ~$2,000 / mo
+                    ~$2,200 / mo
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <h3 className="font-semibold text-base mt-6 mb-4 text-[hsl(var(--fc-fg-primary))]">
+              Frontier class, monthly
+            </h3>
+            <table className="w-full text-sm">
+              <tbody className="divide-y divide-[hsl(var(--fc-bg-tertiary))]">
+                {[
+                  ["GPU node (8 × H200, held warm) · or 8 × B200 for speed", "~$18,300 · ~$34,300"],
+                  ["Control plane — Portal, gateways and the failover router (8 vCPU / 32 GB)", "~$288"],
+                  ["Weights volume (1.5 TB+) + CPU pod", "~$60"],
+                  ["Egress · TLS · observability", "included"],
+                ].map(([k, v]) => (
+                  <tr key={k}>
+                    <td className="py-2 pr-3 text-[hsl(var(--fc-fg-secondary))]">
+                      {k}
+                    </td>
+                    <td className="py-2 text-right font-mono text-[hsl(var(--fc-fg-primary))] whitespace-nowrap">
+                      {v}
+                    </td>
+                  </tr>
+                ))}
+                <tr className="border-t-2 border-[hsl(var(--brand-accent))/0.5]">
+                  <td className="pt-3 font-semibold text-[hsl(var(--fc-fg-primary))]">
+                    Total per tenant, all-in
+                  </td>
+                  <td className="pt-3 text-right font-mono font-bold text-[hsl(var(--brand-accent-deep))] whitespace-nowrap">
+                    ~$18,700 · ~$34,700 / mo
                   </td>
                 </tr>
               </tbody>
@@ -153,34 +182,35 @@ export default function HomePage() {
             <p className="mt-4 text-xs text-[hsl(var(--fc-fg-muted))] leading-relaxed">
               List prices, round numbers. Committed-use or annual terms on any
               of the clouds typically reduce the GPU line. One bill, from the
-              cloud the customer already has a relationship with.
+              cloud the customer already has a relationship with. Local builds
+              of both classes, with live part prices, are on the Builds page.
             </p>
           </div>
 
           <div className="space-y-3">
             <h3 className="font-semibold text-base text-[hsl(var(--fc-fg-primary))]">
-              How one H100 carries a tenant — and how it scales
+              How a node carries a tenant, and how it scales
             </h3>
             {[
               {
                 k: "Concurrency, not headcount, sets the load.",
-                v: "What the GPU serves is peak concurrent active sessions, not the tenant's total user count — people skim a result, edit a doc, take a call, ask a follow-up. The H100 is sized to that concurrent peak; the per-tenant rate doesn't move with seat count.",
+                v: "What the node serves is peak concurrent active sessions, not the tenant's total user count — people skim a result, edit a doc, take a call, ask a follow-up. The node is sized to that concurrent peak; the per-tenant rate doesn't move with seat count.",
               },
               {
-                k: "The 31B path handles 8–12 concurrent streams.",
-                v: "One H100 SGLang process at Gemma 4 31B FP8 sustains ~8–12 concurrent streaming chats with first-token latency in the 1–2 s range. SGLang's RadixAttention prefix cache earns most of that on conversational reuse.",
+                k: "The standard class handles 8–12 concurrent streams; the frontier node, hundreds.",
+                v: "One H100 SGLang process at Gemma 4 31B FP8 sustains ~8–12 concurrent streaming chats with first-token latency in the 1–2 s range; eight H200s or B200s serving GLM-5.2 with multi-token prediction sustain hundreds. SGLang's RadixAttention prefix cache earns most of that on conversational reuse.",
               },
               {
                 k: "Most user actions don't touch the LLM at all.",
                 v: "Memory recall, RAG retrieval, file reads, OAuth tool invocations — all gateway- or skill-side. The LLM is invoked for chat turns and tool-call planning. A typical session is a handful of LLM calls, not hundreds.",
               },
               {
-                k: "Headroom for bursts, then a bigger class.",
-                v: "Gemma 4 31B FP8 (~33 GB) plus KV cache fits in 80 GB with headroom for long contexts. When a tenant's work needs a smarter model, the step is a class, not a redesign: two cards, or an eight-card node serving a mixture-of-experts model — same platform, same agents, same front door. The local and cloud builds for each class are on the Builds page.",
+                k: "Two classes, one platform.",
+                v: "The standard class is Gemma 4 31B at FP8 on one card: ~33 GB of weights plus KV cache in 80 GB, with headroom for long contexts. The frontier class is GLM-5.2, a 744B mixture of experts at FP8 across eight GPUs with a 1M-token window. Same platform, same agents, same front door; the class is a per-tenant choice, and a tenant can run both behind one endpoint.",
               },
               {
-                k: "Tenants scale the GPU plan, not the architecture.",
-                v: "When a tenant outgrows one card, the next step is a higher-tier GPU plan or a multi-GPU node on the same cloud — or a second inference service for triage. Same tenancy, same architecture, same per-tenant model.",
+                k: "Tenants scale the class, not the architecture.",
+                v: "When a tenant outgrows one card, the next step is a second card, the frontier node, or a second inference service for triage — on the same cloud, in the same tenancy, with the same architecture and the same per-tenant model.",
               },
             ].map(({ k, v }) => (
               <div
@@ -237,10 +267,10 @@ export default function HomePage() {
       >
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[
-            ["Inference", "Patched SGLang + Gemma 4 31B Dense"],
-            ["Silicon", "NVIDIA H100-class · 80 GB · native FP8"],
+            ["Inference", "Patched SGLang · Gemma 4 31B (standard class) · GLM-5.2 (frontier class)"],
+            ["Silicon", "One H100-class card, or eight H200 / B200 · native FP8"],
             ["Substrate", "Your cloud — Azure, AWS, Google Cloud, Northflank, or bare metal — one tenancy per customer"],
-            ["Context", "256K native on Gemma 4 31B · RadixAttention prefix cache"],
+            ["Context", "256K on the standard class · 1M on the frontier class · RadixAttention prefix cache"],
             ["Agent harness", "Built on the minimal open Pi agent core — RBAC at every tool call · per-agent memory built in · gateway layer swappable behind the session API"],
             ["Frontend", "Next.js 16 + React 19 + TypeScript + SQLite"],
             ["Auth", "Auth.js sign-in with Portal roles · enterprise SSO on the roadmap"],

@@ -24,6 +24,7 @@ We aim to:
 - Upstream OpenClaw — [github.com/steipete/openclaw](https://github.com/steipete/openclaw)
 - Upstream SGLang — [github.com/sgl-project/sglang](https://github.com/sgl-project/sglang)
 - Gemma 4 model weights, distributed by Google under [Gemma Terms of Use](https://ai.google.dev/gemma/terms)
+- GLM-5.2 model weights, distributed by Z.ai under the [MIT license](https://huggingface.co/zai-org/GLM-5.2/blob/main/LICENSE)
 - Northflank or Kaggle — please use their respective vulnerability-reporting channels.
 
 ## Security model, in brief
